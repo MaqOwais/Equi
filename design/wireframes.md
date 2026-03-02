@@ -166,8 +166,11 @@
 ┌─────────────────────────────┐
 │  ○  ○  ○  ●                 │
 │                             │
-│   Add an emergency          │
-│   contact (optional)        │
+│  Your support network       │
+│  (all optional)             │
+│                             │
+│  ── EMERGENCY CONTACTS ──   │
+│  Called when you tap SOS    │
 │                             │
 │  ┌─────────────────────────┐│
 │  │  👤  Name               ││
@@ -176,10 +179,24 @@
 │  │  📞  Phone number       ││
 │  └─────────────────────────┘│
 │  ┌─────────────────────────┐│
-│  │  Relationship         ▼ ││
-│  └─────────────────────────┘│
+│  │  Relationship         ▼ ││  ← Parent / Guardian /
+│  └─────────────────────────┘│     Spouse / Sibling
+│   [ + Add emergency contact]│
 │                             │
-│   [ + Add another contact ] │
+│  ── SOCIAL CONTACTS ──      │
+│  Reach out when you feel    │
+│  lonely or stuck            │
+│                             │
+│  ┌─────────────────────────┐│
+│  │  👤  Name               ││
+│  └─────────────────────────┘│
+│  ┌─────────────────────────┐│
+│  │  📞  Phone number       ││
+│  └─────────────────────────┘│
+│  ┌─────────────────────────┐│
+│  │  Who are they?        ▼ ││  ← Friend / Coworker /
+│  └─────────────────────────┘│     Support group /
+│   [ + Add social contact ]  │     Therapist / Other
 │                             │
 │   ┌─────────────────────┐   │
 │   │     Enter Equi      │   │
