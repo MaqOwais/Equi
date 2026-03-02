@@ -84,6 +84,24 @@ One tap from anywhere in the app. Shows your saved emergency contacts (parents, 
 ### 🌿 Ambient Themes
 6 calming scenes: Beach, Mountains, Forest, Fireplace, Rain, Night Sky. Adaptive mode auto-shifts based on your current cycle state.
 
+### 🌙 Moonlight Winddown
+A dedicated sleep activity with sleep-inducing music and a guided body scan. Designed specifically for bipolar sleep disruption — a major trigger for both manic and depressive episodes.
+
+### 🕊️ Forgiveness Activity
+Guided "I forgive myself for…" prompt sequences. Bipolar disorder carries significant shame around past episodes — this activity addresses it directly.
+
+### 📘 Bipolar Workbook
+Structured, chapter-based reflection prompts covering: understanding your cycles, identifying triggers, recognizing warning signs, and building on strengths. Responses are private and exportable as PDF for psychiatrist sessions.
+
+### 🗓️ Daily Routine Builder
+Fully customizable daily checklist and journal prompts. Set your own habits (morning walk, sleep time, screen limits), assign importance weights (1–5 stars), and track a weighted daily progress score. All checklist data feeds directly into AI analytics.
+
+### 📓 Activity Streak
+Every completed journal entry and activity is tracked as a streak in the journal calendar. Entries are editable for 48 hours then locked — keeping AI data reliable while allowing same-day corrections.
+
+### 💜 Well-wisher & Guardian Access
+Share your mood summaries, selected journal entries, or full AI reports with friends, family, or your therapist — with granular per-person permissions. Guardian mode allows parents or caregivers to receive automatic alerts when high-risk thresholds are triggered, and optionally manage the account when the user is in crisis. Always revocable by the user.
+
 ---
 
 ## Color System
@@ -106,19 +124,22 @@ The app's colors are tied to emotional states — no color is labeled "bad" or "
 
 | # | Screen | Description |
 |---|---|---|
-| 01 | Splash & Onboarding | Diagnosis selector, initial cycle state, emergency contact setup |
-| 02 | Home (Today) | Cycle status, quick mood log, wearable sleep, daily suggestions |
-| 03 | Journal | Notion-style block editor with calendar archive |
+| 01 | Splash & Onboarding | Diagnosis selector, 10-pt mood intro, support network setup |
+| 02 | Home (Today) | Cycle card, mood tap, wearable sleep, streak strip, SOS |
+| 03 | Journal | Block editor, activity log, streak, 48hr edit, custom prompts |
 | 04 | Cycle Tracker | 4-state toggle, symptom checklist, 90-day wave graph, AI insight |
-| 05 | Activities | Filter by cycle phase, recommended for today, bookmarks |
+| 05 | Activities | Moonlight, Forgiveness, Workbook, phase filter, bookmarks |
 | 06 | Activity Detail | In-app experience (e.g. Gratitude Jar inputs, past entries) |
 | 07 | Community | Channels, anonymous feed, pinned crisis line |
 | 08 | Psychiatrists | Browse, filter, book, share AI report pre-session |
 | 09 | AI Wellness Report | Sleep correlations, journal sentiment, early warnings, PDF export |
-| 10 | Unified Calendar | Full day view — everything in one place |
+| 10 | Unified Calendar | Full day view — all data in one place |
 | 11 | Crisis Mode | Emergency contacts, crisis lines, grounding tools |
 | 12 | Ambient Themes | 6 scenes, adaptive mode, sound controls |
 | 13 | Profile & Settings | Wellness radar, stats, wearable sync, donation, data export |
+| 14 | Daily Routine Builder | Custom prompts, weighted checklist, daily progress score |
+| 15 | Bipolar Workbook | Chapter-based structured prompts, PDF export |
+| 16 | Well-wisher & Guardian | Per-person share controls, auto-alerts, account management |
 
 > Full wireframes → [`design/wireframes.md`](design/wireframes.md)
 
@@ -130,11 +151,13 @@ The app's colors are tied to emotional states — no color is labeled "bad" or "
 |---|---|
 | Mobile | React Native (Expo) |
 | Backend & Database | Supabase (Postgres + Auth + Realtime) |
-| AI Reports | Claude API (Anthropic) |
+| AI Summarization | Llama 3.1 70B via Groq API (zero data retention) |
 | Journal Editor | Lexical (Meta's block editor) |
 | Wearable Sync | Apple HealthKit + Google Fit API |
 | Payments & Donations | Stripe |
 | Psychiatrist Booking | Custom scheduling (Calendly API) |
+
+**AI Model rationale:** Llama 3.1 70B via Groq's zero-retention API gives strong clinical reasoning at no cost during development, with a self-hosted fallback (Ollama + BioMistral) for full HIPAA compliance in production. No user data is used for model training.
 
 ---
 

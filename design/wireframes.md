@@ -8,27 +8,31 @@
 ## Navigation Map
 
 ```
-                       ┌─────────┐
-                       │  Equi   │
-                       └────┬────┘
-             ┌──────────────┼──────────────┐
-             ▼              ▼              ▼
-         [Home]         [Journal]       [Cycle]
-       Today View      Block Editor     Tracker
-       Mood log        Calendar Arc     Wave Graph
-       Suggestions     AI tags          Symptoms
-             │              │               │
-             └──────────────┼───────────────┘
-                            │
-             ┌──────────────┼──────────────┐
-             ▼                             ▼
-         [Explore]                       [You]
-       Activities                      Profile
-       Psychiatrists                   Stats
-       Community                       Settings
-       Themes                          Donate
-             │
-             └─── [Crisis Mode]  (always one tap away)
+                        ┌─────────┐
+                        │  Equi   │
+                        └────┬────┘
+              ┌──────────────┼──────────────┐
+              ▼              ▼              ▼
+          [Home]         [Journal]       [Cycle]
+        Today View      Block Editor     Tracker
+        Mood log        Activity log     Wave Graph
+        Streak strip    Streak + 48h     Symptoms
+        Suggestions     Custom prompts   AI insight
+              │              │               │
+              └──────────────┼───────────────┘
+                             │
+              ┌──────────────┼──────────────┐
+              ▼                             ▼
+          [Explore]                       [You]
+        Activities                      Profile
+        Moonlight sleep                 Stats / Radar
+        Forgiveness                     Routine Builder
+        Bipolar Workbook                Well-wisher ctrl
+        Psychiatrists                   Guardian access
+        Community                       Settings / Donate
+        Themes
+              │
+              └─── [Crisis Mode]  (always one tap away)
 ```
 
 ---
@@ -55,11 +59,11 @@
 
 | # | Screen | Key Elements |
 |---|---|---|
-| [01](#screen-01--splash--onboarding) | Splash & Onboarding | Diagnosis, initial state, emergency contact |
-| [02](#screen-02--home-today-view) | Home (Today) | Cycle card, mood tap, sleep, suggestions, SOS |
-| [03](#screen-03--journal) | Journal | Notion-style blocks, calendar strip, past entries |
+| [01](#screen-01--splash--onboarding) | Splash & Onboarding | Diagnosis, 10-pt mood intro, support network |
+| [02](#screen-02--home-today-view) | Home (Today) | Cycle card, mood tap, sleep, streak, SOS |
+| [03](#screen-03--journal) | Journal | Block editor, activity log, streak, 48hr edit |
 | [04](#screen-04--cycle-tracker) | Cycle Tracker | 4 states, symptoms, 90-day wave, AI insight |
-| [05](#screen-05--activities-explore) | Activities | Phase filter, recommended, bookmarks |
+| [05](#screen-05--activities-explore) | Activities | Phase filter, Moonlight, Forgiveness, Workbook |
 | [06](#screen-06--activity-detail) | Activity Detail | In-app experience, past entries |
 | [07](#screen-07--community) | Community | Channels, anonymous feed, pinned crisis line |
 | [08](#screen-08--psychiatrists) | Psychiatrists | Browse, filter, book, share AI report |
@@ -68,6 +72,9 @@
 | [11](#screen-11--crisis-mode) | Crisis Mode | Emergency contacts, crisis lines, grounding tools |
 | [12](#screen-12--ambient-themes) | Ambient Themes | 6 scenes, adaptive mode, sound controls |
 | [13](#screen-13--profile--you) | Profile / You | Wellness radar, stats, settings, donate |
+| [14](#screen-14--daily-routine-builder) | Daily Routine Builder | Custom prompts, daily checklist, importance weights |
+| [15](#screen-15--bipolar-workbook) | Bipolar Workbook | Structured prompts, guided reflection |
+| [16](#screen-16--well-wisher--guardian-access) | Well-wisher & Guardian | Share journal/progress, parent account control |
 
 ---
 
@@ -142,24 +149,29 @@
 └─────────────────────────────┘
 ```
 
-**Slide 3 — Current state**
+**Slide 3 — How are you feeling right now?**
 ```
 ┌─────────────────────────────┐
 │  ○  ○  ●  ○                 │
 │                             │
 │  How are you feeling        │
-│  right now, roughly?        │
+│  right now?                 │
 │                             │
-│   ╔═══╗    ╔═══╗    ╔═══╗   │
-│   ║ ↑ ║    ║ ~ ║    ║ ↓ ║   │  ← tap to select
-│   ╚═══╝    ╚═══╝    ╚═══╝   │
-│   High     Stable    Low    │
-│  [blue]   [green]  [mauve]  │
+│  Tap the one that fits      │
 │                             │
-│  No judgment — just a       │
-│  starting point             │
+│   😔    😐    🙂    😊    ⚡ │
+│  1–2   3–4   5–6   7–8  9–10│
+│                             │
+│  This is how you'll log     │
+│  your mood every day —      │
+│  quick, no judgment.        │
+│                             │
+│    ┌─────────────────────┐  │
+│    │      Continue       │  │
+│    └─────────────────────┘  │
 └─────────────────────────────┘
 ```
+> First use of the standardized 10-point scale. The emoji row is identical to what appears on the Home screen daily — users learn it once here.
 
 **Slide 4 — Safety setup**
 ```
@@ -280,19 +292,28 @@
 │  ◀  March 2026  ▶           │
 │  M   T   W   T   F   S   S  │
 │  23  24  25  26  27  28   1 │
-│                           ● │  ← today
+│  🟢  🟢  🔵  🟣  🟢  🟢  ● │  ← streak dots
+│                             │
+│  🔥 6-day streak            │  ← streak counter
 │                             │
 │  TODAY — Sunday Mar 1       │
 │  Cycle: Stable · Sleep: 7h  │
-│  Activities: 2 completed    │
+│  Mood: 7/10                 │
 │                             │
+│  DAILY PROMPTS              │  ← customizable (Screen 14)
 │  ┌───────────────────────┐  │
-│  │  Today's Entry        │  │  ← title block
+│  │  What are you         │  │
+│  │  grateful for today?  │  │
 │  │  ─────────────────    │  │
-│  │                       │  │
-│  │  Type '/' for blocks… │  │  ← block trigger
-│  │                       │  │
+│  │  Type here…           │  │
 │  └───────────────────────┘  │
+│  ┌───────────────────────┐  │
+│  │  One thing that felt  │  │
+│  │  hard today?          │  │
+│  │  ─────────────────    │  │
+│  │  Type here…           │  │
+│  └───────────────────────┘  │
+│  [ + Add your own block ]   │  ← Notion '/' menu
 │                             │
 │  BLOCK MENU  (on '/')       │
 │  ┌───────────────────────┐  │
@@ -305,21 +326,36 @@
 │  │  📊  Mood Scale (1–10)│  │
 │  └───────────────────────┘  │
 │                             │
+│  ACTIVITIES TODAY           │
+│  ✅ Gratitude Jar           │
+│  ✅ 54321 Grounding         │
+│  ☐  Moonlight Winddown      │
+│                             │
+│  DAILY CHECKLIST            │  ← from Routine Builder
+│  ✅ Morning walk            │
+│  ✅ No phone before 9am     │
+│  ☐  In bed by 11pm          │
+│                             │
+│  ⏱ Editable until           │
+│  Mar 3, 11:59 PM (48h)      │  ← edit window notice
+│                             │
 │  PAST ENTRIES               │
 │  ┌───────────────────────┐  │
 │  │  Feb 28 · Depressive  │  │
 │  │  "Today was heavy…"   │  │
-│  │  🔵 mood 3/10         │  │
+│  │  🔵 mood 3/10  🔒 Locked│ │  ← locked after 48h
 │  └───────────────────────┘  │
 │  ┌───────────────────────┐  │
 │  │  Feb 27 · Depressive  │  │
 │  │  "Didn't get out of…" │  │
-│  │  🔵 mood 2/10         │  │
+│  │  🔵 mood 2/10  🔒 Locked│ │
 │  └───────────────────────┘  │
 │                             │
 │  🏠    📓    🌊    🎯    👤 │
 └─────────────────────────────┘
 ```
+
+> 48-hour edit window keeps journal data reliable for AI analysis while still allowing same-day corrections.
 
 </details>
 
@@ -452,8 +488,28 @@
 │  ┌───────────────────────┐  │
 │  │  🌙  Moonlight        │  │
 │  │      Winddown         │  │
-│  │  10 min · Evening     │  │
+│  │  15 min · Evening     │  │
+│  │  Sleep-inducing music │  │
+│  │  + body scan guide    │  │
 │  │                 Try → │  │
+│  └───────────────────────┘  │
+│                             │
+│  FORGIVENESS & RELEASE      │
+│  ┌───────────────────────┐  │
+│  │  🕊️  I Forgive Myself │  │
+│  │  5 min · All phases   │  │
+│  │  "I forgive myself    │  │
+│  │  for…" guided prompts │  │
+│  │                 Try → │  │
+│  └───────────────────────┘  │
+│                             │
+│  STRUCTURED REFLECTION      │
+│  ┌───────────────────────┐  │
+│  │  📘  Bipolar Workbook │  │
+│  │  Guided prompts for   │  │
+│  │  understanding your   │  │
+│  │  patterns & triggers  │  │
+│  │               Open →  │  │
 │  └───────────────────────┘  │
 │                             │
 │  🏠    📓    🌊    🎯    👤 │
@@ -917,6 +973,313 @@
 
 ---
 
+### Screen 14 — Daily Routine Builder
+
+<details>
+<summary>View wireframe</summary>
+
+```
+┌─────────────────────────────┐
+│  ← Daily Routine Builder    │
+│                             │
+│  Customize what shows up    │
+│  in your journal every day  │
+│                             │
+│  JOURNAL PROMPTS            │
+│  ┌───────────────────────┐  │
+│  │  ≡  What are you      │  │  ← drag to reorder
+│  │     grateful for?     │  │
+│  │                  ✏️ 🗑│  │
+│  ├───────────────────────┤  │
+│  │  ≡  One thing that    │  │
+│  │     felt hard today?  │  │
+│  │                  ✏️ 🗑│  │
+│  ├───────────────────────┤  │
+│  │  ≡  How did I take    │  │
+│  │     care of myself?   │  │
+│  │                  ✏️ 🗑│  │
+│  └───────────────────────┘  │
+│  [ + Add custom prompt ]    │
+│                             │
+│  DAILY CHECKLIST            │
+│  Set your own daily habits  │
+│                             │
+│  ┌───────────────────────┐  │
+│  │  ≡  Morning walk      │  │
+│  │  Priority: ★★★☆☆     │  │  ← importance 1–5 stars
+│  │                  ✏️ 🗑│  │
+│  ├───────────────────────┤  │
+│  │  ≡  No phone before   │  │
+│  │     9am               │  │
+│  │  Priority: ★★★★☆     │  │
+│  │                  ✏️ 🗑│  │
+│  ├───────────────────────┤  │
+│  │  ≡  In bed by 11pm    │  │
+│  │  Priority: ★★★★★     │  │
+│  │                  ✏️ 🗑│  │
+│  ├───────────────────────┤  │
+│  │  ≡  Small puzzle game │  │
+│  │  Priority: ★★☆☆☆     │  │
+│  │                  ✏️ 🗑│  │
+│  └───────────────────────┘  │
+│  [ + Add checklist item ]   │
+│                             │
+│  DAILY ANALYTICS WEIGHT     │
+│  Higher priority items      │
+│  count more toward your     │
+│  daily progress score       │
+│                             │
+│  ┌───────────────────────┐  │
+│  │  Today's score: 72%   │  │
+│  │  ████████░░░░         │  │
+│  │  3/4 items · weighted │  │
+│  └───────────────────────┘  │
+│                             │
+│    [ Save Routine ]         │
+│                             │
+│  🏠    📓    🌊    🎯    👤 │
+└─────────────────────────────┘
+```
+
+> Checklist completion feeds directly into the AI Wellness Report analytics and the unified calendar day view.
+
+</details>
+
+---
+
+### Screen 15 — Bipolar Workbook
+
+<details>
+<summary>View wireframe</summary>
+
+```
+┌─────────────────────────────┐
+│  ← Bipolar Workbook         │
+│                             │
+│  Structured prompts to      │
+│  understand your patterns,  │
+│  triggers, and strengths    │
+│                             │
+│  YOUR PROGRESS              │
+│  ████████░░  8 / 12 prompts │
+│                             │
+│  CHAPTERS                   │
+│                             │
+│  ┌───────────────────────┐  │
+│  │  ✅  1. Understanding │  │
+│  │       My Cycles       │  │
+│  │  4 prompts · Done     │  │
+│  └───────────────────────┘  │
+│  ┌───────────────────────┐  │
+│  │  ✅  2. My Triggers   │  │
+│  │  4 prompts · Done     │  │
+│  └───────────────────────┘  │
+│  ┌───────────────────────┐  │
+│  │  ●   3. My Warning    │  │  ← in progress
+│  │       Signs           │  │
+│  │  4 prompts · 0/4 done │  │
+│  └───────────────────────┘  │
+│  ┌───────────────────────┐  │
+│  │  ○   4. My Strengths  │  │
+│  │  4 prompts · Locked   │  │
+│  └───────────────────────┘  │
+│                             │
+│  CURRENT PROMPT             │
+│  Chapter 3 · Prompt 1 of 4  │
+│  ┌───────────────────────┐  │
+│  │                       │  │
+│  │  "What are the first  │  │
+│  │  signs that tell you  │  │
+│  │  a manic episode      │  │
+│  │  might be starting?"  │  │
+│  │                       │  │
+│  │  ─────────────────    │  │
+│  │  Write your answer…   │  │
+│  │                       │  │
+│  │                       │  │
+│  └───────────────────────┘  │
+│                             │
+│  [ Save & Next Prompt ]     │
+│                             │
+│  Share with my psychiatrist │
+│  [ Export as PDF ]          │
+│                             │
+│  🏠    📓    🌊    🎯    👤 │
+└─────────────────────────────┘
+```
+
+> Workbook responses are private by default. They can be included in the AI Wellness Report PDF shared with a psychiatrist.
+
+</details>
+
+---
+
+### Screen 16 — Well-wisher & Guardian Access
+
+<details>
+<summary>View wireframe</summary>
+
+**Tab 1 — Well-wishers (friends / support people)**
+```
+┌─────────────────────────────┐
+│  ← My Support Network       │
+│                             │
+│  [Well-wishers] [Guardians] │  ← tab toggle
+│                             │
+│  WELL-WISHERS               │
+│  People you choose to share │
+│  your journey with          │
+│                             │
+│  ┌───────────────────────┐  │
+│  │  👤 Alex (Friend)     │  │
+│  │  Can see:             │  │
+│  │  ✅ Mood summaries    │  │
+│  │  ✅ Selected journal  │  │
+│  │     entries           │  │
+│  │  ☐  Full journal      │  │
+│  │  ☐  Cycle data        │  │
+│  │                 Edit  │  │
+│  └───────────────────────┘  │
+│                             │
+│  ┌───────────────────────┐  │
+│  │  👤 Dr. Moore         │  │
+│  │  (Therapist)          │  │
+│  │  Can see:             │  │
+│  │  ✅ Mood summaries    │  │
+│  │  ✅ Cycle data        │  │
+│  │  ✅ AI Report PDF     │  │
+│  │  ☐  Full journal      │  │
+│  │                 Edit  │  │
+│  └───────────────────────┘  │
+│                             │
+│  [ + Add well-wisher ]      │
+│                             │
+│  SHARE A MOMENT             │
+│  Send a specific entry or   │
+│  feeling right now          │
+│                             │
+│  ┌───────────────────────┐  │
+│  │  📤 Share today's     │  │
+│  │     mood with…        │  │
+│  │  ○ Alex               │  │
+│  │  ○ Dr. Moore          │  │
+│  │  [ Send ]             │  │
+│  └───────────────────────┘  │
+│                             │
+│  🏠    📓    🌊    🎯    👤 │
+└─────────────────────────────┘
+```
+
+**Tab 2 — Guardians (parents / caregivers)**
+```
+┌─────────────────────────────┐
+│  ← My Support Network       │
+│                             │
+│  [Well-wishers] [Guardians] │
+│                             │
+│  GUARDIAN ACCESS            │
+│  For parents or caregivers  │
+│  managing high-risk states  │
+│                             │
+│  ┌───────────────────────┐  │
+│  │  👤 Mom (Guardian)    │  │
+│  │                       │  │
+│  │  VIEW PERMISSIONS     │  │
+│  │  ✅ Mood summaries    │  │
+│  │  ✅ Cycle state       │  │
+│  │  ✅ AI weekly report  │  │
+│  │  ✅ Activity log      │  │
+│  │  ☐  Journal entries   │  │
+│  │                       │  │
+│  │  MANAGEMENT LEVEL     │  │
+│  │  ○ View only          │  │
+│  │  ● Alert if high risk │  │  ← auto-notifies guardian
+│  │  ○ Full account ctrl  │  │  ← guardian can act
+│  │                 Edit  │  │
+│  └───────────────────────┘  │
+│                             │
+│  HIGH RISK AUTO-ALERT       │
+│  ┌───────────────────────┐  │
+│  │  Notify guardian when:│  │
+│  │  ☑ Mood < 2/10 for    │  │
+│  │    2+ consecutive days│  │
+│  │  ☑ SOS button tapped  │  │
+│  │  ☑ No journal entry   │  │
+│  │    for 3+ days        │  │
+│  │  ☑ Manic symptoms     │  │
+│  │    logged for 2+ days │  │
+│  └───────────────────────┘  │
+│                             │
+│  FULL ACCOUNT CONTROL       │
+│  ┌───────────────────────┐  │
+│  │  ⚠️  When enabled,    │  │
+│  │  guardian can:        │  │
+│  │  · Book appointments  │  │
+│  │  · Contact your doctor│  │
+│  │  · Pause community    │  │
+│  │    access             │  │
+│  │  · Add crisis contacts│  │
+│  │                       │  │
+│  │  You can revoke this  │  │
+│  │  access at any time   │  │
+│  │  when you're stable.  │  │
+│  └───────────────────────┘  │
+│                             │
+│  [ + Add guardian ]         │
+│                             │
+│  🏠    📓    🌊    🎯    👤 │
+└─────────────────────────────┘
+```
+
+> Guardian "Full account control" is always revocable by the user and requires the user's initial consent to enable.
+
+</details>
+
+---
+
+## AI Summarization Model
+
+The weekly/monthly AI summaries require a language model capable of clinical-style reasoning over structured data (mood logs, journal text, cycle states, sleep, activities).
+
+### Recommended: Open-Weight Models
+
+| Model | Host | Why |
+|---|---|---|
+| **Llama 3.1 70B** | Groq API (free tier) | Fast inference, strong reasoning, no cost to start |
+| **Mistral Large** | Mistral API | European data sovereignty, strong clinical text |
+| **Gemma 2 27B** | Google Vertex / Ollama | Lightweight, can run on-device for privacy |
+| **BioMistral 7B** | Self-hosted | Fine-tuned on biomedical text — best for clinical tone |
+
+### Recommended Architecture
+
+```
+User data (mood, journal, sleep, cycle, activities)
+        │
+        ▼
+  Structured prompt builder
+  (assembles the week's data into a clean context)
+        │
+        ▼
+  LLM (Llama 3.1 70B via Groq or self-hosted)
+        │
+        ▼
+  Structured output:
+  · Plain-language summary
+  · Sleep correlation insight
+  · Top mood triggers (from journal sentiment)
+  · Early warning flags
+  · Recommended activities for next week
+        │
+        ▼
+  AI Wellness Report (Screen 09) + PDF export
+```
+
+### Why not a closed model?
+
+For a health app handling sensitive mental health data, open-weight models hosted on your own infrastructure (or Groq's zero-retention API) are preferable — no user data is used for training, and compliance with HIPAA is more achievable.
+
+---
+
 ## Design Principles
 
 | # | Principle |
@@ -924,10 +1287,12 @@
 | 1 | Never use red except for genuine crisis/emergency UI |
 | 2 | Mood states have colors — never labeled "bad" or "good" |
 | 3 | Every screen reachable with one thumb (bottom nav + large tap targets) |
-| 4 | Journal and cycle log entries are editable up to 48h later |
-| 5 | No streaks that punish missing days — Equi celebrates returning, not consistency |
+| 4 | Journal and cycle log entries are editable up to 48h — then locked for data integrity |
+| 5 | Streaks celebrate consistency but never shame missing a day |
 | 6 | All community posts anonymous by default — opt-in to add a display name |
 | 7 | No algorithmic feed — community is strictly chronological |
-| 8 | Psychiatrist data never shared without explicit one-time consent per sharing |
+| 8 | Psychiatrist and well-wisher data never shared without explicit one-time consent |
 | 9 | Export always available — your data is yours |
 | 10 | Offline-first — all core features work without internet |
+| 11 | Guardian "full control" always revocable by the user when stable |
+| 12 | All AI summaries run on zero-data-retention infrastructure (HIPAA path) |
