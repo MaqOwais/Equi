@@ -13,13 +13,13 @@
 
 ### *Finding your equilibrium.*
 
-**A bipolar disorder companion app built with empathy, not just features.**
+**AI-driven prescription based bipolar disorder monitoring and stabilisation system addressing a major public health crisis in the United States.**
 
 <br/>
 
 ![Status](https://img.shields.io/badge/status-in%20design-A8C5A0?style=for-the-badge)
 ![License](https://img.shields.io/badge/license-MIT-89B4CC?style=for-the-badge)
-![Non-Profit](https://img.shields.io/badge/model-non--profit-C9A84C?style=for-the-badge)
+![Market](https://img.shields.io/badge/market-United%20States-C9A84C?style=for-the-badge)
 ![Platform](https://img.shields.io/badge/platform-iOS%20%26%20Android-3D3935?style=for-the-badge)
 
 <br/>
@@ -30,11 +30,11 @@
 
 ## What is Equi?
 
-Equi is a **free, non-profit mental health companion** built specifically for people living with bipolar disorder. Unlike general wellness apps, every feature in Equi is designed around the reality of cycling between mania and depression — not just stress management or meditation.
+Equi is an **AI-driven prescription-based bipolar disorder monitoring and stabilisation system** built to address one of the most under-served public health crises in the United States. Over 6 million Americans live with bipolar disorder — yet most go years without a correct diagnosis, consistent monitoring, or care that understands the full picture of their cycles.
 
-> *"Not just a wellness app. A companion that actually understands your cycles."*
+Equi closes that gap. Every feature is designed around the clinical reality of cycling between mania and depression: continuous monitoring, AI-generated reports tied to prescription management, wearable data integration, and direct access to licensed US psychiatrists.
 
-All revenue Equi generates goes back into the platform and bipolar disorder research. Donations are accepted and spending is transparent.
+> *"Not a wellness app. A clinical-grade monitoring system that fits in your pocket."*
 
 ---
 
@@ -49,7 +49,7 @@ All revenue Equi generates goes back into the platform and bipolar disorder rese
 | Crisis support | Hotline link buried in settings | One-tap SOS → calls your parents/contacts + grounding tools |
 | Sleep & fitness | Manual entry | Syncs with Apple Watch, Apple Health, and Google Fit |
 | Psychiatrist access | None | Book bipolar-specialist psychiatrists in-person or online, directly in the app |
-| Business model | Subscription / ads | Non-profit. Donations accepted. Your data is never sold. |
+| Business model | Subscription / ads | Donation-funded access. Donors sponsor app usage for individuals who need it. Your data is never sold. |
 
 ---
 
@@ -72,8 +72,8 @@ Weekly and monthly AI-generated summaries correlating sleep, mood, journal tone,
 ### 👥 Community
 Anonymous posts, no algorithmic feed, no likes. Channels: *Wins This Week, Depressive Days, Mania Stories, Medication Talk, Caregiver Corner*. Crisis hotline always pinned at the top.
 
-### 🏥 Psychiatrist Marketplace
-Browse and book bipolar-specialist psychiatrists for in-person or online sessions. Share your AI wellness report before each appointment with one tap.
+### 🏥 US Psychiatrist Marketplace
+Browse and book licensed, bipolar-specialist US psychiatrists for in-person or telehealth sessions. Share your AI wellness report before each appointment with one tap. Integrated with insurance verification.
 
 ### 📅 Unified Calendar
 Every data point — journal entry, mood log, cycle state, sleep score, activities, and appointments — visible on a single day view. Export supported.
@@ -151,16 +151,18 @@ The app's colors are tied to emotional states — no color is labeled "bad" or "
 
 ---
 
-## Non-Profit Mission
+## Donations & Access
 
-Equi is built as a **non-profit**. Whatever the app earns goes back into:
-- Platform operations and development
-- Bipolar disorder research partnerships
-- Subsidized access for users who cannot afford mental health care
+Equi accepts donations that directly fund app access for people who need it. Donors can choose what their contribution supports:
 
-Donations are accepted in-app and on the website. A transparent spending dashboard shows exactly where every rupee/dollar goes.
+- **Sponsor a user** — fund full app access for an individual who cannot afford care
+- **Fund research** — contribute to AI model improvements for bipolar-specific pattern detection
+- **Community moderation** — support the staffing of safe, well-moderated community spaces
+- **Crisis infrastructure** — help maintain 24/7 crisis contact integrations
 
-Partners we aim to work with: [NAMI](https://nami.org), [DBSA](https://dbsalliance.org), local Pakistani mental health organizations.
+A transparent spending dashboard shows exactly where every dollar goes.
+
+Partners: [NAMI](https://nami.org) · [DBSA](https://dbsalliance.org) · [988 Suicide & Crisis Lifeline](https://988lifeline.org) · [SAMHSA](https://www.samhsa.gov)
 
 ---
 
@@ -178,19 +180,19 @@ Phase 5 — Beta Launch   ░░░░░░░░░░  Planned
 
 ## Contributing
 
-This is an open-source, non-profit project. If you have lived experience with bipolar disorder and want to shape what gets built, your voice matters most here.
+Equi is open source. If you have lived experience with bipolar disorder and want to shape what gets built, your voice matters most here.
 
 Ways to contribute:
-- Share feedback on features and design
+- Share feedback on features and clinical accuracy
 - Contribute code (React Native, Node.js, AI integrations)
-- Donate to support development
+- Donate to fund access for others
 - Help moderate the community
 
 ---
 
 <div align="center">
 
-Built with care for the bipolar community.
+Built for the 6 million Americans living with bipolar disorder.
 
 *"Stability is not a destination. It's a practice."*
 
