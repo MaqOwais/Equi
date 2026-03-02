@@ -67,13 +67,16 @@ Block-based editor with text, checklists, mood scales, images, and cycle tags. E
 Weekly and monthly AI-generated summaries correlating sleep, mood, journal tone, activity completion, and heart rate. Exported as a PDF to share directly with your psychiatrist before appointments.
 
 ### 🎯 Activity Library
-18+ therapist-backed activities filtered by cycle phase — *"good for depressive days"*, *"good for stable days"*. Includes Gratitude Jar, 54321 Grounding, Proud Dandelion, Compliment Diary, Box Breathing, Moonlight Winddown, and more. Bookmark what works for you.
+18+ therapist-backed activities filtered by cycle phase — *"good for depressive days"*, *"good for stable days"*. Includes Gratitude Jar, 54321 Grounding, Proud Dandelion, Compliment Diary, Box Breathing, Moonlight Winddown, and more. Three tabs: **All** (filtered by phase), **Prescribed** (activities your psychiatrist has assigned with dosage + frequency), and **Working for Me** (your personal bookmarked toolkit).
 
 ### 👥 Community
 Anonymous posts, no algorithmic feed, no likes. Channels: *Wins This Week, Depressive Days, Mania Stories, Medication Talk, Caregiver Corner*. Crisis hotline always pinned at the top. Every post passes through an AI guideline validator before going live — it flags (never silently removes) and always gives the user a path to edit or escalate to a human moderator.
 
 ### 🏥 US Psychiatrist Marketplace
-Browse and book licensed, bipolar-specialist US psychiatrists for in-person or telehealth sessions. Share your AI wellness report before each appointment with one tap. Integrated with insurance verification.
+Browse and book licensed, bipolar-specialist US psychiatrists for in-person or telehealth sessions. Search by location with a map view. **Equi Partner Network** highlights psychiatrists who have partnered with the app — they understand the monitoring approach, can prescribe activities directly, and receive your AI reports. Share your wellness report before each appointment with one tap. Integrated with insurance verification.
+
+### 💊 Prescribed Activities
+Your psychiatrist can prescribe specific activities with a dosage (duration) and frequency. These appear in your dedicated **Prescribed** tab with weekly compliance tracking. The psychiatrist portal is strictly limited to activity names and completion rates — no journal content, mood scores, or personal data is shared without your explicit consent.
 
 ### 📅 Unified Calendar
 Every data point — journal entry, mood log, cycle state, sleep score, activities, and appointments — visible on a single day view. Export supported.
@@ -128,10 +131,10 @@ The app's colors are tied to emotional states — no color is labeled "bad" or "
 | 02 | Home (Today) | Cycle card, mood tap, wearable sleep, streak strip, SOS |
 | 03 | Journal | Block editor, activity log, streak, 48hr edit, custom prompts |
 | 04 | Cycle Tracker | 4-state toggle, symptom checklist, 90-day wave graph, AI insight |
-| 05 | Activities | Moonlight, Forgiveness, Workbook, phase filter, bookmarks |
+| 05 | Activities | All / Prescribed / Working for Me tabs, phase filter, bookmarks |
 | 06 | Activity Detail | In-app experience (e.g. Gratitude Jar inputs, past entries) |
 | 07 | Community | Channels, anonymous feed, pinned crisis line |
-| 08 | Psychiatrists | Browse, filter, book, share AI report pre-session |
+| 08 | Psychiatrists | Map search, Equi Partner Network, book, share AI report |
 | 09 | AI Wellness Report | Sleep correlations, journal sentiment, early warnings, PDF export |
 | 10 | Unified Calendar | Full day view — all data in one place |
 | 11 | Crisis Mode | Emergency contacts, crisis lines, grounding tools |
@@ -140,6 +143,7 @@ The app's colors are tied to emotional states — no color is labeled "bad" or "
 | 14 | Daily Routine Builder | Custom prompts, weighted checklist, daily progress score |
 | 15 | Bipolar Workbook | Chapter-based structured prompts, PDF export |
 | 16 | Well-wisher & Guardian | Per-person share controls, auto-alerts, account management |
+| 17 | Psychiatrist Portal | Activity Rx + dosage prescribing, compliance tracking (web) |
 
 > Full wireframes → [`design/wireframes.md`](design/wireframes.md)
 
