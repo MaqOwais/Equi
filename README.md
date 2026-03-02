@@ -70,7 +70,7 @@ Weekly and monthly AI-generated summaries correlating sleep, mood, journal tone,
 18+ therapist-backed activities filtered by cycle phase — *"good for depressive days"*, *"good for stable days"*. Includes Gratitude Jar, 54321 Grounding, Proud Dandelion, Compliment Diary, Box Breathing, Moonlight Winddown, and more. Bookmark what works for you.
 
 ### 👥 Community
-Anonymous posts, no algorithmic feed, no likes. Channels: *Wins This Week, Depressive Days, Mania Stories, Medication Talk, Caregiver Corner*. Crisis hotline always pinned at the top.
+Anonymous posts, no algorithmic feed, no likes. Channels: *Wins This Week, Depressive Days, Mania Stories, Medication Talk, Caregiver Corner*. Crisis hotline always pinned at the top. Every post passes through an AI guideline validator before going live — it flags (never silently removes) and always gives the user a path to edit or escalate to a human moderator.
 
 ### 🏥 US Psychiatrist Marketplace
 Browse and book licensed, bipolar-specialist US psychiatrists for in-person or telehealth sessions. Share your AI wellness report before each appointment with one tap. Integrated with insurance verification.
@@ -152,6 +152,7 @@ The app's colors are tied to emotional states — no color is labeled "bad" or "
 | Mobile | React Native (Expo) |
 | Backend & Database | Supabase (Postgres + Auth + Realtime) |
 | AI Summarization | Llama 3.1 70B via Groq API (zero data retention) |
+| Community Moderation | Llama 3.2 3B (Groq) + Perspective API + Detoxify |
 | Journal Editor | Lexical (Meta's block editor) |
 | Wearable Sync | Apple HealthKit + Google Fit API |
 | Payments & Donations | Stripe |
