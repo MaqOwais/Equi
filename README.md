@@ -105,6 +105,18 @@ Every completed journal entry and activity is tracked as a streak in the journal
 ### 💜 Well-wisher & Guardian Access
 Share your mood summaries, selected journal entries, or full AI reports with friends, family, or your therapist — with granular per-person permissions. Guardian mode allows parents or caregivers to receive automatic alerts when high-risk thresholds are triggered, and optionally manage the account when the user is in crisis. Always revocable by the user.
 
+### 🕐 Social Rhythm Tracker
+Log your five daily rhythm anchors — wake time, first social contact, work start, dinner, and bedtime — each day. Based on IPSRT landmark RCTs: stabilising the timing of these five routines directly reduces relapse in bipolar disorder. A Rhythm Consistency Score in the AI Wellness Report flags when irregularity is increasing. Stressor logging links specific disruptions (travel, late social events, work changes) to upcoming mood shifts.
+
+### 💊 Medication Adherence
+One-tap daily check-in: Taken / Skipped / Partial. Optional reason and side-effect log (fatigue, weight changes, tremor, cognitive fog) when a dose is missed. Adherence patterns feed into the AI Wellness Report to correlate with mood episode onset. Visible to your psychiatrist only with explicit, per-person consent — medication data is the most strictly controlled field in the app.
+
+### 🔎 Relapse Signature Builder
+A one-time guided setup where you document your personal early warning signs — the specific 1–3 things that happen first when you're heading toward a manic or depressive episode. Research shows these signs are unique to each person and appear 2–4 weeks before full recurrence. The AI cross-references your journal and cycle data against your signature and flags early pattern matches before they escalate.
+
+### 📌 Life Events Log
+A dedicated block type in the Journal for logging events that disrupt daily routines: travel, relationship changes, work changes, grief, and positive disruptions alike. Life events appear as markers on the 90-day wave graph, allowing the AI to surface correlations like: *"You logged a job change on Feb 15. Sleep irregularity increased the following week. Your last manic episode began 8 days after that."*
+
 ---
 
 ## Color System
@@ -129,8 +141,8 @@ The app's colors are tied to emotional states — no color is labeled "bad" or "
 |---|---|---|
 | 01 | Splash & Onboarding | Diagnosis selector, 10-pt mood intro, support network setup |
 | 02 | Home (Today) | Cycle card, mood tap, wearable sleep, streak strip, SOS |
-| 03 | Journal | Block editor, activity log, streak, 48hr edit, custom prompts |
-| 04 | Cycle Tracker | 4-state toggle, symptom checklist, 90-day wave graph, AI insight |
+| 03 | Journal | Block editor, activity log, streak, 48hr edit, custom prompts, life events block, social rhythm card |
+| 04 | Cycle Tracker | 4-state toggle, symptom checklist, 90-day wave graph with life event markers, AI insight |
 | 05 | Activities | All / Prescribed / Working for Me tabs, phase filter, bookmarks |
 | 06 | Activity Detail | In-app experience (e.g. Gratitude Jar inputs, past entries) |
 | 07 | Community | Channels, anonymous feed, pinned crisis line |
@@ -143,7 +155,9 @@ The app's colors are tied to emotional states — no color is labeled "bad" or "
 | 14 | Daily Routine Builder | Custom prompts, weighted checklist, daily progress score |
 | 15 | Bipolar Workbook | Chapter-based structured prompts, PDF export |
 | 16 | Well-wisher & Guardian | Per-person share controls, auto-alerts, account management |
-| 17 | Psychiatrist Portal | Activity Rx + dosage prescribing, compliance tracking (web) |
+| 17 | Psychiatrist Portal | Activity Rx + dosage prescribing, phase restrictions, compliance tracking (web) |
+| 18 | Relapse Signature Builder | Personalised manic + depressive warning signs, timing, priority ranking |
+| 19 | Medication Adherence | Daily check-in, side-effect log, adherence trend, psychiatrist share toggle |
 
 > Full wireframes → [`design/wireframes.md`](design/wireframes.md)
 
@@ -163,6 +177,20 @@ The app's colors are tied to emotional states — no color is labeled "bad" or "
 | Psychiatrist Booking | Custom scheduling (Calendly API) |
 
 **AI Model rationale:** Llama 3.1 70B via Groq's zero-retention API gives strong clinical reasoning at no cost during development, with a self-hosted fallback (Ollama + BioMistral) for full HIPAA compliance in production. No user data is used for model training.
+
+---
+
+## Safety Flags
+
+Equi is a clinical-grade app for a population with documented vulnerability to app-induced adverse events. Five evidence-based risks are built into the design from the start. Full details in [`research/safety-flags.md`](research/safety-flags.md).
+
+| Risk | Severity | Required Mitigation |
+|---|---|---|
+| Mood monitoring → rumination | **High** | Low-mood safety circuit (≤3/10 for 2+ days) → optional coping prompt; one log per day max |
+| Positive activities → hypomania induction | Medium | Cycle-phase gating: Gratitude Jar, Compliment Diary, Proud Dandelion removed from recommendations during manic phase |
+| Behavioral activation without anti-hypomania guardrails | Medium | Phase-aware Home suggestions; phase restriction field in Psychiatrist Portal (Screen 17) |
+| Clinical framing of grounding / mindfulness | Low | Honest evidence labelling in activity descriptions — no extrapolated bipolar claims |
+| Data privacy and stigma risk | **High** | Zero AI data retention (Groq); no third-party analytics SDKs; plain-language privacy UX; immediate data deletion |
 
 ---
 

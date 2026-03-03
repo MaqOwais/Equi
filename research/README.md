@@ -29,11 +29,24 @@ This directory documents the clinical research behind every feature in Equi. All
 | Behavioral activation (prescribed activities) | Evidence-based but requires bipolar-specific anti-hypomania guardrails | ✅✅ Moderate (with caveats) |
 | MBCT / mindfulness / body scan | Reduces bipolar depression and anxiety — does NOT help mania | ✅ Moderate (depression only) |
 | Gratitude journaling / compliment diary | General benefit documented; individual hypomania induction risk flagged in pilot RCT | ✅ Weak–Moderate |
-| 54321 grounding / box breathing | No bipolar-specific RCT — extrapolated from anxiety literature | ⚠️ Weak (extrapolated) |
-| **Social rhythm monitoring (MISSING)** | IPSRT landmark RCTs — one of the strongest behavioural targets in bipolar | ✅✅✅ Very Strong |
-| **Medication adherence tracking (MISSING)** | ~50% non-adherence rate; only 1 in 3 apps include it | ✅✅✅ Very Strong gap |
-| **Personalized relapse signature (MISSING)** | Idiosyncratic prodromal signs occur 2–4 weeks before relapse; Cochrane-reviewed | ✅✅ Strong gap |
-| **Life events / stressor logging (MISSING)** | IPSRT model; life-event social rhythm disruption is a direct episode trigger | ✅✅ Moderate–Strong gap |
+| Social rhythm monitoring | IPSRT landmark RCTs — one of the strongest behavioural targets in bipolar | ✅✅✅ Very Strong |
+| Medication adherence tracking | ~50% non-adherence rate; only 1 in 3 apps include it; CANMAT 2023 primary target | ✅✅✅ Very Strong |
+| Personalized relapse signature | Idiosyncratic prodromal signs occur 2–4 weeks before relapse; Cochrane-reviewed | ✅✅ Strong |
+| Life events / stressor logging | IPSRT model; life-event social rhythm disruption is a direct episode trigger | ✅✅ Moderate–Strong |
+
+---
+
+## Safety Flags
+
+Five clinically documented risks requiring specific design responses. Full details and required mitigations in [`safety-flags.md`](safety-flags.md).
+
+| Flag | Severity | Status |
+|---|---|---|
+| Mood monitoring → rumination | High | Needs implementation: low-mood safety circuit, no multi-check-in design |
+| Positive activities → hypomania induction | Medium | Needs implementation: cycle-phase gating, phase caution field in portal |
+| Behavioral activation without anti-hypomania guardrails | Medium | Needs implementation: phase-aware Home suggestions, portal phase field |
+| Clinical framing of grounding / mindfulness | Low | Needs copy changes in activity descriptions |
+| Data privacy and stigma risk | High | Partially addressed: needs plain-language privacy UX, no third-party analytics |
 
 ---
 
