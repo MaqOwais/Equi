@@ -85,7 +85,7 @@
 ### Screen 01 — Splash & Onboarding
 
 <details>
-<summary>View wireframes (4 slides)</summary>
+<summary>View wireframes (5 slides)</summary>
 
 **Splash**
 ```
@@ -177,10 +177,44 @@
 ```
 > First use of the standardized 10-point scale. The emoji row is identical to what appears on the Home screen daily — users learn it once here.
 
-**Slide 4 — Safety setup**
+**Slide 4 — Medication**
 ```
 ┌─────────────────────────────┐
-│  ○  ○  ○  ●                 │
+│  ○  ○  ○  ●  ○              │
+│                             │
+│  Are you currently taking   │
+│  medication for bipolar     │
+│  disorder?                  │
+│                             │
+│  ┌─────────────────────────┐│
+│  │  Yes, I'm on medication ││  ← selectable
+│  └─────────────────────────┘│
+│  ┌─────────────────────────┐│
+│  │  No, not currently      ││
+│  └─────────────────────────┘│
+│                             │
+│  ── if "Yes" selected ──    │
+│                             │
+│  Track your medication      │
+│  adherence in Equi?         │
+│  ┌─────────────────────────┐│
+│  │  Yes, track my meds     ││
+│  └─────────────────────────┘│
+│  ┌─────────────────────────┐│
+│  │  Not now                ││
+│  └─────────────────────────┘│
+│                             │
+│    ┌─────────────────────┐  │
+│    │      Continue       │  │
+│    └─────────────────────┘  │
+└─────────────────────────────┘
+```
+> **No** → medication section hidden entirely (toggle available in Settings anytime). **Yes + track** → medication check-in appears in DAILY CHECK-INS on Home; Screen 19 accessible from Profile. **Yes + not now** → section hidden; one-tap toggle in Settings to enable later.
+
+**Slide 5 — Safety setup**
+```
+┌─────────────────────────────┐
+│  ○  ○  ○  ○  ●              │
 │                             │
 │  Your support network       │
 │  (all optional)             │
@@ -277,6 +311,8 @@
 ```
 
 > **Simplification:** 9 separate elements → 6. TODAY card merges cycle state + mood tap (always contextual together). DAILY CHECK-INS merges medication + substance (same interaction pattern: one-tap). Sleep and week dots become compact rows — no section headers needed.
+
+> **Medication conditional visibility:** The medication row in DAILY CHECK-INS only appears if medication tracking is enabled (set during onboarding, toggled in Profile Settings, or activated via a psychiatrist request). When off, the card shows substance check-ins only and is relabeled to reflect that.
 
 </details>
 
@@ -1262,7 +1298,7 @@
 │  ⌚  Wearable sync          │
 │  👥  Emergency contacts     │
 │  🔎  My Relapse Signatures  │  ← links to Screen 18
-│  💊  Medication Adherence   │  ← links to Screen 19
+│  💊  Medication Adherence   │  ← enable/disable toggle + Screen 19
 │  🌊  Themes & Ambiance      │  ← ambient theme controls
 │  💜  Support Equi (Donate)  │
 │  📋  My diagnosis info      │
@@ -1310,6 +1346,8 @@
 ```
 
 > Theme choice is a personal preference — no cycle-state dependency.
+
+> **Medication Adherence settings entry:** Tapping this opens Screen 19, which contains a master enable/disable toggle at the top. When tracking is off the entry shows `[ OFF ]` inline — users can re-enable without going through onboarding again. All previously logged data is retained and becomes visible again if re-enabled.
 
 </details>
 
@@ -1630,6 +1668,12 @@
 │                                                     │
 │  [ + Prescribe New Activity ]                       │
 │                                                     │
+│  CLINICAL TOOLS                                     │
+│  ┌───────────────────────────────────────────────┐  │
+│  │  💊 Medication tracking  [ Not enabled ]       │  │
+│  │  [ Request patient enables tracking ]          │  │
+│  └───────────────────────────────────────────────┘  │
+│                                                     │
 │  OVERALL COMPLIANCE — LAST 4 WEEKS                  │
 │  Week 1:  ████████░░  78%                           │
 │  Week 2:  ██████░░░░  61%                           │
@@ -1680,6 +1724,8 @@
 ```
 
 > **What the psychiatrist can NOT access:** journal entries, raw mood scores, personal notes, crisis history, community posts, or any data the patient hasn't explicitly shared. The portal is strictly limited to activity names, prescribed dosage, and completion compliance.
+
+> **Medication tracking request:** Clicking `[ Request patient enables tracking ]` sends an in-app notification to the patient: *"Dr. Moore recommends enabling medication tracking to better understand your adherence patterns. [Enable] [Not now] [Don't ask again]."* The patient's decision is not reported back to the psychiatrist — the portal only shows whether tracking is currently on or off. The psychiatrist cannot enable it directly.
 
 </details>
 
@@ -1799,12 +1845,15 @@
 <details>
 <summary>View wireframe (daily log + history)</summary>
 
-> Accessible from Profile / You (Screen 13) → "Medication Adherence", or via the daily check-in card on Home (Screen 02).
+> Accessible from Profile / You (Screen 13) → "Medication Adherence", or via the daily check-in card on Home (Screen 02). **Only visible if medication tracking is enabled** — set during onboarding, toggled here, or activated via a psychiatrist request.
 
 **Daily Log View**
 ```
 ┌─────────────────────────────┐
 │  ← Medication Adherence     │
+│                             │
+│  [ ON ]  Track my meds      │  ← master toggle (tap to disable)
+│  ─────────────────────────  │
 │                             │
 │  TODAY — Sunday Mar 1       │
 │                             │
