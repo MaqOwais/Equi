@@ -29,8 +29,8 @@
         Forgiveness                     Routine Builder
         Bipolar Workbook                Well-wisher ctrl
         Psychiatrists                   Guardian access
-        Community                       Settings / Donate
-        Themes
+        Community                       Relapse Signatures
+        Themes                          Settings / Donate
               │
               └─── [Crisis Mode]  (always one tap away)
 ```
@@ -75,7 +75,9 @@
 | [14](#screen-14--daily-routine-builder) | Daily Routine Builder | Custom prompts, daily checklist, importance weights |
 | [15](#screen-15--bipolar-workbook) | Bipolar Workbook | Structured prompts, guided reflection |
 | [16](#screen-16--well-wisher--guardian-access) | Well-wisher & Guardian | Share journal/progress, parent account control |
-| [17](#screen-17--psychiatrist-portal-activities-view) | Psychiatrist Portal | Activity Rx + dosage, compliance tracking (web portal) |
+| [17](#screen-17--psychiatrist-portal-activities-view) | Psychiatrist Portal | Activity Rx + dosage, phase restrictions, compliance tracking (web portal) |
+| [18](#screen-18--relapse-signature-builder) | Relapse Signature Builder | Personalised manic + depressive warning signs, timing, priority ranking |
+| [19](#screen-19--medication-adherence) | Medication Adherence | Daily check-in, side-effect log, adherence trend, psychiatrist share toggle |
 
 ---
 
@@ -248,6 +250,13 @@
 │ V.Low  Low  Okay Good  High │
 │                             │
 │  ─────────────────────────  │
+│  MEDICATION                 │
+│  ┌───────────────────────┐  │
+│  │  💊 Taken today?      │  │
+│  │  [Taken] [Skip] [Part]│  │  ← one-tap check-in
+│  └───────────────────────┘  │
+│                             │
+│  ─────────────────────────  │
 │  TODAY'S SUGGESTIONS        │
 │  Based on your stable day   │
 │                             │
@@ -325,6 +334,18 @@
 │  │  🖼️  Image            │  │
 │  │  💬  Quote            │  │
 │  │  📊  Mood Scale (1–10)│  │
+│  │  📌  Life Event       │  │  ← new
+│  │  🕐  Social Rhythm    │  │  ← new
+│  └───────────────────────┘  │
+│                             │
+│  SOCIAL RHYTHM — Today      │  ← collapses if logged
+│  ┌───────────────────────┐  │
+│  │  Wake time      06:45 │  │  ← time fields
+│  │  First contact  07:30 │  │
+│  │  Work start     09:00 │  │
+│  │  Dinner         ──:── │  │  ← not yet logged
+│  │  Bedtime        ──:── │  │
+│  │  Consistency: ████░░  │  │  ← 7-day rhythm score
 │  └───────────────────────┘  │
 │                             │
 │  ACTIVITIES TODAY           │
@@ -409,10 +430,10 @@
 │  ┌───────────────────────┐  │
 │  │     ╭──╮              │  │  ← mania peak
 │  │────╯  ╰────╮  ╭───────│  │  ← baseline
-│  │            ╰──╯       │  │  ← depressive
+│  │       📌   ╰──╯  📌   │  │  ← life event markers
 │  └───────────────────────┘  │
 │  🔵 Mania  🟣 Depressive    │
-│  🟢 Stable                  │
+│  🟢 Stable  📌 Life Event   │
 │                             │
 │  ─────────────────────────  │
 │  AI INSIGHT                 │
@@ -1039,6 +1060,32 @@
 │  ✅  Sleep >7h    → +mood   │
 │  ⚠️   Isolation   → -mood   │
 │                             │
+│  SOCIAL RHYTHM              │
+│  ┌───────────────────────┐  │
+│  │  Consistency: 68%     │  │
+│  │  ████████░░░░         │  │
+│  │  Bedtime varied ±90m  │  │
+│  │  this week — your     │  │
+│  │  most irregular anchor│  │
+│  └───────────────────────┘  │
+│                             │
+│  MEDICATION ADHERENCE       │
+│  ┌───────────────────────┐  │
+│  │  6 / 7 days taken     │  │
+│  │  ██████████░  86%     │  │
+│  │  Missed: Tue (forgot) │  │
+│  └───────────────────────┘  │
+│                             │
+│  LIFE EVENTS THIS PERIOD    │
+│  ┌───────────────────────┐  │
+│  │  📌 Feb 15 — Work     │  │
+│  │  change (stressful)   │  │
+│  │                       │  │
+│  │  Sleep irregularity   │  │
+│  │  increased +2.1h the  │  │
+│  │  following week       │  │
+│  └───────────────────────┘  │
+│                             │
 │  EARLY WARNING              │
 │  ┌───────────────────────┐  │
 │  │  ⚠️ Sleep dropped     │  │
@@ -1258,6 +1305,8 @@
 │  🔔  Notifications          │
 │  ⌚  Wearable sync          │
 │  👥  Emergency contacts     │
+│  🔎  My Relapse Signatures  │  ← links to Screen 18
+│  💊  Medication Adherence   │  ← links to Screen 19
 │  💜  Support Equi (Donate)  │
 │  📋  My diagnosis info      │
 │  📤  Export my data         │
@@ -1638,12 +1687,198 @@
 │  │  e.g. Regulate sleep onset before 11 PM │        │
 │  └─────────────────────────────────────────┘        │
 │                                                     │
+│  Phase restrictions                                 │
+│  ┌─────────────────────────────────────────┐        │
+│  │  No restriction                      ▼  │        │
+│  └─────────────────────────────────────────┘        │
+│  Options: No restriction / Pause during manic       │
+│           phase / Pause during depressive phase     │
+│                                                     │
 │  [ Cancel ]          [ Prescribe Activity ]         │
 │                                                     │
 └─────────────────────────────────────────────────────┘
 ```
 
 > **What the psychiatrist can NOT access:** journal entries, raw mood scores, personal notes, crisis history, community posts, or any data the patient hasn't explicitly shared. The portal is strictly limited to activity names, prescribed dosage, and completion compliance.
+
+</details>
+
+---
+
+### Screen 18 — Relapse Signature Builder
+
+<details>
+<summary>View wireframe (2 sections: manic + depressive)</summary>
+
+> Accessible from Profile / You (Screen 13) → "My Relapse Signatures". One-time guided setup, editable at any time. Responses feed the AI early-warning system in Screen 09.
+
+**Manic Relapse Signature**
+```
+┌─────────────────────────────┐
+│  ← My Relapse Signatures    │
+│                             │
+│  MANIC EPISODE              │
+│  ─────────────────────────  │
+│                             │
+│  What are the first 1–3     │
+│  things that happen when    │
+│  you're heading toward      │
+│  a manic episode?           │
+│                             │
+│  ┌───────────────────────┐  │
+│  │  1. I stop needing    │  │
+│  │     much sleep        │  │
+│  └───────────────────────┘  │
+│  ┌───────────────────────┐  │
+│  │  2. My thoughts start │  │
+│  │     racing at night   │  │
+│  └───────────────────────┘  │
+│  ┌───────────────────────┐  │
+│  │  3. Type here…        │  │
+│  └───────────────────────┘  │
+│  [ + Add another sign ]     │
+│                             │
+│  COMMON EXAMPLES            │
+│  Tap to add:                │
+│  · Irritability             │
+│  · Impulsive spending       │
+│  · Talking faster than usual│
+│  · Feeling invincible       │
+│  · Less need for sleep      │
+│                             │
+│  How many days before a     │
+│  full episode do you        │
+│  usually notice these?      │
+│                             │
+│  ──────●────────────        │
+│         7 days              │  ← slider: 1–14 days
+│                             │
+│  Who notices first?         │
+│  ○ I notice first           │
+│  ● Both at the same time    │
+│  ○ People around me notice  │
+│                             │
+│  [ Save Manic Signature ]   │
+└─────────────────────────────┘
+```
+
+**Depressive Relapse Signature**
+```
+┌─────────────────────────────┐
+│  ← My Relapse Signatures    │
+│                             │
+│  DEPRESSIVE EPISODE         │
+│  ─────────────────────────  │
+│                             │
+│  What are the first 1–3     │
+│  things that happen when    │
+│  you're heading toward      │
+│  a depressive episode?      │
+│                             │
+│  ┌───────────────────────┐  │
+│  │  1. I start           │  │
+│  │     cancelling plans  │  │
+│  └───────────────────────┘  │
+│  ┌───────────────────────┐  │
+│  │  2. I sleep more than │  │
+│  │     9 hours           │  │
+│  └───────────────────────┘  │
+│  [ + Add another sign ]     │
+│                             │
+│  COMMON EXAMPLES            │
+│  Tap to add:                │
+│  · Withdrawing from people  │
+│  · Losing interest in things│
+│  · Sleeping more than usual │
+│  · Appetite changes         │
+│  · Feeling slowed down      │
+│                             │
+│  How many days before a     │
+│  full episode?              │
+│  ──────────●────────        │
+│              10 days        │
+│                             │
+│  [ Save Depressive Signature]│
+│                             │
+│  ─────────────────────────  │
+│  ✅ AI MONITORING ACTIVE    │
+│  Equi will cross-reference  │
+│  your journal and cycle     │
+│  logs against these signs.  │
+│                             │
+│  🏠    📓    🌊    🎯    👤 │
+└─────────────────────────────┘
+```
+
+</details>
+
+---
+
+### Screen 19 — Medication Adherence
+
+<details>
+<summary>View wireframe (daily log + history)</summary>
+
+> Accessible from Profile / You (Screen 13) → "Medication Adherence", or via the daily check-in card on Home (Screen 02).
+
+**Daily Log View**
+```
+┌─────────────────────────────┐
+│  ← Medication Adherence     │
+│                             │
+│  TODAY — Sunday Mar 1       │
+│                             │
+│  ┌───────────────────────┐  │
+│  │  💊 Medication check  │  │
+│  │  ─────────────────    │  │
+│  │  [ Taken ] [ Skipped ]│  │
+│  │  [ Partial dose ]     │  │
+│  └───────────────────────┘  │
+│                             │
+│  IF SKIPPED — why?          │
+│  (optional)                 │
+│  ┌───────────────────────┐  │
+│  │  ○ Forgot             │  │
+│  │  ○ Side effects       │  │
+│  │  ○ Felt fine without  │  │
+│  │  ○ Ran out            │  │
+│  │  ○ Other              │  │
+│  └───────────────────────┘  │
+│                             │
+│  SIDE EFFECTS TODAY         │
+│  (optional — tap all that   │
+│  apply)                     │
+│  ┌───────────────────────┐  │
+│  │  ☐  Fatigue           │  │
+│  │  ☐  Weight changes    │  │
+│  │  ☐  Tremor            │  │
+│  │  ☐  Cognitive fog     │  │
+│  │  ☐  Nausea            │  │
+│  │  ☐  Other             │  │
+│  └───────────────────────┘  │
+│                             │
+│    [ Save Today's Log ]     │
+│                             │
+│  ─────────────────────────  │
+│  THIS WEEK                  │
+│  M   T   W   T   F   S   S  │
+│  ✅  ⬜  ✅  ✅  ✅  ✅  ● │
+│  6 / 7 days · 86%           │
+│                             │
+│  ─────────────────────────  │
+│  SHARE WITH PSYCHIATRIST    │
+│  ┌───────────────────────┐  │
+│  │  Dr. Rachel Moore     │  │
+│  │  [ OFF ] Adherence    │  │  ← toggle off by default
+│  │         data sharing  │  │
+│  └───────────────────────┘  │
+│  Medication data is the     │
+│  most private field in Equi.│
+│  Off by default.            │
+│                             │
+│  🏠    📓    🌊    🎯    👤 │
+└─────────────────────────────┘
+```
 
 </details>
 
