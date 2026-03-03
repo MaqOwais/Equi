@@ -161,6 +161,7 @@ General wellness and meditation apps.
 | Crisis mode | ❌ | ❌ | ❌ | ❌ | Partial | ❌ | ✅ One-tap |
 | Anonymous community | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
 | Phase-aware activity gating | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Substance use monitoring | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
 | Safety flags built into design | ❌ | ❌ | Partial | ❌ | Partial | ❌ | ✅ 5 mitigations |
 | Donation-funded / no ads | ❌ | ❌ | ✅ (free) | ❌ | ❌ | ❌ | ✅ |
 | Data never sold | Unknown | Unknown | ✅ | Unknown | ❌ | ❌ | ✅ |
@@ -194,7 +195,10 @@ Equi is funded by donations that directly sponsor access for users who cannot af
 ### 8. Community built for the population, not for engagement metrics
 No algorithmic feed, no likes, no streaks. Only *"I relate"* and *"Thank you for sharing"*. Anonymous by default. Crisis hotline pinned at the top. Every post is AI-moderated before going live, with transparent flagging — not silent removal. Built for people in genuine distress, not for time-on-app.
 
-### 9. Open source — community accountability over clinical claims
+### 9. Substance use monitoring — the gap no competitor fills
+No other bipolar app tracks alcohol or cannabis use alongside mood and sleep — despite both being documented cycle destabilisers (MinDag 2025, Lindner Center). Equi adds a frictionless two-tap daily check-in with non-judgmental framing, feeding patterns into the AI report without shaming or moralising.
+
+### 10. Open source — community accountability over clinical claims
 Equi's codebase is open for review. Anyone — including clinicians, researchers, and people with lived experience — can audit the safety mitigations, the AI prompts, the data handling. This matters for a clinical-grade tool in a population with high stigma and low institutional trust.
 
 ---
@@ -206,6 +210,6 @@ The gap Equi fills is specific: **a bipolar-specialist app that is clinically ri
 - eMoods is the closest competitor but has no AI and is a decade behind in design
 - General wellness apps (Headspace, Calm, Daylio) are actively contraindicated for some bipolar users without phase-aware guardrails
 - Teletherapy platforms (BetterHelp) provide human access but no monitoring continuity
-- No app combines: research-backed features + AI reporting + prescribed activities + psychiatrist integration + social rhythm tracking + relapse signature monitoring + safety-first design + donation funding
+- No app combines: research-backed features + AI reporting + prescribed activities + psychiatrist integration + social rhythm tracking + relapse signature monitoring + substance use monitoring + safety-first design + donation funding
 
 That combination is the gap. That is Equi.

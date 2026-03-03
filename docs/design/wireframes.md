@@ -16,7 +16,7 @@
           [Home]         [Journal]       [Cycle]
         Today View      Block Editor     Tracker
         Mood log        Activity log     Wave Graph
-        Streak strip    Streak + 48h     Symptoms
+        Activity hist.  Journal + 48h    Symptoms
         Suggestions     Custom prompts   AI insight
               │              │               │
               └──────────────┼───────────────┘
@@ -30,7 +30,8 @@
         Bipolar Workbook                Well-wisher ctrl
         Psychiatrists                   Guardian access
         Community                       Relapse Signatures
-        Themes                          Settings / Donate
+                                        Ambient Themes
+                                        Settings / Donate
               │
               └─── [Crisis Mode]  (always one tap away)
 ```
@@ -60,19 +61,19 @@
 | # | Screen | Key Elements |
 |---|---|---|
 | [01](#screen-01--splash--onboarding) | Splash & Onboarding | Diagnosis, 10-pt mood intro, support network |
-| [02](#screen-02--home-today-view) | Home (Today) | Cycle card, mood tap, sleep, streak, SOS |
-| [03](#screen-03--journal) | Journal | Block editor, activity log, streak, 48hr edit |
+| [02](#screen-02--home-today-view) | Home (Today) | Cycle card, mood tap, medication, substance check, sleep, suggestions, SOS |
+| [03](#screen-03--journal) | Journal | Block editor, activity log, activity history, 48hr edit |
 | [04](#screen-04--cycle-tracker) | Cycle Tracker | 4 states, symptoms, 90-day wave, AI insight |
 | [05](#screen-05--activities-explore) | Activities | All / Prescribed / Working for Me tabs |
 | [06](#screen-06--activity-detail) | Activity Detail | In-app experience, past entries |
 | [07](#screen-07--community) | Community | Channels, anonymous feed, pinned crisis line |
 | [08](#screen-08--psychiatrists) | Psychiatrists | Map search, Equi Partner Network, book, share report |
 | [09](#screen-09--ai-wellness-report) | AI Wellness Report | Sleep correlation, triggers, early warnings, PDF |
-| [10](#screen-10--calendar) | Calendar | Unified day view — all data in one place |
+| [10](#screen-10--calendar) | Calendar | Unified day view — all data in one place *(Phase 4)* |
 | [11](#screen-11--crisis-mode) | Crisis Mode | Emergency contacts, crisis lines, grounding tools |
-| [12](#screen-12--ambient-themes) | Ambient Themes | 6 scenes, adaptive mode, sound controls |
-| [13](#screen-13--profile--you) | Profile / You | Wellness radar, stats, settings, donate |
-| [14](#screen-14--daily-routine-builder) | Daily Routine Builder | Custom prompts, daily checklist, importance weights |
+| 12 | ~~Ambient Themes~~ | *Moved into Profile & Settings (Screen 13)* |
+| [13](#screen-13--profile--you) | Profile / You | Wellness radar, stats, ambient themes, settings, donate |
+| [14](#screen-14--daily-routine-builder) | Daily Routine Builder | Custom prompts, habit checklist, daily completion |
 | [15](#screen-15--bipolar-workbook) | Bipolar Workbook | Structured prompts, guided reflection |
 | [16](#screen-16--well-wisher--guardian-access) | Well-wisher & Guardian | Share journal/progress, parent account control |
 | [17](#screen-17--psychiatrist-portal-activities-view) | Psychiatrist Portal | Activity Rx + dosage, phase restrictions, compliance tracking (web portal) |
@@ -257,6 +258,13 @@
 │  └───────────────────────┘  │
 │                             │
 │  ─────────────────────────  │
+│  SUBSTANCES TODAY           │
+│  ┌───────────────────────┐  │
+│  │  🍷 Alcohol    [None] │  │  ← tap to log (no / yes)
+│  │  🌿 Cannabis   [None] │  │
+│  └───────────────────────┘  │
+│                             │
+│  ─────────────────────────  │
 │  TODAY'S SUGGESTIONS        │
 │  Based on your stable day   │
 │                             │
@@ -302,9 +310,9 @@
 │  ◀  March 2026  ▶           │
 │  M   T   W   T   F   S   S  │
 │  23  24  25  26  27  28   1 │
-│  🟢  🟢  🔵  🟣  🟢  🟢  ● │  ← streak dots
+│  🟢  🟢  🔵  🟣  🟢  🟢  ● │  ← entry history dots
 │                             │
-│  🔥 6-day streak            │  ← streak counter
+│  📊 6 entries this week     │  ← activity history counter
 │                             │
 │  TODAY — Sunday Mar 1       │
 │  Cycle: Stable · Sleep: 7h  │
@@ -1076,6 +1084,16 @@
 │  │  Missed: Tue (forgot) │  │
 │  └───────────────────────┘  │
 │                             │
+│  SUBSTANCES THIS WEEK       │
+│  ┌───────────────────────┐  │
+│  │  🍷 Alcohol: 2 days   │  │
+│  │  🌿 Cannabis: 0 days  │  │
+│  │                       │  │
+│  │  Alcohol noted on Fri │  │
+│  │  — sleep quality lower│  │
+│  │  the following night  │  │
+│  └───────────────────────┘  │
+│                             │
 │  LIFE EVENTS THIS PERIOD    │
 │  ┌───────────────────────┐  │
 │  │  📌 Feb 15 — Work     │  │
@@ -1104,10 +1122,12 @@
 
 ---
 
-### Screen 10 — Calendar
+### Screen 10 — Calendar *(Phase 4 — Deferred)*
+
+> **Status:** Deferred to Phase 4. The unified calendar view requires all core feature screens (journal, cycle, activities, medication, social rhythm) to be stable before aggregation makes sense. Core daily interaction is self-contained without it.
 
 <details>
-<summary>View wireframe</summary>
+<summary>View wireframe (reference design)</summary>
 
 ```
 ┌─────────────────────────────┐
@@ -1220,11 +1240,69 @@
 
 ---
 
-### Screen 12 — Ambient Themes
+### Screen 12 — ~~Ambient Themes~~ *(Moved to Profile — Screen 13)*
+
+> **Status:** No longer a standalone screen. Ambient theme controls are accessible from Profile & Settings (Screen 13) → "Themes & Ambiance". See Screen 13 for the updated wireframe.
+>
+> **Rationale:** Themes are a personalisation preference, not a daily-use feature. Embedding them in the Profile section reduces navigation depth and removes the risk of over-engineering a mode-switching system that isn't needed for core daily interaction.
+
+---
+
+### Screen 13 — Profile / You
 
 <details>
 <summary>View wireframe</summary>
 
+```
+┌─────────────────────────────┐
+│  You                    ⚙️  │
+│                             │
+│  ┌───────────────────────┐  │
+│  │      (initials)       │  │
+│  │           O           │  │
+│  │       Anonymous       │  │  ← private by default
+│  │  Member since Jan 2026│  │
+│  └───────────────────────┘  │
+│                             │
+│  ┌───────┐ ┌───────┐ ┌─────┐│
+│  │  47   │ │  18   │ │  3  ││
+│  │ days  │ │activ. │ │stble││
+│  │tracked│ │ done  │ │ days││
+│  └───────┘ └───────┘ └─────┘│
+│                             │
+│  WELLNESS RADAR             │
+│  ┌───────────────────────┐  │
+│  │         Mood          │  │
+│  │        /  |  \        │  │
+│  │   Sleep     Activity  │  │  ← hexagon chart
+│  │     |           |     │  │
+│  │   Social    Mindful   │  │
+│  │        \  |  /        │  │
+│  │        Journal        │  │
+│  └───────────────────────┘  │
+│                             │
+│  ─────────────────────────  │
+│  🔔  Notifications          │
+│  ⌚  Wearable sync          │
+│  👥  Emergency contacts     │
+│  🔎  My Relapse Signatures  │  ← links to Screen 18
+│  💊  Medication Adherence   │  ← links to Screen 19
+│  🌊  Themes & Ambiance      │  ← ambient theme controls
+│  💜  Support Equi (Donate)  │
+│  📋  My diagnosis info      │
+│  📤  Export my data         │
+│  🔒  Privacy settings       │
+│  ─────────────────────────  │
+│                             │
+│  Open source · US-focused   │
+│  Donations fund access for  │
+│  people who need it most    │
+│                             │
+│  🏠    📓    🌊    🎯    👤 │
+└─────────────────────────────┘
+```
+
+**Themes & Ambiance sub-screen** (opened from Profile settings list)
 ```
 ┌─────────────────────────────┐
 │  ← Themes & Ambiance        │
@@ -1248,15 +1326,6 @@
 │  VOLUME                     │
 │  🔊 ──────●──────────  80%  │
 │                             │
-│  ADAPTIVE MODE              │
-│  ┌───────────────────────┐  │
-│  │  🔄 Auto-shift scenes │  │
-│  │     based on cycle    │  │  ← toggle
-│  │  Depressive → Firepl. │  │
-│  │  Manic → Rain / Forest│  │
-│  │  Stable → Your choice │  │
-│  └───────────────────────┘  │
-│                             │
 │  NOW PLAYING                │
 │  🌊 Ocean waves — Beach     │
 │  ▶ ──────────────────  🔇  │
@@ -1264,62 +1333,7 @@
 └─────────────────────────────┘
 ```
 
-</details>
-
----
-
-### Screen 13 — Profile / You
-
-<details>
-<summary>View wireframe</summary>
-
-```
-┌─────────────────────────────┐
-│  You                    ⚙️  │
-│                             │
-│  ┌───────────────────────┐  │
-│  │      (initials)       │  │
-│  │           O           │  │
-│  │       Anonymous       │  │  ← private by default
-│  │  Member since Jan 2026│  │
-│  └───────────────────────┘  │
-│                             │
-│  ┌───────┐ ┌───────┐ ┌─────┐│
-│  │  47   │ │  18   │ │  3  ││
-│  │ days  │ │activ. │ │stble││
-│  │tracked│ │ done  │ │ str ││
-│  └───────┘ └───────┘ └─────┘│
-│                             │
-│  WELLNESS RADAR             │
-│  ┌───────────────────────┐  │
-│  │         Mood          │  │
-│  │        /  |  \        │  │
-│  │   Sleep     Activity  │  │  ← hexagon chart
-│  │     |           |     │  │
-│  │   Social    Mindful   │  │
-│  │        \  |  /        │  │
-│  │        Journal        │  │
-│  └───────────────────────┘  │
-│                             │
-│  ─────────────────────────  │
-│  🔔  Notifications          │
-│  ⌚  Wearable sync          │
-│  👥  Emergency contacts     │
-│  🔎  My Relapse Signatures  │  ← links to Screen 18
-│  💊  Medication Adherence   │  ← links to Screen 19
-│  💜  Support Equi (Donate)  │
-│  📋  My diagnosis info      │
-│  📤  Export my data         │
-│  🔒  Privacy settings       │
-│  ─────────────────────────  │
-│                             │
-│  Open source · US-focused   │
-│  Donations fund access for  │
-│  people who need it most    │
-│                             │
-│  🏠    📓    🌊    🎯    👤 │
-└─────────────────────────────┘
-```
+> Theme choice is a personal preference — no cycle-state dependency.
 
 </details>
 
@@ -1358,33 +1372,23 @@
 │                             │
 │  ┌───────────────────────┐  │
 │  │  ≡  Morning walk      │  │
-│  │  Priority: ★★★☆☆     │  │  ← importance 1–5 stars
 │  │                  ✏️ 🗑│  │
 │  ├───────────────────────┤  │
 │  │  ≡  No phone before   │  │
 │  │     9am               │  │
-│  │  Priority: ★★★★☆     │  │
 │  │                  ✏️ 🗑│  │
 │  ├───────────────────────┤  │
 │  │  ≡  In bed by 11pm    │  │
-│  │  Priority: ★★★★★     │  │
 │  │                  ✏️ 🗑│  │
 │  ├───────────────────────┤  │
 │  │  ≡  Small puzzle game │  │
-│  │  Priority: ★★☆☆☆     │  │
 │  │                  ✏️ 🗑│  │
 │  └───────────────────────┘  │
 │  [ + Add checklist item ]   │
 │                             │
-│  DAILY ANALYTICS WEIGHT     │
-│  Higher priority items      │
-│  count more toward your     │
-│  daily progress score       │
-│                             │
 │  ┌───────────────────────┐  │
-│  │  Today's score: 72%   │  │
-│  │  ████████░░░░         │  │
-│  │  3/4 items · weighted │  │
+│  │  Today: 3 / 4 done    │  │
+│  │  ████████████░░       │  │
 │  └───────────────────────┘  │
 │                             │
 │    [ Save Routine ]         │
@@ -1393,7 +1397,7 @@
 └─────────────────────────────┘
 ```
 
-> Checklist completion feeds directly into the AI Wellness Report analytics and the unified calendar day view.
+> Checklist completion feeds directly into the AI Wellness Report analytics. Simple completion tracking — no weighted scoring.
 
 </details>
 
@@ -1989,7 +1993,7 @@ User submits post
 | 2 | Mood states have colors — never labeled "bad" or "good" |
 | 3 | Every screen reachable with one thumb (bottom nav + large tap targets) |
 | 4 | Journal and cycle log entries are editable up to 48h — then locked for data integrity |
-| 5 | Streaks celebrate consistency but never shame missing a day |
+| 5 | Activity history celebrates returning — missing a day never removes past entries or punishes the user |
 | 6 | All community posts anonymous by default — opt-in to add a display name |
 | 7 | No algorithmic feed — community is strictly chronological |
 | 8 | Psychiatrist and well-wisher data never shared without explicit one-time consent |

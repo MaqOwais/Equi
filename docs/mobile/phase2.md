@@ -433,7 +433,7 @@ Phase 3 begins feature implementation. Planned build order:
 | Priority | Screen | Key work |
 |---|---|---|
 | 1 | Auth flow (Screen 01) | Sign up, log in, onboarding wizard, route guard in root `_layout.tsx` |
-| 2 | Home / Today (Screen 02) | Cycle state card, one-tap mood log, wearable sleep summary, streak strip, SOS button |
+| 2 | Home / Today (Screen 02) | Cycle state card, one-tap mood log, medication check, substance check-in, wearable sleep summary, activity history, SOS button |
 | 3 | Cycle Tracker (Screen 04) | 4-state toggle, symptom checklist, 90-day wave graph, life event markers |
 | 4 | Journal (Screen 03) | Block editor, life events block type, social rhythm daily card |
 

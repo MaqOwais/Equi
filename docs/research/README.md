@@ -34,6 +34,7 @@ This directory documents the clinical research behind every feature in Equi. All
 | Medication adherence tracking | ~50% non-adherence rate; only 1 in 3 apps include it; CANMAT 2023 primary target | ✅✅✅ Very Strong |
 | Personalized relapse signature | Idiosyncratic prodromal signs occur 2–4 weeks before relapse; Cochrane-reviewed | ✅✅ Strong |
 | Life events / stressor logging | IPSRT model; life-event social rhythm disruption is a direct episode trigger | ✅✅ Moderate–Strong |
+| Substance use monitoring (alcohol / cannabis) | MinDag 2025 (Oslo): cannabis most common comorbid substance; alcohol destabilises mood cycles and degrades sleep. Lindner Center: substance use interferes directly with mood stabilisers | ✅✅ Moderate–Strong |
 
 ---
 

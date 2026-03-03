@@ -80,14 +80,11 @@ Browse and book licensed, bipolar-specialist US psychiatrists for in-person or t
 ### 💊 Prescribed Activities
 Your psychiatrist can prescribe specific activities with a dosage (duration) and frequency. These appear in your dedicated **Prescribed** tab with weekly compliance tracking. The psychiatrist portal is strictly limited to activity names and completion rates — no journal content, mood scores, or personal data is shared without your explicit consent.
 
-### 📅 Unified Calendar
-Every data point — journal entry, mood log, cycle state, sleep score, activities, and appointments — visible on a single day view. Export supported.
+### 📅 Unified Calendar *(Phase 4)*
+Every data point — journal entry, mood log, cycle state, sleep score, activities, and appointments — visible on a single day view. Export supported. Deferred to Phase 4 to keep the core daily experience focused.
 
 ### 🆘 Crisis Mode
 One tap from anywhere in the app. Shows your saved emergency contacts (parents, family), local crisis lines, and immediate grounding tools (54321 Grounding, 1-Minute Breathing).
-
-### 🌿 Ambient Themes
-6 calming scenes: Beach, Mountains, Forest, Fireplace, Rain, Night Sky. Adaptive mode auto-shifts based on your current cycle state.
 
 ### 🌙 Moonlight Winddown
 A dedicated sleep activity with sleep-inducing music and a guided body scan. Designed specifically for bipolar sleep disruption — a major trigger for both manic and depressive episodes.
@@ -99,10 +96,16 @@ Guided "I forgive myself for…" prompt sequences. Bipolar disorder carries sign
 Structured, chapter-based reflection prompts covering: understanding your cycles, identifying triggers, recognizing warning signs, and building on strengths. Responses are private and exportable as PDF for psychiatrist sessions.
 
 ### 🗓️ Daily Routine Builder
-Fully customizable daily checklist and journal prompts. Set your own habits (morning walk, sleep time, screen limits), assign importance weights (1–5 stars), and track a weighted daily progress score. All checklist data feeds directly into AI analytics.
+Customizable daily checklist and journal prompts. Set your own habits (morning walk, sleep time, screen limits) and track completion each day. Checklist data feeds directly into the AI Wellness Report.
 
-### 🔥 Activity Streak
-Every completed journal entry and activity is tracked as a streak in the journal calendar. Entries are editable for 48 hours then locked — keeping AI data reliable while allowing same-day corrections.
+### 🚬 Substance Use Monitoring
+Simple daily check-in for alcohol and cannabis use — the two substances most documented to destabilise bipolar cycles and interfere with mood stabilisers (MinDag 2025, Lindner Center). A single tap per substance, no judgment framing. Patterns feed into the AI Wellness Report and can be shared with your psychiatrist with explicit consent.
+
+### 📊 Activity History
+Every completed journal entry and activity is recorded and visible in the journal calendar. No punishing streaks — Equi celebrates returning, not unbroken consistency. Entries are editable for 48 hours then locked — keeping AI data reliable while allowing same-day corrections.
+
+### 🌊 Ambient Themes *(in Profile & Settings)*
+6 calming scenes: Beach, Mountains, Forest, Fireplace, Rain, Night Sky. Accessible from your Profile. Choose a scene and volume level. Not cycle-dependent — play whatever feels right.
 
 ### 💜 Well-wisher & Guardian Access
 Share your mood summaries, selected journal entries, or full AI reports with friends, family, or your therapist — with granular per-person permissions. Guardian mode allows parents or caregivers to receive automatic alerts when high-risk thresholds are triggered, and optionally manage the account when the user is in crisis. Always revocable by the user.
@@ -142,19 +145,19 @@ The app's colors are tied to emotional states — no color is labeled "bad" or "
 | # | Screen | Description |
 |---|---|---|
 | 01 | Splash & Onboarding | Diagnosis selector, 10-pt mood intro, support network setup |
-| 02 | Home (Today) | Cycle card, mood tap, wearable sleep, streak strip, SOS |
-| 03 | Journal | Block editor, activity log, streak, 48hr edit, custom prompts, life events block, social rhythm card |
+| 02 | Home (Today) | Cycle card, mood tap, medication, substance check, sleep, activity history, SOS |
+| 03 | Journal | Block editor, activity log, activity history, 48hr edit, custom prompts, life events block, social rhythm card |
 | 04 | Cycle Tracker | 4-state toggle, symptom checklist, 90-day wave graph with life event markers, AI insight |
 | 05 | Activities | All / Prescribed / Working for Me tabs, phase filter, bookmarks |
 | 06 | Activity Detail | In-app experience (e.g. Gratitude Jar inputs, past entries) |
 | 07 | Community | Channels, anonymous feed, pinned crisis line |
 | 08 | Psychiatrists | Map search, Equi Partner Network, book, share AI report |
 | 09 | AI Wellness Report | Sleep correlations, journal sentiment, early warnings, PDF export |
-| 10 | Unified Calendar | Full day view — all data in one place |
+| 10 | Unified Calendar | Full day view — all data in one place *(Phase 4)* |
 | 11 | Crisis Mode | Emergency contacts, crisis lines, grounding tools |
-| 12 | Ambient Themes | 6 scenes, adaptive mode, sound controls |
-| 13 | Profile & Settings | Wellness radar, stats, wearable sync, donation, data export |
-| 14 | Daily Routine Builder | Custom prompts, weighted checklist, daily progress score |
+| 12 | ~~Ambient Themes~~ | *Moved into Profile & Settings (Screen 13)* |
+| 13 | Profile & Settings | Wellness radar, stats, wearable sync, ambient themes, donation, data export |
+| 14 | Daily Routine Builder | Custom prompts, habit checklist, daily completion tracking |
 | 15 | Bipolar Workbook | Chapter-based structured prompts, PDF export |
 | 16 | Well-wisher & Guardian | Per-person share controls, auto-alerts, account management |
 | 17 | Psychiatrist Portal | Activity Rx + dosage prescribing, phase restrictions, compliance tracking (web) |

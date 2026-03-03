@@ -1,6 +1,18 @@
-# Missing Features — Evidence-Backed Additions
+# Evidence-Backed Features — Implementation Status
 
-These are features not currently in Equi that are supported by strong clinical research. Listed in order of evidence strength.
+These features were identified through clinical research review as essential for bipolar monitoring. All four original missing features have been implemented. One additional feature (substance use monitoring) was added following the MinDag 2025 and Lindner Center research review.
+
+---
+
+## Status Summary
+
+| Feature | Status |
+|---|---|
+| Social Rhythm Monitoring | ✅ Implemented — Screen 03 (Journal) + Screen 09 (AI Report) |
+| Medication Adherence Tracking | ✅ Implemented — Screen 02 (Home) + Screen 19 |
+| Personalized Relapse Signature Builder | ✅ Implemented — Screen 18, linked from Screen 13 |
+| Life Events / Stressor Logging | ✅ Implemented — Screen 03 (Journal block), Screen 04 (wave markers) |
+| Substance Use Monitoring | ✅ Added — Screen 02 (Home daily check-in) |
 
 ---
 
@@ -123,13 +135,36 @@ Life events appear as markers on the 90-day wave graph (Screen 04) and in the AI
 
 ---
 
-## Implementation Priority
+## 5. Substance Use Monitoring *(Added post-research review)*
 
-| Feature | Priority | Complexity | Research Strength |
+**Evidence strength: Moderate–Strong**
+
+**What it is:** The MinDag 2025 study (Oslo) found that cannabis is the most common comorbid substance used by people with bipolar disorder, with alcohol a close second. The Lindner Center of HOPE clinical protocols flag alcohol and cannabis as the two substances most directly documented to destabilise mood cycles — degrading sleep architecture (a primary episode trigger), interacting with lithium and anticonvulsant metabolism, and amplifying both manic and depressive episodes.
+
+Crucially, this is not a morality intervention. The framing must be non-judgmental — tracking without shame, pattern detection without blame.
+
+**What was added:**
+- A simple daily check-in on the Home screen (Screen 02): two taps — alcohol (yes/no) and cannabis (yes/no)
+- No quantity tracking in the initial implementation — just presence/absence
+- Substance use patterns feed into the AI Wellness Report alongside sleep and mood
+- Can be shared with psychiatrist with explicit consent (same privacy model as medication data)
+
+**Where in the app:** Screen 02 (Home daily check-in card), Screen 09 (AI Report correlation section)
+
+### Key Citations
+- MinDag 2025 — Oslo outpatient bipolar cohort, substance comorbidity findings
+- Lindner Center of HOPE clinical protocols — substance use and mood stabiliser interactions
+
+---
+
+## Implementation Priority *(Updated — all core features implemented)*
+
+| Feature | Priority | Complexity | Status |
 |---|---|---|---|
-| Medication adherence check-in | **Must have** | Low (daily tap) | Very Strong |
-| Life events block type in Journal | **Must have** | Low (new block) | Moderate–Strong |
-| Social Rhythm 5-anchor card | **Should have** | Medium | Very Strong |
-| Personalized relapse signature builder | **Should have** | Medium | Strong |
-| Social rhythm consistency in AI Report | **Nice to have** | High (AI integration) | Very Strong |
-| Life event markers on 90-day wave | **Nice to have** | Medium | Moderate–Strong |
+| Medication adherence check-in | **Must have** | Low (daily tap) | ✅ Done |
+| Life events block type in Journal | **Must have** | Low (new block) | ✅ Done |
+| Social Rhythm 5-anchor card | **Should have** | Medium | ✅ Done |
+| Personalized relapse signature builder | **Should have** | Medium | ✅ Done |
+| Substance use daily check-in | **Must have** | Low (two taps) | ✅ Done |
+| Social rhythm consistency in AI Report | **Nice to have** | High (AI integration) | Phase 3 |
+| Life event markers on 90-day wave | **Nice to have** | Medium | Phase 3 |
