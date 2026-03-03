@@ -178,6 +178,8 @@ The app's colors are tied to emotional states — no color is labeled "bad" or "
 
 **AI Model rationale:** Llama 3.1 70B via Groq's zero-retention API gives strong clinical reasoning at no cost during development, with a self-hosted fallback (Ollama + BioMistral) for full HIPAA compliance in production. No user data is used for model training.
 
+> Full AI system design → [`ai/README.md`](ai/README.md)
+
 ---
 
 ## Safety Flags
