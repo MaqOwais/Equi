@@ -236,37 +236,27 @@
 │  Sunday, March 1            │
 │                             │
 │  ┌───────────────────────┐  │
-│  │  CURRENT CYCLE        │  │
+│  │  TODAY                │  │
 │  │                       │  │
-│  │   ● Stable            │  │  ← Sage Green dot
-│  │   Day 4 of stability  │  │
-│  │   ──────────────────  │  │
-│  │   Last: Depressive    │  │
-│  │   episode (6 days)    │  │
+│  │  ● Stable · Day 4     │  │  ← cycle state (Sage Green dot)
+│  │  Last: Depressive 6d  │  │
+│  │  ─────────────────    │  │
+│  │  How are you feeling? │  │
+│  │  😔  😐  🙂  😊  ⚡  │  │  ← mood tap (1–5 emoji)
 │  └───────────────────────┘  │
 │                             │
-│  HOW ARE YOU FEELING NOW?   │
-│                             │
-│  😔   😐   🙂   😊   ⚡    │  ← quick mood tap (1–5)
-│ V.Low  Low  Okay Good  High │
-│                             │
-│  ─────────────────────────  │
-│  MEDICATION                 │
 │  ┌───────────────────────┐  │
-│  │  💊 Taken today?      │  │
-│  │  [Taken] [Skip] [Part]│  │  ← one-tap check-in
+│  │  DAILY CHECK-INS      │  │
+│  │                       │  │
+│  │  💊 Meds              │  │
+│  │  [Taken] [Skip] [Part]│  │  ← one-tap
+│  │  ─────────────────    │  │
+│  │  🍷 Alcohol  [No][Yes]│  │
+│  │  🌿 Cannabis [No][Yes]│  │
 │  └───────────────────────┘  │
 │                             │
-│  ─────────────────────────  │
-│  SUBSTANCES TODAY           │
-│  ┌───────────────────────┐  │
-│  │  🍷 Alcohol    [None] │  │  ← tap to log (no / yes)
-│  │  🌿 Cannabis   [None] │  │
-│  └───────────────────────┘  │
-│                             │
-│  ─────────────────────────  │
 │  TODAY'S SUGGESTIONS        │
-│  Based on your stable day   │
+│  Stable day · Morning       │
 │                             │
 │  ┌──────────┐ ┌──────────┐  │
 │  │    🫙    │ │    🌸    │  │
@@ -275,17 +265,9 @@
 │  │  5 min   │ │  7 min   │  │
 │  └──────────┘ └──────────┘  │
 │                             │
-│  ─────────────────────────  │
-│  THIS WEEK AT A GLANCE      │
-│  M   T   W   T   F   S   S  │
-│  🟢  🟢  🔵  🟢  🟢  ⬜  ● │  ← color per day
-│                             │
-│  ─────────────────────────  │
-│  LAST NIGHT'S SLEEP         │
-│  ┌───────────────────────┐  │
-│  │  ⌚ Apple Watch  7h2m │  │
-│  │  ████████░░  87%      │  │
-│  └───────────────────────┘  │
+│  ⌚ Last night  7h 2m · 87% │  ← compact sleep row
+│  M   T   W   T   F   S   S  │  ← week at a glance
+│  🟢  🟢  🔵  🟢  🟢  ⬜  ● │
 │                             │
 │  🆘  I'm not okay right now │  ← always visible
 │                             │
@@ -293,6 +275,8 @@
 │ Home  Jrnl  Cycle  Expl  You│
 └─────────────────────────────┘
 ```
+
+> **Simplification:** 9 separate elements → 6. TODAY card merges cycle state + mood tap (always contextual together). DAILY CHECK-INS merges medication + substance (same interaction pattern: one-tap). Sleep and week dots become compact rows — no section headers needed.
 
 </details>
 
@@ -331,29 +315,17 @@
 │  │  ─────────────────    │  │
 │  │  Type here…           │  │
 │  └───────────────────────┘  │
-│  [ + Add your own block ]   │  ← Notion '/' menu
+│  [ + Add your own block ]   │  ← tap '/' for block menu
+│  > Text · Checklist         │  ← floating overlay, not a
+│  > Mood Tag · Cycle Tag     │     persistent section
+│  > Image · Quote            │
+│  > Mood Scale · Life Event  │
+│  > Social Rhythm            │
 │                             │
-│  BLOCK MENU  (on '/')       │
+│  SOCIAL RHYTHM              │  ← persistent daily card
 │  ┌───────────────────────┐  │
-│  │  📝  Text             │  │
-│  │  ✅  Checklist        │  │
-│  │  😊  Mood Tag         │  │
-│  │  🌊  Cycle Tag        │  │
-│  │  🖼️  Image            │  │
-│  │  💬  Quote            │  │
-│  │  📊  Mood Scale (1–10)│  │
-│  │  📌  Life Event       │  │  ← new
-│  │  🕐  Social Rhythm    │  │  ← new
-│  └───────────────────────┘  │
-│                             │
-│  SOCIAL RHYTHM — Today      │  ← collapses if logged
-│  ┌───────────────────────┐  │
-│  │  Wake time      06:45 │  │  ← time fields
-│  │  First contact  07:30 │  │
-│  │  Work start     09:00 │  │
-│  │  Dinner         ──:── │  │  ← not yet logged
-│  │  Bedtime        ──:── │  │
-│  │  Consistency: ████░░  │  │  ← 7-day rhythm score
+│  │  🕐 Log today's       │  │  ← unlogged state
+│  │     rhythm anchors →  │  │
 │  └───────────────────────┘  │
 │                             │
 │  ACTIVITIES TODAY           │
@@ -386,6 +358,10 @@
 ```
 
 > 48-hour edit window keeps journal data reliable for AI analysis while still allowing same-day corrections.
+
+> **Social Rhythm card states:** *Unlogged* — shows "🕐 Log today's rhythm anchors →" (tap opens 5-field entry: Wake · First contact · Work start · Dinner · Bedtime). *Logged* — collapses to "✅ Rhythm logged · Consistency ████░░" with the 7-day score inline.
+
+> **Block menu** is a floating overlay (not a visible section). It appears when the user types '/' in the block editor. Items: Text · Checklist · Mood Tag · Cycle Tag · Image · Quote · Mood Scale · Life Event · Social Rhythm.
 
 </details>
 
@@ -2001,3 +1977,4 @@ User submits post
 | 10 | Offline-first — all core features work without internet |
 | 11 | Guardian "full control" always revocable by the user when stable |
 | 12 | All AI summaries run on zero-data-retention infrastructure (HIPAA path) |
+| 13 | Two-layer interaction: the core daily minimum is 4 taps (cycle state on Cycle screen, mood in TODAY card, medication + substance in DAILY CHECK-INS) — journaling, activities, and community are always optional depth |
