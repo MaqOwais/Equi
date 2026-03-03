@@ -13,7 +13,7 @@
 
 ### *Finding your equilibrium.*
 
-**AI-driven prescription based bipolar disorder monitoring and stabilisation system addressing a major public health crisis in the United States.**
+**AI-driven bipolar disorder monitoring and stabilisation system — with optional clinical prescription integration — addressing one of the most under-served public health crises in the United States.**
 
 <br/>
 
@@ -30,9 +30,11 @@
 
 ## What is Equi?
 
-Equi is an **AI-driven prescription-based bipolar disorder monitoring and stabilisation system** built to address one of the most under-served public health crises in the United States. Over 6 million Americans live with bipolar disorder — yet most go years without a correct diagnosis, consistent monitoring, or care that understands the full picture of their cycles.
+Equi is an **AI-driven bipolar disorder monitoring and stabilisation system** built to address one of the most under-served public health crises in the United States. Over 6 million Americans live with bipolar disorder — yet most go years without a correct diagnosis, consistent monitoring, or care that understands the full picture of their cycles.
 
-Equi closes that gap. Every feature is designed around the clinical reality of cycling between mania and depression: continuous monitoring, AI-generated reports tied to prescription management, wearable data integration, and direct access to licensed US psychiatrists.
+Equi closes that gap. Every feature is designed around the clinical reality of cycling between mania and depression: continuous monitoring, AI-generated reports, wearable data integration, and optional direct access to licensed US psychiatrists.
+
+> **Prescription features are optional.** Equi works fully as a standalone monitoring tool — cycle tracking, journaling, AI reports, and all other features function without any psychiatrist connection. Connecting with a psychiatrist and receiving prescribed activities is an additional layer for those who want it.
 
 > *"Not a wellness app. A clinical-grade monitoring system that fits in your pocket."*
 
@@ -44,7 +46,7 @@ Equi closes that gap. Every feature is designed around the clinical reality of c
 |---|---|---|
 | Mood tracking | Generic 1–5 scale | Separate mania + depressive + mixed cycle tracking with symptom checklists |
 | Journal | Basic text entry | Notion-style block editor, auto-tagged with cycle phase, sleep, and activities |
-| AI insights | None or generic | Claude AI generates personalized weekly reports, early warning patterns, and shareable PDFs for your psychiatrist |
+| AI insights | None or generic | Llama 3.1 70B generates personalised weekly reports, early warning patterns, and shareable PDFs for your psychiatrist |
 | Community | Upvotes, streaks, gamification | Anonymous, no likes — only "I relate" and "Thank you for sharing" |
 | Crisis support | Hotline link buried in settings | One-tap SOS → calls your parents/contacts + grounding tools |
 | Sleep & fitness | Manual entry | Syncs with Apple Watch, Apple Health, and Google Fit |
@@ -99,7 +101,7 @@ Structured, chapter-based reflection prompts covering: understanding your cycles
 ### 🗓️ Daily Routine Builder
 Fully customizable daily checklist and journal prompts. Set your own habits (morning walk, sleep time, screen limits), assign importance weights (1–5 stars), and track a weighted daily progress score. All checklist data feeds directly into AI analytics.
 
-### 📓 Activity Streak
+### 🔥 Activity Streak
 Every completed journal entry and activity is tracked as a streak in the journal calendar. Entries are editable for 48 hours then locked — keeping AI data reliable while allowing same-day corrections.
 
 ### 💜 Well-wisher & Guardian Access
@@ -108,7 +110,7 @@ Share your mood summaries, selected journal entries, or full AI reports with fri
 ### 🕐 Social Rhythm Tracker
 Log your five daily rhythm anchors — wake time, first social contact, work start, dinner, and bedtime — each day. Based on IPSRT landmark RCTs: stabilising the timing of these five routines directly reduces relapse in bipolar disorder. A Rhythm Consistency Score in the AI Wellness Report flags when irregularity is increasing. Stressor logging links specific disruptions (travel, late social events, work changes) to upcoming mood shifts.
 
-### 💊 Medication Adherence
+### 📋 Medication Adherence
 One-tap daily check-in: Taken / Skipped / Partial. Optional reason and side-effect log (fatigue, weight changes, tremor, cognitive fog) when a dose is missed. Adherence patterns feed into the AI Wellness Report to correlate with mood episode onset. Visible to your psychiatrist only with explicit, per-person consent — medication data is the most strictly controlled field in the app.
 
 ### 🔎 Relapse Signature Builder
