@@ -230,8 +230,8 @@ Partners: [NAMI](https://nami.org) · [DBSA](https://dbsalliance.org) · [988 Su
 
 ```
 Phase 1 — Design        ██████████  Done
-Phase 2 — Tech Setup    ░░░░░░░░░░  Up next
-Phase 3 — Core Features ░░░░░░░░░░  Planned
+Phase 2 — Tech Setup    ██████████  Done
+Phase 3 — Core Features ░░░░░░░░░░  Up next
 Phase 4 — AI & Wearable ░░░░░░░░░░  Planned
 Phase 5 — Beta Launch   ░░░░░░░░░░  Planned
 ```
