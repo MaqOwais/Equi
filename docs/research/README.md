@@ -11,6 +11,7 @@ This directory documents the clinical research behind every feature in Equi. All
 | [evidence-review.md](evidence-review.md) | Full research review — what each feature is based on, study details, citations |
 | [missing-features.md](missing-features.md) | Evidence-backed features not yet in Equi that research says should be added |
 | [safety-flags.md](safety-flags.md) | Documented clinical risks, contraindications, and required design mitigations |
+| [competitors.md](competitors.md) | Competitor analysis and Equi's unique selling points |
 
 ---
 

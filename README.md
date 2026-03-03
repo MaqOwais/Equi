@@ -13,7 +13,7 @@
 
 ### *Finding your equilibrium.*
 
-**AI-driven bipolar disorder monitoring and stabilisation system — with optional clinical prescription integration — addressing one of the most under-served public health crises in the United States.**
+**AI-driven, research-based bipolar disorder monitoring and stabilisation system — with optional clinical prescription integration — addressing one of the most under-served public health crises in the United States.**
 
 <br/>
 
@@ -30,7 +30,7 @@
 
 ## What is Equi?
 
-Equi is an **AI-driven bipolar disorder monitoring and stabilisation system** built to address one of the most under-served public health crises in the United States. Over 6 million Americans live with bipolar disorder — yet most go years without a correct diagnosis, consistent monitoring, or care that understands the full picture of their cycles.
+Equi is an **AI-driven, research-based bipolar disorder monitoring and stabilisation system** built to address one of the most under-served public health crises in the United States. Over 6 million Americans live with bipolar disorder — yet most go years without a correct diagnosis, consistent monitoring, or care that understands the full picture of their cycles.
 
 Equi closes that gap. Every feature is designed around the clinical reality of cycling between mania and depression: continuous monitoring, AI-generated reports, wearable data integration, and optional direct access to licensed US psychiatrists.
 
@@ -161,7 +161,7 @@ The app's colors are tied to emotional states — no color is labeled "bad" or "
 | 18 | Relapse Signature Builder | Personalised manic + depressive warning signs, timing, priority ranking |
 | 19 | Medication Adherence | Daily check-in, side-effect log, adherence trend, psychiatrist share toggle |
 
-> Full wireframes → [`design/wireframes.md`](design/wireframes.md)
+> Full wireframes → [`docs/design/wireframes.md`](docs/design/wireframes.md)
 
 ---
 
@@ -180,13 +180,13 @@ The app's colors are tied to emotional states — no color is labeled "bad" or "
 
 **AI Model rationale:** Llama 3.1 70B via Groq's zero-retention API gives strong clinical reasoning at no cost during development, with a self-hosted fallback (Ollama + BioMistral) for full HIPAA compliance in production. No user data is used for model training.
 
-> Full AI system design → [`ai/README.md`](ai/README.md)
+> Full AI system design → [`docs/ai/README.md`](docs/ai/README.md)
 
 ---
 
 ## Safety Flags
 
-Equi is a clinical-grade app for a population with documented vulnerability to app-induced adverse events. Five evidence-based risks are built into the design from the start. Full details in [`research/safety-flags.md`](research/safety-flags.md).
+Equi is a clinical-grade app for a population with documented vulnerability to app-induced adverse events. Five evidence-based risks are built into the design from the start. Full details in [`docs/research/safety-flags.md`](docs/research/safety-flags.md).
 
 | Risk | Severity | Required Mitigation |
 |---|---|---|
