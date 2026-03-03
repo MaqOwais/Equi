@@ -110,6 +110,8 @@ Every completed journal entry and activity is recorded and visible in the journa
 ### 💜 Well-wisher & Guardian Access
 Share your mood summaries, selected journal entries, or full AI reports with friends, family, or your therapist — with granular per-person permissions. Guardian mode allows parents or caregivers to receive automatic alerts when high-risk thresholds are triggered, and optionally manage the account when the user is in crisis. Always revocable by the user.
 
+> Full access control breakdown by role → [`docs/access/`](docs/access/README.md)
+
 ### 🕐 Social Rhythm Tracker
 Log your five daily rhythm anchors — wake time, first social contact, work start, dinner, and bedtime — each day. Based on IPSRT landmark RCTs: stabilising the timing of these five routines directly reduces relapse in bipolar disorder. A Rhythm Consistency Score in the AI Wellness Report flags when irregularity is increasing. Stressor logging links specific disruptions (travel, late social events, work changes) to upcoming mood shifts.
 
