@@ -51,6 +51,7 @@ Equi closes that gap. Every feature is designed around the clinical reality of c
 | Crisis support | Hotline link buried in settings | One-tap SOS → calls your parents/contacts + grounding tools |
 | Sleep & fitness | Manual entry | Syncs with Apple Watch, Apple Health, and Google Fit |
 | Psychiatrist access | None | Book bipolar-specialist psychiatrists in-person or online, directly in the app |
+| **Diet & nutrition** | Not tracked, or calorie counting | Food quality check-in (anti-inflammatory vs. destabilising) with AI-detected mood-food correlations — never calorie focused |
 | Business model | Subscription / ads | Donation-funded access. Donors sponsor app usage for individuals who need it. Your data is never sold. |
 
 ---
@@ -98,6 +99,9 @@ Structured, chapter-based reflection prompts covering: understanding your cycles
 ### 🗓️ Daily Routine Builder
 Customizable daily checklist and journal prompts. Set your own habits (morning walk, sleep time, screen limits) and track completion each day. Checklist data feeds directly into the AI Wellness Report.
 
+### 🥗 Diet & Nutrition Tracking
+Daily food quality check-in — not a calorie counter. Three-tap "Eating well?" log on the Home screen captures anti-inflammatory vs. destabilising eating patterns. For users who want more depth: photo snap (AI identifies food quality categories from a photo), voice logging ("I had salmon and broccoli"), or barcode scan (Nova ultra-processed classification via Open Food Facts). Patterns feed into the AI Wellness Report as a dedicated NUTRITION & MOOD section, correlating food quality with mood *variability* — the signal the research actually shows matters in bipolar disorder (Saunders et al. 2022 RCT). Lithium users get gentle contextual notes when logged food patterns may shift medication levels. Never mandatory. Never calorie-focused.
+
 ### 🚬 Substance Use Monitoring
 Simple daily check-in for alcohol and cannabis use — the two substances most documented to destabilise bipolar cycles and interfere with mood stabilisers (MinDag 2025, Lindner Center). A single tap per substance, no judgment framing. Patterns feed into the AI Wellness Report and can be shared with your psychiatrist with explicit consent.
 
@@ -113,7 +117,7 @@ Everyone in your support network downloads the same Equi app. Friends, family, a
 > Full access control breakdown by role → [`docs/access/`](docs/access/README.md)
 
 ### 🕐 Social Rhythm Tracker
-Log your five daily rhythm anchors — wake time, first social contact, work start, dinner, and bedtime — each day. Based on IPSRT landmark RCTs: stabilising the timing of these five routines directly reduces relapse in bipolar disorder. A Rhythm Consistency Score in the AI Wellness Report flags when irregularity is increasing. Stressor logging links specific disruptions (travel, late social events, work changes) to upcoming mood shifts.
+Log your six daily rhythm anchors — wake time, first meal, first social contact, work start, dinner, and bedtime — each day. Based on IPSRT landmark RCTs: stabilising the timing of these five routines directly reduces relapse in bipolar disorder. A Rhythm Consistency Score in the AI Wellness Report flags when irregularity is increasing. Stressor logging links specific disruptions (travel, late social events, work changes) to upcoming mood shifts.
 
 ### 📋 Medication Adherence
 One-tap daily check-in: Taken / Skipped / Partial. Optional reason and side-effect log (fatigue, weight changes, tremor, cognitive fog) when a dose is missed. Adherence patterns feed into the AI Wellness Report to correlate with mood episode onset. Visible to your psychiatrist only with explicit, per-person consent — medication data is the most strictly controlled field in the app. **Conditionally shown:** users not on medication skip this entirely. Enable it during onboarding, in Profile Settings, or when your psychiatrist requests it — always your choice.
@@ -165,6 +169,7 @@ The app's colors are tied to emotional states — no color is labeled "bad" or "
 | 17 | Psychiatrist Portal | Activity Rx + dosage prescribing, phase restrictions, compliance tracking (web) |
 | 18 | Relapse Signature Builder | Personalised manic + depressive warning signs, timing, priority ranking |
 | 19 | Medication Adherence | Daily check-in, side-effect log, adherence trend, psychiatrist share toggle |
+| 20 | Nutrition Detail | Food quality checklist (anti-inflammatory + destabilising), eating window, hydration, gut health — accessible from Home, Explore, and Journal |
 
 > Full wireframes → [`docs/design/wireframes.md`](docs/design/wireframes.md)
 
@@ -197,7 +202,7 @@ Equi is a clinical-grade app for a population with documented vulnerability to a
 |---|---|---|
 | Mood monitoring → rumination | **High** | Low-mood safety circuit (≤3/10 for 2+ days) → optional coping prompt; one log per day max |
 | Positive activities → hypomania induction | Medium | Cycle-phase gating: Gratitude Jar, Compliment Diary, Proud Dandelion removed from recommendations during manic phase |
-| Behavioral activation without anti-hypomania guardrails | Medium | Phase-aware Home suggestions; phase restriction field in Psychiatrist Portal (Screen 17) |
+| Behavioral activation without anti-hypomania guardrails | Medium | Phase-aware Home suggestions; phase restriction field in Psychiatrist Portal |
 | Clinical framing of grounding / mindfulness | Low | Honest evidence labelling in activity descriptions — no extrapolated bipolar claims |
 | Data privacy and stigma risk | **High** | Zero AI data retention (Groq); no third-party analytics SDKs; plain-language privacy UX; immediate data deletion |
 
