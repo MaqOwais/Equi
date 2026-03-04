@@ -16,6 +16,7 @@ Every piece of data in Equi belongs to the user. Sharing is always opt-in, per-p
 | AI Wellness Report | ✅ Full | 🔓 Manual share | 🔓 Manual share | 🔓 Manual share | 🔓 Manual share |
 | Medication adherence | ✅ Full | 🔓 Toggle (off by default) | ❌ Never | ❌ Never | ❌ Never |
 | Substance use data | ✅ Full | 🔓 Toggle (off by default) | ❌ Never | ❌ Never | ❌ Never |
+| Nutrition logs | ✅ Full | ❌ Never | ❌ Never | ❌ Never | ❌ Never |
 | Activity completion | ✅ Full | ✅ Always (once connected) | ❌ | ❌ | ❌ |
 | Prescribed activities | ✅ Full | ✅ Always (once connected) | ❌ | ❌ | ❌ |
 | Relapse signatures | ✅ Full | ❌ | ❌ | ❌ | ❌ |
@@ -60,9 +61,9 @@ Every piece of data in Equi belongs to the user. Sharing is always opt-in, per-p
 
 ## How Permissions Are Set
 
-All sharing is managed from **Screen 16 — Well-wisher & Guardian Access**. The user adds a person by name and relationship, then toggles each data type on or off for that person individually. Changes take effect immediately and can be undone at any time.
+All sharing is managed from **Support Network** (Profile → My Support Network). The user adds a person by name and relationship, then toggles each data type on or off for that person individually. Changes take effect immediately and can be undone at any time.
 
-For psychiatrists, sharing is initiated through **Screen 08 — Psychiatrists** when the user connects with a provider. The default share is activity compliance only. All other data types require separate opt-in.
+For psychiatrists, sharing is initiated through the **Psychiatrists screen** (Explore tab) when the user connects with a provider. The default share is activity compliance only. All other data types require separate opt-in.
 
 ## Two-Way Interaction
 

@@ -45,6 +45,7 @@ Block-based daily journal with customizable prompts, activity log, social rhythm
 │  > Image · Quote            │
 │  > Mood Scale · Life Event  │
 │  > Social Rhythm            │
+│  > Nutrition                │
 │                             │
 │  SOCIAL RHYTHM              │  ← persistent daily card
 │  ┌───────────────────────┐  │
@@ -90,10 +91,10 @@ Block-based daily journal with customizable prompts, activity log, social rhythm
 **48-hour edit window** keeps journal data reliable for AI analysis while still allowing same-day corrections.
 
 **Social Rhythm card states:**
-- *Unlogged* — shows "🕐 Log today's rhythm anchors →" (tap opens 5-field entry: Wake · First contact · Work start · Dinner · Bedtime)
+- *Unlogged* — shows "🕐 Log today's rhythm anchors →" (tap opens 6-field entry: Wake · First Meal · First Contact · Work Start · Dinner · Bedtime)
 - *Logged* — collapses to "✅ Rhythm logged · Consistency ████░░" with the 7-day consistency score inline
 
-**Block menu** is a floating overlay — not a visible section. Appears when the user types `/` in the editor. Available blocks: Text · Checklist · Mood Tag · Cycle Tag · Image · Quote · Mood Scale · Life Event · Social Rhythm.
+**Block menu** is a floating overlay — not a visible section. Appears when the user types `/` in the editor. Available blocks: Text · Checklist · Mood Tag · Cycle Tag · Image · Quote · Mood Scale · Life Event · Social Rhythm · Nutrition.
 
 ---
 

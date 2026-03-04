@@ -238,3 +238,36 @@ FFT components directly map onto the Guardian feature:
 ### Key Citations
 - FFT for High-Risk Youths, *JAMA Psychiatry*, 2020 — https://jamanetwork.com/journals/jamapsychiatry/fullarticle/2758325
 - IPSRT 2-year Outcomes BD I, *JAMA Psychiatry* — https://jamanetwork.com/journals/jamapsychiatry/fullarticle/1108410
+
+---
+
+## 12. Diet & Nutrition Tracking
+
+**Verdict: Moderate–Strong and growing. The most important finding is that dietary effects show up in mood *variability* — not in average scores — which is exactly what Equi's daily EMA-style tracking captures.**
+
+> Full deep-dive research in [diet-nutrition.md](diet-nutrition.md). Summary of key findings below.
+
+The foundational trial for this feature is Saunders et al. 2022 (*Bipolar Disorders*, Penn State). N=82 BD-I/II patients randomised to a high omega-3 / low omega-6 diet. Primary measurement: **twice-daily EMA** over 12 weeks — the same methodology Equi uses. Result: variability in mood, energy, irritability, and pain was significantly reduced in the intervention group; clinical scale averages were not significantly different. This proved that (a) diet meaningfully affects bipolar mood patterns and (b) EMA is the correct measurement tool — weekly clinical scales miss the signal entirely.
+
+The Stanford ketogenic diet pilot (Sethi, Wakeham, Ketter et al., 2024, *Psychiatry Research*, N=23) showed 69% of BD participants had clinically meaningful CGI improvement; 31% average improvement across all participants. Metabolic outcomes were dramatic: zero participants met metabolic syndrome criteria by study end, down from a substantial proportion at baseline. This is clinically significant because ~60% of BD patients on antipsychotics develop metabolic syndrome.
+
+The Jacka lab 2019 sub-study of an RCT found that diet quality independently predicted treatment response — high diet quality was associated with better outcomes regardless of whether the patient received active treatment or placebo. This is the most clinically actionable evidence for including nutrition tracking as a core feature.
+
+**Gut-brain axis:** Multiple systematic reviews in *Molecular Psychiatry* (Rios 2023, Ng 2022) confirm BD patients consistently show reduced microbial diversity and lower Faecalibacterium (an anti-inflammatory butyrate producer). Diet is the #1 modifiable factor for microbiome. Probiotic RCTs are small and mixed — one positive signal for mania (Guo 2022).
+
+**Caffeine-lithium interaction:** Caffeine is a diuretic that gradually lowers lithium blood levels by increasing urinary output — clinically documented and an underappreciated safety issue for approximately 30–40% of BD patients on lithium. Equi can surface this connection when users log high caffeine intake alongside their medication check-in.
+
+**Meal timing:** The ISBD Task Force (McCarthy et al. 2022, *Bipolar Disorders*) found circadian disruption in 10–80% of BD patients even during euthymic states. Irregular meal timing is a direct circadian disruptor. Time-restricted eating in BD is currently in an ongoing pre-post trial (BMC Psychiatry 2024).
+
+**Mayo Clinic Biobank 2025** (N=737 BD patients): "Unhealthy diet quality" is now established as a distinct clinical phenotype in BD-I requiring targeted intervention.
+
+**Design implication:** This feature must not be a calorie tracker. The evidence supports tracking *food quality categories* and *eating patterns* (anti-inflammatory vs. pro-inflammatory foods, omega-3 intake, caffeine, sodium, meal timing) correlated over time against mood variability data. The goal is surfacing personal patterns — that depressive periods cluster after low-omega-3 weeks, or that high-caffeine days precede worse sleep — not telling users what to eat.
+
+### Key Citations
+- Saunders et al. — high n-3/low n-6 RCT, *Bipolar Disorders* 2022 — https://pmc.ncbi.nlm.nih.gov/articles/PMC9157563/
+- Sethi et al. — Stanford ketogenic pilot, *Psychiatry Research* 2024 — https://pubmed.ncbi.nlm.nih.gov/38547601/
+- Jacka lab — diet quality predicts treatment response, 2019 — https://pubmed.ncbi.nlm.nih.gov/31661974/
+- Rios et al. — gut-brain axis in BD, *Molecular Psychiatry* 2023 — https://www.nature.com/articles/s41380-023-01964-w
+- MDPI — From Food to Mood review, *Nutrients* 2025 — https://www.mdpi.com/2072-6643/17/23/3728
+- Mayo Clinic Biobank — diet quality phenotype in BD 2025 — https://www.sciencedirect.com/article/pii/S0165032725020749
+- McCarthy et al. — ISBD circadian task force, *Bipolar Disorders* 2022 — https://onlinelibrary.wiley.com/doi/10.1111/bdi.13165

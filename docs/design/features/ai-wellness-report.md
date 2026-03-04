@@ -78,6 +78,23 @@ Weekly AI-generated summary covering mood, sleep, activities, substances, and so
 │  │  the following night  │  │
 │  └───────────────────────┘  │
 │                             │
+│  NUTRITION & MOOD           │  ← shown if ≥3 days of nutrition data
+│  ┌───────────────────────┐  │
+│  │  Anti-inflammatory    │  │
+│  │  days: 4 / 7   57%   │  │
+│  │  ████████░░░░         │  │
+│  │                       │  │
+│  │  💡 Your 3 low-mood   │  │
+│  │  days all followed    │  │
+│  │  days with high sugar │  │
+│  │  and low omega-3      │  │
+│  │                       │  │
+│  │  ⚠️ 4 days with 3+   │  │
+│  │  cups caffeine —      │  │
+│  │  all preceded worse   │  │
+│  │  sleep quality        │  │
+│  └───────────────────────┘  │
+│                             │
 │  LIFE EVENTS THIS PERIOD    │
 │  ┌───────────────────────┐  │
 │  │  📌 Feb 15 — Work     │  │
@@ -120,7 +137,7 @@ Weekly AI-generated summary covering mood, sleep, activities, substances, and so
 ### Pipeline
 
 ```
-User data (mood, journal, sleep, cycle, activities)
+User data (mood, journal, sleep, cycle, activities, substances, nutrition, social rhythm)
         │
         ▼
   Structured prompt builder
@@ -134,6 +151,7 @@ User data (mood, journal, sleep, cycle, activities)
   · Plain-language summary
   · Sleep correlation insight
   · Top mood triggers (from journal sentiment)
+  · Nutrition-mood correlations (variability, not averages)
   · Early warning flags
   · Recommended activities for next week
         │

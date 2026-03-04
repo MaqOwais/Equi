@@ -118,6 +118,8 @@ One-time guided setup of personal early-warning signs for manic and depressive e
 │  · Talking faster than usual│
 │  · Feeling invincible       │
 │  · Less need for sleep      │
+│  · Drinking more caffeine   │
+│  · Forgetting to eat        │
 │                             │
 │  How many days before a     │
 │  full episode do you        │
@@ -165,6 +167,8 @@ One-time guided setup of personal early-warning signs for manic and depressive e
 │  · Sleeping more than usual │
 │  · Appetite changes         │
 │  · Feeling slowed down      │
+│  · Eating mostly junk food  │
+│  · Relying on caffeine      │
 │                             │
 │  How many days before a     │
 │  full episode?              │

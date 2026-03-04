@@ -9,6 +9,7 @@ This directory documents the clinical research behind every feature in Equi. All
 | File | Contents |
 |---|---|
 | [evidence-review.md](evidence-review.md) | Full research review — what each feature is based on, study details, citations |
+| [diet-nutrition.md](diet-nutrition.md) | Deep-dive research on diet and bipolar disorder — omega-3, ketogenic, Mediterranean, gut-brain axis, caffeine-lithium interactions, meal timing, metabolic syndrome |
 | [missing-features.md](missing-features.md) | Evidence-backed features not yet in Equi that research says should be added |
 | [safety-flags.md](safety-flags.md) | Documented clinical risks, contraindications, and required design mitigations |
 | [competitors.md](competitors.md) | Competitor analysis and Equi's unique selling points |
@@ -35,6 +36,7 @@ This directory documents the clinical research behind every feature in Equi. All
 | Personalized relapse signature | Idiosyncratic prodromal signs occur 2–4 weeks before relapse; Cochrane-reviewed | ✅✅ Strong |
 | Life events / stressor logging | IPSRT model; life-event social rhythm disruption is a direct episode trigger | ✅✅ Moderate–Strong |
 | Substance use monitoring (alcohol / cannabis) | MinDag 2025 (Oslo): cannabis most common comorbid substance; alcohol destabilises mood cycles and degrades sleep. Lindner Center: substance use interferes directly with mood stabilisers | ✅✅ Moderate–Strong |
+| **Diet & Nutrition tracking** | Saunders 2022 RCT: EMA-detected mood variability reduced by high omega-3/low omega-6 diet. Stanford 2024 ketogenic pilot: 69% of BD patients showed clinically meaningful improvement. Diet quality independently predicts treatment response (Jacka lab 2019). See [diet-nutrition.md](diet-nutrition.md) | ✅✅ Moderate–Strong |
 
 ---
 

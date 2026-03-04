@@ -17,6 +17,7 @@
         Mood log        Activity log     Wave Graph
         Activity hist.  Custom prompts   Symptoms
         Suggestions     Social Rhythm    AI insight
+        Nutrition row   Nutrition block
               │              │               │
               └──────────────┼───────────────┘
                              │
@@ -29,7 +30,7 @@
         Bipolar Workbook                Well-wisher ctrl
         Psychiatrists                   Guardian access
         Community                       Relapse Signatures
-                                        Ambient Themes
+        Nutrition Detail                Ambient Themes
                                         Settings / Donate
               │
               └─── [Crisis Mode]  (always one tap away)
@@ -69,6 +70,7 @@
 | [Profile & Settings](features/profile.md) | Stats, wellness radar, settings list, Themes & Ambiance, Calendar (Phase 4 deferred) |
 | [Support Network](features/support-network.md) | Well-wisher & guardian access controls; companion app (friend view, guardian view, messaging) |
 | [Medication](features/medication.md) | Daily adherence log, skip reasons, side effects, conditional visibility, psychiatrist sharing toggle |
+| [Nutrition](features/nutrition.md) | Daily food quality check-in, anti-inflammatory vs. destabilizing food tracking, eating window, medication-diet alerts, mood-food AI correlation |
 | [Workbook](features/workbook.md) | Bipolar Workbook — 4 chapters, sequential prompts, PDF export |
 
 ---

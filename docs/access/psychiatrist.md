@@ -1,6 +1,6 @@
 # Access: Psychiatrist
 
-Psychiatrists access Equi through a separate **web-based portal** (Screen 17 — Psychiatrist Portal). Access is gated by the patient's explicit connection — a psychiatrist can only see a patient's data if the patient has connected with them via Screen 08.
+Psychiatrists access Equi through a separate **web-based portal**. Access is gated by the patient's explicit connection — a psychiatrist can only see a patient's data if the patient has connected with them via the Psychiatrists screen (Explore tab).
 
 The portal is strictly limited to therapeutic activity data. It is not a clinical record system and does not replace EMR/EHR workflows.
 
@@ -21,9 +21,9 @@ The portal is strictly limited to therapeutic activity data. It is not a clinica
 
 | Data Type | Access | Default | How to Enable |
 |---|---|---|---|
-| AI Wellness Report | 🔓 Patient must share | Off | Patient taps "Share report" before appointment (Screen 08 or Screen 09) |
-| Medication adherence | 🔓 Per-patient toggle | Off | Patient enables toggle in Screen 19; or psychiatrist requests via portal |
-| Substance use data | 🔓 Per-patient toggle | Off | Patient enables toggle in Screen 16 |
+| AI Wellness Report | 🔓 Patient must share | Off | Patient taps "Share report" in the Psychiatrists screen or AI Report screen |
+| Medication adherence | 🔓 Per-patient toggle | Off | Patient enables toggle in Medication Adherence settings; or psychiatrist requests via portal |
+| Substance use data | 🔓 Per-patient toggle | Off | Patient enables toggle in Support Network settings |
 
 ### Never accessible — no override
 
@@ -53,7 +53,7 @@ The portal is strictly limited to therapeutic activity data. It is not a clinica
 
 ## Connection Model
 
-1. Patient searches for the psychiatrist in **Screen 08 — Psychiatrists**
+1. Patient searches for the psychiatrist in the **Psychiatrists screen** (Explore tab)
 2. Patient taps "Connect" — default share is activity compliance only
 3. Psychiatrist sees the patient in their portal under MY PATIENTS
 4. All additional data sharing requires the patient to enable it separately

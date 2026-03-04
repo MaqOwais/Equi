@@ -14,10 +14,11 @@ The user has unconditional, full access to every piece of data in their Equi acc
 | AI Wellness Reports | ✅ Full | Weekly + monthly, PDF export |
 | Medication adherence | ✅ Full | If tracking is enabled |
 | Substance use logs | ✅ Full | All daily entries |
-| Social rhythm logs | ✅ Full | All 5 anchor times + consistency score |
+| Social rhythm logs | ✅ Full | All 6 anchor times (Wake · First Meal · First Contact · Work Start · Dinner · Bedtime) + consistency score |
 | Activity history | ✅ Full | All completed activities, all dates |
 | Prescribed activities | ✅ Full | Activity name, dosage, compliance |
 | Relapse signatures | ✅ Full | Manic + depressive signature, editable anytime |
+| Nutrition logs | ✅ Full | Daily food quality entries, eating window, destabilizing items |
 | Bipolar Workbook | ✅ Full | All chapter responses, PDF export |
 | Sleep / wearable data | ✅ Full | Apple Watch, Apple Health, Google Fit |
 | Daily Routine Builder | ✅ Full | Custom habits + completion history |
@@ -31,13 +32,13 @@ The user has unconditional, full access to every piece of data in their Equi acc
 ## What the User Controls
 
 ### Sharing permissions
-From **Screen 16 — Well-wisher & Guardian Access**, the user sets and adjusts every permission for every connected person individually. Changes are immediate and always reversible.
+From **Support Network** (Profile → My Support Network), the user sets and adjusts every permission for every connected person individually. Changes are immediate and always reversible.
 
 ### Psychiatrist connection
-From **Screen 08 — Psychiatrists**, the user connects to a provider and controls which data types are shared with them. Default on connection: activity compliance only.
+From the **Psychiatrists screen** (Explore tab), the user connects to a provider and controls which data types are shared with them. Default on connection: activity compliance only.
 
 ### Data export
-From **Profile & Settings (Screen 13)**, the user can export their full data at any time as a structured file. All data types are included.
+From **Profile & Settings** (You tab → Export my data), the user can export their full data at any time as a structured file. All data types are included.
 
 ### Data deletion
 The user can delete their entire account and all associated data at any time from Privacy Settings. Deletion is permanent and immediate — no recovery.
