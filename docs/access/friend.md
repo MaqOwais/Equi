@@ -1,6 +1,6 @@
 # Access: Friend
 
-A friend is someone the user wants to stay loosely connected with — aware of how they're doing, without access to clinical or medical detail. Friends receive the lightest-touch view of all non-user roles: simplified mood status and nothing that crosses into medical territory.
+A friend is someone the user wants to stay loosely connected with — aware of how they're doing, without access to clinical or medical detail. Friends download the Equi app, choose "I'm supporting someone" at the role selection screen, and get a companion home view. They see the lightest-touch version of the user's data and can send messages and check-ins back.
 
 Friends are added through the same **Screen 16 — Well-wisher & Guardian Access** flow, but their default permissions are more limited than well-wishers and they cannot be elevated to guardian status.
 
@@ -60,10 +60,19 @@ This preserves the user's agency in how they disclose to their social circle.
 
 ---
 
+## What a Friend Can Send
+
+From the companion app, friends can reach out without needing to know what to say:
+
+- **Quick check-ins** — one-tap templates: "Thinking of you 💜", "How are you?", "Proud of you 🌟"
+- **Direct messages** — private text messages, visible only to the friend and the user
+- **Reactions to shared journal entries** — 💜 or 🙏 only (no free-text reactions, to avoid adding pressure)
+
+The user receives these in their Equi app and can reply, ignore, or mute the friend at any time.
+
 ## What a Friend Cannot Do
 
 - They cannot log anything on behalf of the user
-- They cannot message the user through Equi
 - They cannot request more access
 - They cannot see what other people have access to
 - They cannot be escalated to guardian status (that designation requires the user to explicitly enable it in a separate step for a specifically trusted person)

@@ -2,6 +2,8 @@
 
 Every piece of data in Equi belongs to the user. Sharing is always opt-in, per-person, and revocable at any time. No role — not a psychiatrist, not a parent — can access anything without the user's explicit, granular consent.
 
+**Everyone downloads the same Equi app.** Friends, well-wishers, and guardians choose "I'm supporting someone" at the role selection screen and get a companion home view. They can see what the patient shares with them and send messages and check-ins back — two-way, within the app.
+
 ---
 
 ## Role Summary
@@ -61,3 +63,12 @@ Every piece of data in Equi belongs to the user. Sharing is always opt-in, per-p
 All sharing is managed from **Screen 16 — Well-wisher & Guardian Access**. The user adds a person by name and relationship, then toggles each data type on or off for that person individually. Changes take effect immediately and can be undone at any time.
 
 For psychiatrists, sharing is initiated through **Screen 08 — Psychiatrists** when the user connects with a provider. The default share is activity compliance only. All other data types require separate opt-in.
+
+## Two-Way Interaction
+
+The companion app is not read-only. Friends, well-wishers, and guardians can:
+- **Send messages** — private direct messages to the patient, visible only to both parties
+- **Send check-ins** — one-tap quick templates ("Thinking of you", "How are you?", "Proud of you")
+- **React to shared journal entries** — 💜 or 🙏 (same reactions as the community, no free-text to avoid pressure)
+
+The patient receives these in their Equi app. They can mute or remove any companion at any time.

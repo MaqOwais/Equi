@@ -108,7 +108,7 @@ Every completed journal entry and activity is recorded and visible in the journa
 6 calming scenes: Beach, Mountains, Forest, Fireplace, Rain, Night Sky. Accessible from your Profile. Choose a scene and volume level. Not cycle-dependent — play whatever feels right.
 
 ### 💜 Well-wisher & Guardian Access
-Share your mood summaries, selected journal entries, or full AI reports with friends, family, or your therapist — with granular per-person permissions. Guardian mode allows parents or caregivers to receive automatic alerts when high-risk thresholds are triggered, and optionally manage the account when the user is in crisis. Always revocable by the user.
+Everyone in your support network downloads the same Equi app. Friends, family, and caregivers choose "I'm supporting someone" at the role selection screen and get a companion view — they see what you share with them and can send messages and check-ins back, all within the app. Guardian mode gives parents or caregivers automatic alerts when high-risk thresholds are triggered and, with your consent, the ability to help manage the account during a crisis. All sharing is per-person and always revocable.
 
 > Full access control breakdown by role → [`docs/access/`](docs/access/README.md)
 

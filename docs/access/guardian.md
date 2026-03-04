@@ -1,6 +1,6 @@
 # Access: Guardian / Parent
 
-A guardian is a parent, caregiver, or trusted person who takes on a more active role in the user's safety — not just receiving updates but being contactable in a crisis and, when the user has consented, able to manage the account on their behalf during an episode.
+A guardian is a parent, caregiver, or trusted person who takes on a more active role in the user's safety — not just receiving updates but being contactable in a crisis and, when the user has consented, able to manage the account on their behalf during an episode. Guardians download the Equi app, choose "I'm supporting someone" at the role selection screen, and get a companion home view with more clinical detail than the friend view.
 
 Guardian access is a superset of well-wisher access. Every permission a well-wisher can have, a guardian can also have — plus the elevated capabilities listed below.
 
@@ -74,6 +74,17 @@ No clinical data, scores, or journal content is included in the alert.
 | Activity compliance | ❌ Never — psychiatrist only |
 
 ---
+
+## What a Guardian Can Send
+
+From the companion app, guardians can:
+
+- **Send messages** — private direct messages to the user
+- **Send check-ins** — one-tap templates ("Thinking of you", "How are you?") or custom message
+- **React to shared journal entries** — 💜 or 🙏
+- **Respond to alerts** — when an alert banner appears in their companion home, they can tap [Call] or [Message] directly from it
+
+The user receives all of these in their Equi app.
 
 ## Designating a Guardian
 

@@ -1,6 +1,6 @@
 # Access: Well-wisher
 
-A well-wisher is someone the user has chosen to keep informed about their wellbeing — a partner, sibling, therapist, or anyone the user trusts. They receive a read-only view of whatever the user has chosen to share. They cannot interact with the app, edit data, or take any action on the user's behalf.
+A well-wisher is someone the user has chosen to keep informed about their wellbeing — a partner, sibling, therapist, or anyone the user trusts. They download the Equi app, choose "I'm supporting someone" at the role selection screen, and get a companion home view. They can see what the user shares and send messages and check-ins back — the experience is two-way.
 
 Managed from **Screen 16 — Well-wisher & Guardian Access**.
 
@@ -47,10 +47,19 @@ The alert does not include mood scores, journal content, or any clinical detail.
 
 ---
 
+## What a Well-wisher Can Send
+
+From the companion app, well-wishers can reach out without needing to know what to say:
+
+- **Quick check-ins** — one-tap templates: "Thinking of you 💜", "How are you?", "Proud of you 🌟"
+- **Direct messages** — private text messages, visible only to the well-wisher and the user
+- **Reactions to shared journal entries** — 💜 or 🙏 (no free-text reactions, to avoid adding pressure)
+
+The user receives these in their Equi app. They can reply, ignore, or mute the well-wisher at any time.
+
 ## What a Well-wisher Cannot Do
 
 - They cannot log anything on behalf of the user
-- They cannot message the user through Equi (no in-app messaging)
 - They cannot see what other well-wishers have access to
 - They cannot change any permissions — only the user can
 - They cannot request additional access

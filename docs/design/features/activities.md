@@ -1,0 +1,274 @@
+# Feature: Activities
+
+Activity library with three tabs (All / Prescribed / Working for Me) plus a full-screen activity detail view. Psychiatrists can prescribe activities with dosage and compliance tracking — see [Psychiatrists feature](psychiatrists.md) for the prescribing side.
+
+← [Design index](../wireframes.md)
+
+---
+
+## Activity Library (Explore Tab)
+
+<details>
+<summary>View wireframes (3 tabs)</summary>
+
+**Tab 1: All Activities** *(default)*
+```
+┌─────────────────────────────┐
+│  Explore Activities    🔍   │
+│                             │
+│  ┌──────────┬──────────┬──┐ │
+│  │   All    │Prescribed│✨│ │  ← tabs: All / Prescribed / Working
+│  └──────────┴──────────┴──┘ │
+│                             │
+│  RECOMMENDED FOR YOU        │
+│  Stable day · Morning       │
+│                             │
+│  ┌───────────────────────┐  │
+│  │  🫙  Gratitude Jar    │  │
+│  │  5 min · Mood boost   │  │
+│  │  ★★★★★  12.4k done   │  │
+│  │                 Try → │  │
+│  └───────────────────────┘  │
+│                             │
+│  FILTER BY CYCLE PHASE      │
+│  ┌────────┐┌────────┐┌────┐ │
+│  │ Stable ││Depress.││Mani│ │
+│  └────────┘└────────┘└────┘ │
+│                             │
+│  GROUNDING & CALM           │
+│  ┌───────────────────────┐  │
+│  │  🖐  54321 Grounding  │  │
+│  │  5 min · All phases   │  │
+│  │  Eases panic & racing │  │
+│  │  thoughts             │  │
+│  │                 Try → │  │
+│  └───────────────────────┘  │
+│  ┌───────────────────────┐  │
+│  │  🫁  Box Breathing    │  │
+│  │  3 min · All phases   │  │
+│  │                 Try → │  │
+│  └───────────────────────┘  │
+│                             │
+│  SELF-ESTEEM                │
+│  ┌───────────────────────┐  │
+│  │  🌼  Proud Dandelion  │  │
+│  │  7 min · Depressive   │  │
+│  │  Celebrate small wins │  │
+│  │                 Try → │  │
+│  └───────────────────────┘  │
+│  ┌───────────────────────┐  │
+│  │  📖  Compliment Diary │  │
+│  │  5 min · All phases   │  │
+│  │                 Try → │  │
+│  └───────────────────────┘  │
+│                             │
+│  SLEEP & REST               │
+│  ┌───────────────────────┐  │
+│  │  🌙  Moonlight        │  │
+│  │      Winddown         │  │
+│  │  15 min · Evening     │  │
+│  │  Sleep-inducing music │  │
+│  │  + body scan guide    │  │
+│  │                 Try → │  │
+│  └───────────────────────┘  │
+│                             │
+│  FORGIVENESS & RELEASE      │
+│  ┌───────────────────────┐  │
+│  │  🕊️  I Forgive Myself │  │
+│  │  5 min · All phases   │  │
+│  │  "I forgive myself    │  │
+│  │  for…" guided prompts │  │
+│  │                 Try → │  │
+│  └───────────────────────┘  │
+│                             │
+│  STRUCTURED REFLECTION      │
+│  ┌───────────────────────┐  │
+│  │  📘  Bipolar Workbook │  │
+│  │  Guided prompts for   │  │
+│  │  understanding your   │  │
+│  │  patterns & triggers  │  │
+│  │               Open →  │  │
+│  └───────────────────────┘  │
+│                             │
+│  🏠    📓    🌊    🎯    👤 │
+└─────────────────────────────┘
+```
+
+---
+
+**Tab 2: Prescribed** *(activities prescribed by your psychiatrist)*
+```
+┌─────────────────────────────┐
+│  Explore Activities    🔍   │
+│                             │
+│  ┌──────────┬──────────┬──┐ │
+│  │   All    │Prescribed│✨│ │
+│  └──────────┴──────────┴──┘ │
+│                             │
+│  PRESCRIBED BY              │
+│  Dr. Rachel Moore           │
+│  Psychiatrist · Telehealth  │
+│                             │
+│  ┌───────────────────────┐  │
+│  │  🌙  Moonlight        │  │
+│  │      Winddown         │  │
+│  │  ─────────────────    │  │
+│  │  Dosage: 15 min       │  │
+│  │  Frequency: Nightly   │  │
+│  │  Goal: Regulate sleep │  │
+│  │  onset before 11 PM   │  │
+│  │                       │  │
+│  │  Progress this week:  │  │
+│  │  ████████░░  4 / 5    │  │
+│  │                       │  │
+│  │  [Start] [Mark done]  │  │
+│  └───────────────────────┘  │
+│                             │
+│  ┌───────────────────────┐  │
+│  │  🫁  Box Breathing    │  │
+│  │  ─────────────────    │  │
+│  │  Dosage: 5 min        │  │
+│  │  Frequency: 2× daily  │  │
+│  │  Goal: Reduce anxiety │  │
+│  │  before high-stress   │  │
+│  │  situations           │  │
+│  │                       │  │
+│  │  Progress this week:  │  │
+│  │  ██████████  7 / 7    │  │  ← completed
+│  │                       │  │
+│  │  [Start] [Mark done]  │  │
+│  └───────────────────────┘  │
+│                             │
+│  ┌───────────────────────┐  │
+│  │  🕊️  I Forgive Myself │  │
+│  │  ─────────────────    │  │
+│  │  Dosage: 10 min       │  │
+│  │  Frequency: 3× weekly │  │
+│  │  Goal: Process shame  │  │
+│  │  from past episodes   │  │
+│  │                       │  │
+│  │  Progress this week:  │  │
+│  │  ████░░░░░░  2 / 3    │  │
+│  │                       │  │
+│  │  [Start] [Mark done]  │  │
+│  └───────────────────────┘  │
+│                             │
+│  COMPLIANCE REPORT          │
+│  Shared with Dr. Moore      │
+│  Overall: 78% this week     │
+│  [View full report]         │
+│                             │
+│  🏠    📓    🌊    🎯    👤 │
+└─────────────────────────────┘
+```
+> **Privacy:** The psychiatrist sees only activity names, prescribed dosage, and completion rate — no journal content or personal mood notes.
+
+---
+
+**Tab 3: Working for Me** *(bookmarked activities)*
+```
+┌─────────────────────────────┐
+│  Explore Activities    🔍   │
+│                             │
+│  ┌──────────┬──────────┬──┐ │
+│  │   All    │Prescribed│✨│ │
+│  └──────────┴──────────┴──┘ │
+│                             │
+│  YOUR PERSONAL TOOLKIT      │
+│  Activities you've bookmarked│
+│  as helpful for you.        │
+│                             │
+│  ┌───────────────────────┐  │
+│  │  🫙  Gratitude Jar    │  │
+│  │  Saved Mar 1          │  │
+│  │  "Helps on low days"  │  │  ← personal note (optional)
+│  │  Completed 14 times   │  │
+│  │                 Try → │  │
+│  └───────────────────────┘  │
+│                             │
+│  ┌───────────────────────┐  │
+│  │  🌙  Moonlight        │  │
+│  │      Winddown         │  │
+│  │  Saved Feb 18         │  │
+│  │  Completed 8 times    │  │
+│  │                 Try → │  │
+│  └───────────────────────┘  │
+│                             │
+│  ┌───────────────────────┐  │
+│  │  🖐  54321 Grounding  │  │
+│  │  Saved Feb 5          │  │
+│  │  Completed 22 times   │  │
+│  │                 Try → │  │
+│  └───────────────────────┘  │
+│                             │
+│  Nothing here yet?          │
+│  Tap 🔖 on any activity     │
+│  to save it here.           │
+│                             │
+│  🏠    📓    🌊    🎯    👤 │
+└─────────────────────────────┘
+```
+
+</details>
+
+---
+
+## Activity Detail
+
+Full-screen view when the user taps "Try →" on any activity card.
+
+<details>
+<summary>View wireframe (example: Gratitude Jar)</summary>
+
+```
+┌─────────────────────────────┐
+│  ←                  🔖 Save │
+│                             │
+│  ╔═════════════════════════╗ │
+│  ║                         ║ │
+│  ║      🫙 illustration    ║ │
+│  ║       (animated jar)    ║ │
+│  ║                         ║ │
+│  ╚═════════════════════════╝ │
+│                             │
+│  Gratitude Jar              │
+│  5 minutes · Mood & Mindset │
+│                             │
+│  Great for:                 │
+│  🟢 Stable   🟣 Depressive  │
+│                             │
+│  Write 3 things you're      │
+│  grateful for today.        │
+│  Small or big — it counts.  │
+│                             │
+│  1. ┌─────────────────────┐ │
+│     │ I'm grateful for…   │ │
+│     └─────────────────────┘ │
+│  2. ┌─────────────────────┐ │
+│     │                     │ │
+│     └─────────────────────┘ │
+│  3. ┌─────────────────────┐ │
+│     │                     │ │
+│     └─────────────────────┘ │
+│                             │
+│  Add to jar 🫙              │
+│                             │
+│  PAST ENTRIES               │
+│  Feb 28 · "my coffee, the   │
+│  sunset, my sister's call"  │
+│                             │
+│   ┌─────────────────────┐   │
+│   │    Start Activity   │   │
+│   └─────────────────────┘   │
+└─────────────────────────────┘
+```
+
+</details>
+
+---
+
+## Design Notes
+
+**Activity history, not streaks:** Missing a day never removes past entries or punishes the user. The completion counter celebrates returning.
+
+**Cycle-phase filtering:** Activities are tagged by which cycle phases they're appropriate for. The "Recommended for you" section at the top of the All tab adapts to the user's current logged state.
