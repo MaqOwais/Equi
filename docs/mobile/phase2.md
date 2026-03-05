@@ -42,7 +42,7 @@ The mobile app lives inside `mobile/` as a subdirectory of the main project repo
 | Package | Version | Purpose |
 |---|---|---|
 | `expo` | ~55.0.4 | Core Expo SDK |
-| `expo-router` | ~55.0.3 | File-based navigation |
+| `expo-router` | ~55.0.4 | File-based navigation |
 | `expo-constants` | ~55.0.7 | App config access |
 | `expo-linking` | ~55.0.7 | Deep link handling |
 | `expo-status-bar` | ~55.0.4 | Status bar control |
@@ -56,6 +56,8 @@ The mobile app lives inside `mobile/` as a subdirectory of the main project repo
 | `nativewind` | ^4.2.2 | Tailwind CSS for React Native |
 | `@expo/vector-icons` | ^15.1.1 | Icon library (Ionicons used in tab bar) |
 | `zustand` | ^5.0.11 | State management |
+| `react-dom` | ^19.2.0 | Required by `@expo/log-box` (Expo's dev overlay) |
+| `react-native-reanimated` | 4.2.1 | Required by NativeWind v4 (`react-native-css-interop`) |
 | `date-fns` | ^4.1.0 | Date formatting and arithmetic |
 
 ### Dev (`devDependencies`)
@@ -65,6 +67,7 @@ The mobile app lives inside `mobile/` as a subdirectory of the main project repo
 | `tailwindcss` | ^3.4.19 | Tailwind CSS compiler (NativeWind peer dep) |
 | `typescript` | ~5.9.2 | TypeScript compiler |
 | `@types/react` | ~19.2.2 | React type definitions |
+| `babel-preset-expo` | ~55.0.8 | Expo Babel preset (explicit devDep required for Metro) |
 
 ---
 
@@ -102,8 +105,6 @@ Changes from default template:
 
 ### `babel.config.js`
 
-NativeWind v4 requires two additions:
-
 ```js
 module.exports = function (api) {
   api.cache(true);
@@ -111,13 +112,17 @@ module.exports = function (api) {
     presets: [
       ['babel-preset-expo', { jsxImportSource: 'nativewind' }],
     ],
-    plugins: ['nativewind/babel'],
+    plugins: [
+      'react-native-reanimated/plugin',
+    ],
   };
 };
 ```
 
-- `jsxImportSource: 'nativewind'` — enables `className` prop on all React Native components
-- `nativewind/babel` — transforms Tailwind classes at build time
+- `jsxImportSource: 'nativewind'` — enables `className` prop on all React Native components; combined with `metro.config.js` `withNativeWind`, this is sufficient for NativeWind v4
+- `react-native-reanimated/plugin` — required by Reanimated 4, which NativeWind v4 depends on via `react-native-css-interop`
+
+> **Note:** `nativewind/babel` is intentionally absent. In NativeWind v4 it resolves to `react-native-css-interop/babel`, which unconditionally requires `react-native-worklets/plugin` (a Reanimated 4 internal). Using it as a Babel plugin fails because it returns a preset-shaped object; using it as a preset fails because `react-native-worklets` is not a standalone installable package. The `jsxImportSource` preset option + metro transform covers all required NativeWind functionality.
 
 ### `metro.config.js`
 
@@ -392,36 +397,44 @@ The full schema for all 19 screens will be added as migrations in Phase 3, one t
 
 ## Running the App
 
+**Development (Expo Go on Android — primary method):**
+
 ```bash
 cd mobile
-
-npm run ios       # iOS simulator
-npm run android   # Android emulator
-npm start         # Expo Go (scan QR with phone)
+export PATH="/Users/maqowais/.nvm/versions/node/v24.14.0/bin:$PATH"
+npx expo start --tunnel --clear
 ```
+
+Scan the QR code with **Expo Go** on Android. `--tunnel` is required when the phone and Mac are not on the same Wi-Fi network; it routes through Expo's ngrok tunnel. `--clear` wipes the Metro cache.
+
+> **Expo Go version:** Must be the latest version from the Play Store. SDK 55 requires Expo Go ≥ 2.33. If the Play Store shows no update, install the APK directly from [expo.dev/go](https://expo.dev/go).
+
+**iOS / native builds:** Deferred. MacBook Air 2017 maxes at macOS 12 → Xcode 14.2 → Swift 5.7, which is incompatible with all recent Expo SDK native builds (SDK 55 requires Swift 6.0). Native builds will be done at App Store submission time on a compatible machine.
 
 ---
 
-## Known Issues
+## Known Issues & Resolutions
 
-**Node.js version warning:** Node v20.8.1 is installed; Expo SDK 55 requires ≥20.19.4. Everything installs and runs, but engine mismatch warnings appear on every `npm install`. Update Node before Phase 3:
+**`babel-preset-expo` not found at Metro startup:** The package was missing from `devDependencies` (it's a transitive dep of expo, but Metro requires it to be top-level). Fixed by adding `"babel-preset-expo": "~55.0.8"` to `devDependencies`.
 
-```bash
-nvm install --lts
-nvm use --lts
-```
+**`react-dom` missing:** `@expo/log-box` (Expo's dev overlay) requires `react-dom/client`. Fixed by adding `"react-dom": "^19.2.0"` to `dependencies`. Must install with `--legacy-peer-deps` to avoid an npm ERESOLVE conflict (a transitive dep pulls `react-dom@19.2.4` which wants `react@19.2.4`, but Expo SDK 55 pins `react@19.2.0`).
 
-**`App.tsx` and `index.ts` at project root:** Created by the Expo blank template, now superseded by Expo Router (`main: "expo-router/entry"`). These files are inert but can be deleted cleanly.
+**NativeWind `nativewind/babel` causes Babel errors:** In NativeWind v4, `nativewind/babel` is `react-native-css-interop/babel` — a preset-shaped factory that returns a `plugins` array. Using it in `plugins:` fails with `.plugins is not a valid Plugin property`; using it in `presets:` fails because it unconditionally references `react-native-worklets/plugin` which is not a standalone installable package. Resolution: omit it entirely; `jsxImportSource: 'nativewind'` + `withNativeWind` metro wrapper covers all needed functionality.
+
+**Expo Go SDK incompatibility:** Expo Go on Android must be updated to the latest version (≥ 2.33) to support SDK 55. If the Play Store shows no update available, install the APK directly from [expo.dev/go](https://expo.dev/go).
+
+**iOS native builds blocked on MacBook Air 2017:** macOS 12 caps at Xcode 14.2 (Swift 5.7). SDK 55 requires Swift 6.0 (Xcode 16+). SDK 51 requires Xcode 14.3+. No viable downgrade path exists. Development runs exclusively on Android via Expo Go; native iOS build deferred to App Store submission.
 
 ---
 
 ## Verification Checklist
 
-- [ ] `npm run ios` opens the app — 5 tabs visible, icons and labels correct
-- [ ] Tapping between tabs navigates without errors
-- [ ] Tab bar background is Soft White, active tint is Sage Green
-- [ ] Placeholder screens show the correct tinted circle icons (NativeWind `className` working)
-- [ ] `git status` does not show `.env.local`
+- [x] `npx expo start --tunnel --clear` runs without errors
+- [x] App opens in Expo Go on Android — 5 tabs visible, icons and labels correct
+- [x] Tapping between tabs navigates without errors
+- [x] Tab bar background is Soft White, active tint is Sage Green
+- [x] Placeholder screens render (NativeWind `className` working)
+- [x] `git status` does not show `.env.local`
 - [ ] Supabase project created, credentials in `.env.local`, SQL schema run in dashboard
 
 ---

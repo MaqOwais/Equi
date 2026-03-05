@@ -14,7 +14,9 @@
       "Bash(git add README.md design/wireframes.md)",
       "Bash(export PATH=\"/Users/maqowais/.nvm/versions/node/v24.14.0/bin:$PATH\")",
       "Bash(npm install)",
-      "Bash(npm install --legacy-peer-deps)"
+      "Bash(npm install --legacy-peer-deps)",
+      "Bash(gh api repos/MaqOwais/Equi/)",
+      "WebFetch(domain:github.com)"
     ]
   }
 }
