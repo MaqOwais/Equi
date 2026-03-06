@@ -8,6 +8,7 @@ import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../stores/auth';
 import { useTodayStore } from '../../stores/today';
 import { useActivitiesStore } from '../../stores/activities';
+import { useAIStore } from '../../stores/ai';
 import type { Activity, ActivityCompletion, CycleState } from '../../types/database';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -81,6 +82,8 @@ export default function ActivitiesScreen() {
   const router = useRouter();
   const userId = session?.user.id;
 
+  const aiStore = useAIStore();
+
   const [tab, setTab] = useState<Tab>('all');
   const [filterActive, setFilterActive] = useState(true);
 
@@ -88,7 +91,10 @@ export default function ActivitiesScreen() {
   const accentColor = CYCLE_COLORS[cycleState];
 
   useEffect(() => {
-    if (userId) store.load(userId);
+    if (userId) {
+      store.load(userId);
+      aiStore.loadLatest(userId);
+    }
   }, [userId]);
 
   // ── Derived lists ────────────────────────────────────────────────────────────
@@ -171,6 +177,38 @@ export default function ActivitiesScreen() {
           {/* ── ALL TAB ──────────────────────────────────────────────────────── */}
           {tab === 'all' && (
             <>
+              {/* Suggested for this week — from latest AI report */}
+              {(() => {
+                const suggestions = aiStore.latestReport?.report_json?.activity_suggestions ?? [];
+                if (suggestions.length === 0) return null;
+                const suggestedActivities = suggestions
+                  .map((name) => store.all.find((a) => a.title === name))
+                  .filter((a): a is Activity => !!a);
+                if (suggestedActivities.length === 0) return null;
+                return (
+                  <View style={s.suggestedSection}>
+                    <Text style={s.sectionLabel}>SUGGESTED FOR THIS WEEK</Text>
+                    <Text style={s.suggestedSub}>Based on your recent data</Text>
+                    {suggestedActivities.map((a) => (
+                      <TouchableOpacity
+                        key={a.id}
+                        style={s.suggestedCard}
+                        onPress={() => navigateToActivity(a)}
+                        activeOpacity={0.75}
+                      >
+                        <View style={{ flex: 1 }}>
+                          <Text style={s.suggestedTitle}>{a.title}</Text>
+                          {a.duration_minutes && (
+                            <Text style={s.suggestedMeta}>{a.duration_minutes} min{a.category ? ` · ${CATEGORY_LABELS[a.category] ?? a.category}` : ''}</Text>
+                          )}
+                        </View>
+                        <Text style={[s.suggestedBadge, { color: accentColor }]}>›</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                );
+              })()}
+
               <TouchableOpacity
                 style={s.filterRow}
                 onPress={() => setFilterActive((v) => !v)}
@@ -357,4 +395,17 @@ const s = StyleSheet.create({
   emptyText: { fontSize: 14, color: '#3D3935', opacity: 0.35, marginBottom: 8 },
   emptySubText: { fontSize: 12, color: '#3D3935', opacity: 0.3, textAlign: 'center', lineHeight: 18 },
   emptyLink: { fontSize: 13, fontWeight: '600', marginTop: 4 },
+
+  suggestedSection: { marginBottom: 8 },
+  suggestedSub: { fontSize: 12, color: '#3D3935', opacity: 0.4, marginBottom: 8, marginTop: -6 },
+  suggestedCard: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#FFFFFF', borderRadius: 14, padding: 14, marginBottom: 8,
+    shadowColor: '#3D3935', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05, shadowRadius: 3, elevation: 1,
+    borderLeftWidth: 3, borderLeftColor: '#A8C5A0',
+  },
+  suggestedTitle: { fontSize: 15, fontWeight: '600', color: '#3D3935' },
+  suggestedMeta: { fontSize: 12, color: '#3D3935', opacity: 0.4, marginTop: 2 },
+  suggestedBadge: { fontSize: 20, opacity: 0.5 },
 });

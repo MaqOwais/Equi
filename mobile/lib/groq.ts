@@ -47,16 +47,47 @@ export interface ReportData {
   mood: { date: string; score: number }[];
   cycle: { date: string; state: string; intensity: number }[];
   activitiesCompleted: string[];
+  compatibleActivities?: string[];  // activity names compatible with current cycle state
   substanceDays: { alcohol: boolean; cannabis: boolean }[];
-  medicationAdherence?: string[];   // only if user opted in
-  nutritionDays?: number;           // days logged
+  medicationAdherence?: string[];
+  nutritionDays?: number;
   relapseSignatures?: {
     manic?: { warning_signs: string[]; days_before: number };
     depressive?: { warning_signs: string[]; days_before: number };
   };
+  // Phase 4E — real wearable + social rhythm data
+  sleepLogs?: { date: string; duration_minutes: number; quality_score: number }[];
+  socialRhythmLogs?: { date: string; score: number; anchors_hit: number; anchors_total: number }[];
 }
 
-const REPORT_SCHEMA = `{
+const BASE_SYSTEM_PROMPT = `You are a clinical wellness assistant for a bipolar disorder monitoring app.
+Analyse anonymised health data and generate a structured report.
+Rules:
+- Be warm, non-judgmental, clinically careful.
+- Never diagnose. Never prescribe. Never claim causation — only correlation or pattern.
+- Early warning flags are informational — use cautious, supportive language.
+- All users have a bipolar spectrum diagnosis. Do not question or re-diagnose.
+- No user identifiers are included in this data — do not add any.
+- Respond ONLY with valid JSON matching the schema provided. No markdown, no prose outside JSON.
+
+SLEEP CORRELATION RULES:
+- If sleep data is present, note patterns (e.g. sleep changed in 48h before a cycle transition).
+- Do not state causation — say "sleep improved before mood lifted", not "sleep caused improvement".
+- If no sleep data is available, set sleep_correlation to null.
+
+SOCIAL RHYTHM RULES:
+- If social rhythm data is present, report the 7-day average score as a percentage.
+- Note direction (improving/declining) if enough data exists to compare periods.
+- Do not recommend specific times — only describe what was observed.
+- If no social rhythm data is available, set social_rhythm to null.
+
+ACTIVITY SUGGESTION RULES:
+- Only suggest activities from the provided compatible_activities list.
+- Do not suggest activities the user completed 3+ times this period (avoid repetition).
+- Suggest 2-4 activities. No more. Plain activity names only — no explanation in this field.
+- If no compatible_activities list is provided, return an empty array.`;
+
+const WEEKLY_SCHEMA = `{
   "summary": "string (2-3 warm, non-judgmental sentences)",
   "cycle_overview": {
     "days": [{ "date": "YYYY-MM-DD", "state": "stable|manic|depressive|mixed", "intensity": 0-10 }],
@@ -64,9 +95,11 @@ const REPORT_SCHEMA = `{
     "insight": "string"
   },
   "sleep_correlation": "string | null",
+  "social_rhythm": "string | null",
   "activities_completed": ["string"],
+  "activity_suggestions": ["string"],
   "top_mood_triggers": ["string (inferred — never claimed as proven causes)"],
-  "social_rhythm_score": null,
+  "social_rhythm_score": "number | null",
   "medication_adherence": "string | null",
   "substances": "string | null",
   "nutrition_mood": "string | null",
@@ -74,23 +107,45 @@ const REPORT_SCHEMA = `{
   "early_warning_flags": ["string (use gold/amber tone — informational, not alarming)"]
 }`;
 
+const MONTHLY_SCHEMA = `{
+  "summary": "string (3-4 sentences covering the full 30-day arc)",
+  "cycle_overview": {
+    "days": [],
+    "dominant_state": "string",
+    "insight": "string (focus on month-level trends, not daily detail)"
+  },
+  "longest_stable_period": "string (e.g. '11 consecutive stable days from Feb 10')",
+  "sleep_correlation": "string | null",
+  "social_rhythm": "string | null",
+  "activities_completed": ["string"],
+  "activity_suggestions": ["string"],
+  "top_mood_triggers": ["string"],
+  "social_rhythm_score": "number | null",
+  "medication_adherence": "string | null",
+  "substances": "string | null",
+  "nutrition_mood": "string | null",
+  "life_events_noted": [],
+  "early_warning_flags": ["string"]
+}`;
+
+const MONTHLY_EXTRA_RULES = `
+
+MONTHLY REPORT FOCUS:
+- Identify the longest stable period in the 30-day window and name the dates.
+- Note whether social rhythm score is trending up or down across the 4 weeks.
+- Identify activities consistently associated with better mood days.
+- Keep cycle_overview.days as an empty array — focus on trends, not day-by-day detail.`;
+
 export function buildReportMessages(data: ReportData): ChatMessage[] {
   return [
-    {
-      role: 'system',
-      content: `You are a clinical wellness assistant for a bipolar disorder monitoring app.
-Analyse anonymised health data and generate a structured weekly report.
-Rules:
-- Be warm, non-judgmental, clinically careful.
-- Never diagnose. Never prescribe. Never claim causation — only correlation or pattern.
-- Early warning flags are informational — use cautious, supportive language.
-- All users have a bipolar spectrum diagnosis. Do not question or re-diagnose.
-- No user identifiers are included in this data — do not add any.
-- Respond ONLY with valid JSON matching the schema provided. No markdown, no prose outside JSON.`,
-    },
-    {
-      role: 'user',
-      content: `DATA:\n${JSON.stringify(data, null, 2)}\n\nSCHEMA:\n${REPORT_SCHEMA}`,
-    },
+    { role: 'system', content: BASE_SYSTEM_PROMPT },
+    { role: 'user', content: `DATA:\n${JSON.stringify(data, null, 2)}\n\nSCHEMA:\n${WEEKLY_SCHEMA}` },
+  ];
+}
+
+export function buildMonthlyReportMessages(data: ReportData): ChatMessage[] {
+  return [
+    { role: 'system', content: BASE_SYSTEM_PROMPT + MONTHLY_EXTRA_RULES },
+    { role: 'user', content: `DATA:\n${JSON.stringify(data, null, 2)}\n\nSCHEMA:\n${MONTHLY_SCHEMA}` },
   ];
 }

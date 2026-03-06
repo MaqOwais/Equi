@@ -9,6 +9,7 @@ import { useAuthStore } from '../../stores/auth';
 import { useTodayStore } from '../../stores/today';
 import { useCycleStore } from '../../stores/cycle';
 import { useSleepStore } from '../../stores/sleep';
+import { useAIStore } from '../../stores/ai';
 import type { CycleState } from '../../types/database';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -125,6 +126,7 @@ export default function TrackerScreen() {
   const today = useTodayStore();
   const cycle = useCycleStore();
   const sleep = useSleepStore();
+  const ai = useAIStore();
   const userId = session?.user.id;
 
   const [selectedState, setSelectedState] = useState<CycleState>(
@@ -139,6 +141,7 @@ export default function TrackerScreen() {
     if (userId) {
       cycle.load90Days(userId);
       sleep.load(userId);
+      ai.loadTrackerInsight(userId);
     }
   }, [userId]);
 
@@ -254,6 +257,14 @@ export default function TrackerScreen() {
           </View>
         </View>
 
+        {/* AI insight chip — rule-based, offline-safe */}
+        {ai.trackerInsight && (
+          <View style={s.insightChip}>
+            <Text style={s.insightIcon}>💡</Text>
+            <Text style={s.insightText}>{ai.trackerInsight}</Text>
+          </View>
+        )}
+
         {/* Sleep mini-chart */}
         <Text style={s.sectionLabel}>SLEEP · LAST 30 DAYS</Text>
         <View style={s.graphCard}>
@@ -361,4 +372,14 @@ const s = StyleSheet.create({
     alignItems: 'center', marginTop: 24,
   },
   saveBtnText: { fontSize: 15, fontWeight: '600', color: '#F7F3EE', letterSpacing: 0.2 },
+
+  insightChip: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 8,
+    backgroundColor: '#FFFFFF', borderRadius: 12, padding: 12,
+    marginTop: 8, marginBottom: 4,
+    shadowColor: '#3D3935', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04, shadowRadius: 3, elevation: 1,
+  },
+  insightIcon: { fontSize: 14, lineHeight: 20 },
+  insightText: { flex: 1, fontSize: 13, color: '#3D3935', opacity: 0.6, lineHeight: 19 },
 });
