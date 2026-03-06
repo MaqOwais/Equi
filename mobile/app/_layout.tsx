@@ -5,6 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../stores/auth';
+import { CrisisOverlay } from '../components/ui/CrisisOverlay';
 
 export default function RootLayout() {
   const { setSession, setProfile, loadProfile } = useAuthStore();
@@ -36,6 +37,7 @@ export default function RootLayout() {
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="+not-found" />
       </Stack>
+      <CrisisOverlay />
     </SafeAreaProvider>
   );
 }

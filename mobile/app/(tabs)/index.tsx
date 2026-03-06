@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../stores/auth';
 import { useTodayStore } from '../../stores/today';
+import { useCrisisStore } from '../../stores/crisis';
 import type { CycleState, MedicationStatus } from '../../types/database';
 
 const MOOD_EMOJIS = ['😔', '😟', '😕', '😐', '🙂', '😊', '😄', '😁', '🤩', '✨'];
@@ -40,6 +41,7 @@ function Card({ children }: { children: React.ReactNode }) {
 export default function TodayScreen() {
   const { session, profile } = useAuthStore();
   const today = useTodayStore();
+  const crisis = useCrisisStore();
   const userId = session?.user.id;
 
   const [skipSheetVisible, setSkipSheetVisible] = useState(false);
@@ -202,7 +204,7 @@ export default function TodayScreen() {
 
       {/* Floating SOS */}
       <View style={s.sosContainer}>
-        <TouchableOpacity style={s.sosBtn}>
+        <TouchableOpacity style={s.sosBtn} onPress={crisis.open}>
           <Text style={s.sosBtnText}>SOS  ·  Crisis support</Text>
         </TouchableOpacity>
       </View>
