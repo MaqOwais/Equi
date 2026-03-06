@@ -96,12 +96,35 @@ export default function YouScreen() {
           />
         </View>
 
-        {/* Upcoming */}
+        {/* Social */}
+        <Text style={s.sectionLabel}>SOCIAL</Text>
+        <View style={s.menuCard}>
+          <MenuItem
+            icon="🤝"
+            label="Support Network"
+            sub="Manage well-wishers & guardians"
+            onPress={() => router.push('/(tabs)/you/support-network')}
+          />
+          <View style={s.divider} />
+          <MenuItem
+            icon="💬"
+            label="Community"
+            sub="Anonymous peer support"
+            onPress={() => router.push('/community')}
+          />
+          <View style={s.divider} />
+          <MenuItem
+            icon="🩺"
+            label="Psychiatrists"
+            sub="Find & connect with clinicians"
+            onPress={() => router.push('/psychiatrists')}
+          />
+        </View>
+
+        {/* Coming soon */}
         <Text style={s.sectionLabel}>COMING SOON</Text>
         <View style={s.menuCard}>
           <MenuItem icon="⌚" label="Wearable sync" sub="Apple Health · Google Fit" onPress={() => {}} />
-          <View style={s.divider} />
-          <MenuItem icon="🤝" label="Support network" sub="Well-wishers & guardians" onPress={() => {}} />
           <View style={s.divider} />
           <MenuItem icon="🧠" label="Relapse signatures" sub="Early warning pattern builder" onPress={() => {}} />
         </View>

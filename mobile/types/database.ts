@@ -163,6 +163,54 @@ export interface NutritionLog {
   created_at: string;
 }
 
+// ── Phase 3D row types ─────────────────────────────────────────────────────
+
+export type PostReaction = 'i_relate' | 'thank_you_for_sharing';
+export type CompanionRole = 'well_wisher' | 'guardian';
+export type GuardianLevel = 'view_only' | 'alert_on_risk' | 'full_control';
+export type CompanionStatus = 'pending' | 'accepted' | 'rejected';
+
+export interface CommunityPost {
+  id: string;
+  author_id: string;
+  channel: string;
+  body: string;
+  moderation_status: string;
+  moderation_reason: string | null;
+  created_at: string;
+  // Derived from join
+  reactions?: { reaction: PostReaction; user_id: string }[];
+}
+
+export interface Companion {
+  id: string;
+  patient_id: string;
+  companion_id: string | null;
+  role: CompanionRole;
+  guardian_level: GuardianLevel | null;
+  status: CompanionStatus;
+  share_mood_summaries: boolean;
+  share_cycle_data: boolean;
+  share_ai_report: boolean;
+  share_medication: boolean;
+  invite_email: string | null;
+  created_at: string;
+}
+
+export interface Psychiatrist {
+  id: string;
+  name: string;
+  credentials: string | null;
+  bio: string | null;
+  is_equi_partner: boolean;
+  offers_telehealth: boolean;
+  offers_in_person: boolean;
+  insurance_accepted: string[] | null;
+  location_city: string | null;
+  location_country: string | null;
+  created_at: string;
+}
+
 export interface Database {
   public: {
     Tables: {
