@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 import { callGroq, buildReportMessages } from '../lib/groq';
+import { scheduleEarlyWarningNotification } from '../lib/notifications';
+import { useNotificationsStore } from './notifications';
 import type { ReportData } from '../lib/groq';
 
 export interface AIReport {
@@ -131,7 +133,17 @@ export const useAIStore = create<AIStore>((set) => ({
         .select()
         .single();
 
-      set({ latestReport: saved as AIReport, isGenerating: false });
+      const savedReport = saved as AIReport;
+      set({ latestReport: savedReport, isGenerating: false });
+
+      // Trigger early warning notification if ≥2 flags detected and preference is on
+      const notifPrefs = useNotificationsStore.getState().prefs;
+      if (
+        notifPrefs?.early_warning_enabled &&
+        reportJson.early_warning_flags.length >= 2
+      ) {
+        scheduleEarlyWarningNotification(savedReport.id).catch(() => {});
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Unknown error';
       set({ isGenerating: false, error: msg });

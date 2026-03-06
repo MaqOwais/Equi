@@ -339,7 +339,7 @@ export default function YouScreen() {
             onPress={() => {}}
           />
           <View style={s.divider} />
-          <MenuItem icon="🔔" label="Notifications" onPress={() => {}} />
+          <MenuItem icon="🔔" label="Notifications" onPress={() => router.push('/(tabs)/you/notifications')} />
         </View>
 
         {/* Wearable */}

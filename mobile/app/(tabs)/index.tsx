@@ -9,6 +9,7 @@ import { useTodayStore } from '../../stores/today';
 import { useCrisisStore } from '../../stores/crisis';
 import { useSleepStore } from '../../stores/sleep';
 import { useSocialRhythmStore } from '../../stores/socialRhythm';
+import { useNotificationsStore } from '../../stores/notifications';
 import { useRouter } from 'expo-router';
 import type { CycleState, MedicationStatus } from '../../types/database';
 
@@ -55,6 +56,7 @@ export default function TodayScreen() {
   const crisis = useCrisisStore();
   const sleep = useSleepStore();
   const rhythm = useSocialRhythmStore();
+  const notifs = useNotificationsStore();
   const router = useRouter();
   const userId = session?.user.id;
 
@@ -287,7 +289,7 @@ export default function TodayScreen() {
 
       {/* Floating SOS */}
       <View style={s.sosContainer}>
-        <TouchableOpacity style={s.sosBtn} onPress={crisis.open}>
+        <TouchableOpacity style={s.sosBtn} onPress={() => crisis.open(notifs.prefs?.post_crisis_enabled)}>
           <Text style={s.sosBtnText}>SOS  ·  Crisis support</Text>
         </TouchableOpacity>
       </View>

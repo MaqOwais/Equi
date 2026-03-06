@@ -243,6 +243,28 @@ export interface SocialRhythmLog {
   created_at: string;
 }
 
+// ── Phase 4C row types ─────────────────────────────────────────────────────
+
+export interface NotificationPreferences {
+  id: string;
+  user_id: string;
+  push_token: string | null;
+  push_token_updated_at: string | null;
+  // Reminders
+  checkin_enabled: boolean;
+  checkin_time: string;       // HH:MM:SS
+  medication_enabled: boolean;
+  medication_time: string;    // HH:MM:SS
+  // Insights
+  weekly_report_enabled: boolean;
+  early_warning_enabled: boolean;
+  // Routine
+  anchor_nudges_enabled: boolean;
+  // Safety
+  post_crisis_enabled: boolean;
+  updated_at: string;
+}
+
 // ── Phase 4A row types ─────────────────────────────────────────────────────
 
 export type SleepSource = 'manual' | 'healthkit' | 'google_fit';
