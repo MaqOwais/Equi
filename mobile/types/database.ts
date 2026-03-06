@@ -90,6 +90,79 @@ export interface EmergencyContact {
   created_at: string;
 }
 
+// ── Phase 3C row types ─────────────────────────────────────────────────────
+
+export interface Activity {
+  id: string;
+  title: string;
+  description: string | null;
+  duration_minutes: number | null;
+  category: string | null;
+  compatible_states: CycleState[];
+  restricted_states: CycleState[];
+  is_workbook_entry: boolean;
+  illustration_url: string | null;
+  evidence_label: string | null;
+  created_at: string;
+}
+
+export interface ActivityCompletion {
+  id: string;
+  user_id: string;
+  activity_id: string;
+  completed_at: string | null;
+  cycle_state: CycleState | null;
+  notes: string | null;
+  bookmarked: boolean;
+  created_at: string;
+  activity?: Activity;
+}
+
+export interface PrescribedActivity {
+  id: string;
+  patient_id: string;
+  psychiatrist_id: string | null;
+  activity_id: string;
+  dosage_per_week: number | null;
+  goal: string | null;
+  prescribed_at: string;
+  active: boolean;
+  activity?: Activity;
+  completions_this_week?: number;
+}
+
+export interface WorkbookResponse {
+  id: string;
+  user_id: string;
+  chapter: number;
+  prompt_index: number;
+  response: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RoutineAnchor {
+  id: string;
+  user_id: string;
+  anchor_name: string;
+  target_time: string | null;
+  enabled: boolean;
+  created_at: string;
+}
+
+export interface NutritionLog {
+  id: string;
+  user_id: string;
+  log_date: string;
+  categories: Record<string, number>;
+  eating_window_start: string | null;
+  eating_window_end: string | null;
+  hydration_glasses: number | null;
+  gut_health_note: string | null;
+  input_method: string | null;
+  created_at: string;
+}
+
 export interface Database {
   public: {
     Tables: {
