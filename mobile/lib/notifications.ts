@@ -1,32 +1,44 @@
-import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 import type { NotificationPreferences } from '../types/database';
 
+// expo-notifications push support was removed from Expo Go in SDK 53.
+// The native module throws at initialisation time in Expo Go on Android.
+// In Expo Go: all exported functions are silent no-ops.
+// In dev builds and production: full functionality.
+const IS_EXPO_GO = Constants.appOwnership === 'expo';
+
+// Lazy getter — only requires the native module when NOT in Expo Go,
+// so Expo Go never initialises the module and never throws.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function N(): any {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  return require('expo-notifications');
+}
+
 // ─── Permission & Token ───────────────────────────────────────────────────────
 
 export async function registerForPushNotifications(): Promise<string | null> {
-  // Expo push tokens only work on real devices
-  if (!Device.isDevice) return null;
+  if (IS_EXPO_GO || !Device.isDevice) return null;
 
-  const { status: existing } = await Notifications.getPermissionsAsync();
+  const { status: existing } = await N().getPermissionsAsync();
   const { status } = existing !== 'granted'
-    ? await Notifications.requestPermissionsAsync()
+    ? await N().requestPermissionsAsync()
     : { status: existing };
 
   if (status !== 'granted') return null;
 
-  // Android needs a notification channel
   if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('default', {
+    await N().setNotificationChannelAsync('default', {
       name: 'Equi',
-      importance: Notifications.AndroidImportance.DEFAULT,
+      importance: N().AndroidImportance.DEFAULT,
       vibrationPattern: [0, 250, 250, 250],
       lightColor: '#A8C5A0',
     });
   }
 
-  const token = (await Notifications.getExpoPushTokenAsync()).data;
+  const token = (await N().getExpoPushTokenAsync()).data;
   return token;
 }
 
@@ -39,9 +51,10 @@ function parseTime(t: string): { hour: number; minute: number } {
 }
 
 export async function scheduleDailyCheckin(time: string): Promise<void> {
-  await Notifications.cancelScheduledNotificationAsync('mood-checkin').catch(() => {});
+  if (IS_EXPO_GO) return;
+  await N().cancelScheduledNotificationAsync('mood-checkin').catch(() => {});
   const { hour, minute } = parseTime(time);
-  await Notifications.scheduleNotificationAsync({
+  await N().scheduleNotificationAsync({
     identifier: 'mood-checkin',
     content: {
       title: 'How are you feeling today?',
@@ -49,18 +62,20 @@ export async function scheduleDailyCheckin(time: string): Promise<void> {
       data: { route: '/(tabs)' },
       sound: false,
     },
-    trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour, minute },
+    trigger: { type: N().SchedulableTriggerInputTypes.DAILY, hour, minute },
   });
 }
 
 export async function cancelDailyCheckin(): Promise<void> {
-  await Notifications.cancelScheduledNotificationAsync('mood-checkin').catch(() => {});
+  if (IS_EXPO_GO) return;
+  await N().cancelScheduledNotificationAsync('mood-checkin').catch(() => {});
 }
 
 export async function scheduleMedicationReminder(time: string): Promise<void> {
-  await Notifications.cancelScheduledNotificationAsync('medication-reminder').catch(() => {});
+  if (IS_EXPO_GO) return;
+  await N().cancelScheduledNotificationAsync('medication-reminder').catch(() => {});
   const { hour, minute } = parseTime(time);
-  await Notifications.scheduleNotificationAsync({
+  await N().scheduleNotificationAsync({
     identifier: 'medication-reminder',
     content: {
       title: 'Medication reminder',
@@ -68,22 +83,23 @@ export async function scheduleMedicationReminder(time: string): Promise<void> {
       data: { route: '/(tabs)' },
       sound: false,
     },
-    trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour, minute },
+    trigger: { type: N().SchedulableTriggerInputTypes.DAILY, hour, minute },
   });
 }
 
 export async function cancelMedicationReminder(): Promise<void> {
-  await Notifications.cancelScheduledNotificationAsync('medication-reminder').catch(() => {});
+  if (IS_EXPO_GO) return;
+  await N().cancelScheduledNotificationAsync('medication-reminder').catch(() => {});
 }
 
 export async function scheduleAnchorNudges(
   anchors: { anchor_name: string; target_time: string }[],
 ): Promise<void> {
-  // Cancel all existing anchor nudges
-  const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+  if (IS_EXPO_GO) return;
+  const scheduled = await N().getAllScheduledNotificationsAsync();
   for (const n of scheduled) {
     if (n.identifier.startsWith('anchor-')) {
-      await Notifications.cancelScheduledNotificationAsync(n.identifier).catch(() => {});
+      await N().cancelScheduledNotificationAsync(n.identifier).catch(() => {});
     }
   }
 
@@ -97,7 +113,7 @@ export async function scheduleAnchorNudges(
     if (nudgeMinute < 0) { nudgeMinute += 60; nudgeHour = (nudgeHour - 1 + 24) % 24; }
 
     const label = ANCHOR_LABELS[anchor.anchor_name] ?? anchor.anchor_name;
-    await Notifications.scheduleNotificationAsync({
+    await N().scheduleNotificationAsync({
       identifier: `anchor-${anchor.anchor_name}`,
       content: {
         title: `${label} in 15 minutes`,
@@ -105,22 +121,24 @@ export async function scheduleAnchorNudges(
         data: { route: '/(tabs)/you/routine' },
         sound: false,
       },
-      trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour: nudgeHour, minute: nudgeMinute },
+      trigger: { type: N().SchedulableTriggerInputTypes.DAILY, hour: nudgeHour, minute: nudgeMinute },
     });
   }
 }
 
 export async function cancelAnchorNudges(): Promise<void> {
-  const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+  if (IS_EXPO_GO) return;
+  const scheduled = await N().getAllScheduledNotificationsAsync();
   for (const n of scheduled) {
     if (n.identifier.startsWith('anchor-')) {
-      await Notifications.cancelScheduledNotificationAsync(n.identifier).catch(() => {});
+      await N().cancelScheduledNotificationAsync(n.identifier).catch(() => {});
     }
   }
 }
 
 export async function scheduleEarlyWarningNotification(reportId: string): Promise<void> {
-  await Notifications.scheduleNotificationAsync({
+  if (IS_EXPO_GO) return;
+  await N().scheduleNotificationAsync({
     identifier: `early-warning-${reportId}`,
     content: {
       title: 'Equi noticed something',
@@ -133,9 +151,10 @@ export async function scheduleEarlyWarningNotification(reportId: string): Promis
 }
 
 export async function schedulePostCrisisCheckin(crisisTimestamp: number): Promise<void> {
+  if (IS_EXPO_GO) return;
   const id = `post-crisis-${crisisTimestamp}`;
   const fireAt = new Date(crisisTimestamp + 24 * 60 * 60 * 1000);
-  await Notifications.scheduleNotificationAsync({
+  await N().scheduleNotificationAsync({
     identifier: id,
     content: {
       title: 'How are you doing?',
@@ -143,7 +162,7 @@ export async function schedulePostCrisisCheckin(crisisTimestamp: number): Promis
       data: { route: '/(tabs)' },
       sound: false,
     },
-    trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: fireAt },
+    trigger: { type: N().SchedulableTriggerInputTypes.DATE, date: fireAt },
   });
 }
 
@@ -153,21 +172,18 @@ export async function applyNotificationPreferences(
   prefs: NotificationPreferences,
   anchors: { anchor_name: string; target_time: string }[],
 ): Promise<void> {
-  // Mood check-in
   if (prefs.checkin_enabled) {
     await scheduleDailyCheckin(prefs.checkin_time);
   } else {
     await cancelDailyCheckin();
   }
 
-  // Medication
   if (prefs.medication_enabled) {
     await scheduleMedicationReminder(prefs.medication_time);
   } else {
     await cancelMedicationReminder();
   }
 
-  // Anchor nudges
   if (prefs.anchor_nudges_enabled) {
     await scheduleAnchorNudges(anchors);
   } else {

@@ -243,6 +243,19 @@ export interface SocialRhythmLog {
   created_at: string;
 }
 
+// ── Phase 4D row types ─────────────────────────────────────────────────────
+
+export interface ReportShare {
+  id: string;
+  report_id: string;
+  user_id: string;
+  companion_id: string | null;
+  share_url: string;
+  expires_at: string;
+  viewed_at: string | null;
+  created_at: string;
+}
+
 // ── Phase 4C row types ─────────────────────────────────────────────────────
 
 export interface NotificationPreferences {

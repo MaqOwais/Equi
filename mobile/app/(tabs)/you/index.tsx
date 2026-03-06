@@ -336,7 +336,7 @@ export default function YouScreen() {
             icon="🔒"
             label="Privacy & data"
             sub="Export or delete your data"
-            onPress={() => {}}
+            onPress={() => router.push('/(tabs)/you/privacy')}
           />
           <View style={s.divider} />
           <MenuItem icon="🔔" label="Notifications" onPress={() => router.push('/(tabs)/you/notifications')} />

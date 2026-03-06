@@ -21,7 +21,8 @@
       "Bash(npm install @resvg/resvg-js --save-dev)",
       "Bash(node scripts/generate-icon.mjs)",
       "Bash(cat /Users/maqowais/Documents/Equi/mobile/app/\\\\\\(tabs\\\\\\)/index.tsx)",
-      "Bash(npx expo install expo-notifications expo-device)"
+      "Bash(npx expo install expo-notifications expo-device)",
+      "Bash(npx expo install expo-sharing)"
     ]
   }
 }

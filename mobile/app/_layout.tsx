@@ -3,28 +3,36 @@ import { useEffect, useRef } from 'react';
 import { Stack, useRouter } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../stores/auth';
 import { useNotificationsStore } from '../stores/notifications';
 import { CrisisOverlay } from '../components/ui/CrisisOverlay';
 
-// Handle notifications while app is foregrounded
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: false,  // no sounds — respects quiet environments
-    shouldSetBadge: false,
-  }),
-});
+// expo-notifications was removed from Expo Go in SDK 53 — only load in builds.
+const IS_EXPO_GO = Constants.appOwnership === 'expo';
+
+if (!IS_EXPO_GO) {
+  // Handle notifications while app is foregrounded (dev/production builds only)
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const Notifications = require('expo-notifications');
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: false,
+      shouldSetBadge: false,
+    }),
+  });
+}
 
 export default function RootLayout() {
   const { setSession, setProfile, loadProfile } = useAuthStore();
   const notifs = useNotificationsStore();
   const router = useRouter();
-  const notifResponseListener = useRef<Notifications.EventSubscription | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const notifResponseListener = useRef<any>(null);
 
   useEffect(() => {
     // Hydrate initial session on cold start
@@ -45,13 +53,17 @@ export default function RootLayout() {
       },
     );
 
-    // Navigate to correct screen when user taps a notification
-    notifResponseListener.current = Notifications.addNotificationResponseReceivedListener(
-      (response) => {
-        const route = response.notification.request.content.data?.route as string | undefined;
-        if (route) router.push(route as never);
-      },
-    );
+    // Navigate to correct screen when user taps a notification (dev/production only)
+    if (!IS_EXPO_GO) {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const Notifications = require('expo-notifications');
+      notifResponseListener.current = Notifications.addNotificationResponseReceivedListener(
+        (response: { notification: { request: { content: { data?: { route?: string } } } } }) => {
+          const route = response.notification.request.content.data?.route;
+          if (route) router.push(route as never);
+        },
+      );
+    }
 
     return () => {
       subscription.unsubscribe();

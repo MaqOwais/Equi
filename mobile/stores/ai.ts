@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system';
 import { supabase } from '../lib/supabase';
 import { callGroq, buildReportMessages } from '../lib/groq';
 import { scheduleEarlyWarningNotification } from '../lib/notifications';
@@ -38,10 +40,13 @@ interface AIStore {
   latestReport: AIReport | null;
   isLoading: boolean;
   isGenerating: boolean;
+  isExporting: boolean;
   error: string | null;
 
   loadLatest: (userId: string) => Promise<void>;
   generate: (userId: string) => Promise<void>;
+  exportPdf: (userId: string, reportId: string) => Promise<string | null>;
+  shareWithCompanion: (userId: string, reportId: string, companionId: string) => Promise<void>;
 }
 
 function periodDates(): { start: string; end: string } {
@@ -58,6 +63,7 @@ export const useAIStore = create<AIStore>((set) => ({
   latestReport: null,
   isLoading: false,
   isGenerating: false,
+  isExporting: false,
   error: null,
 
   loadLatest: async (userId) => {
@@ -147,6 +153,71 @@ export const useAIStore = create<AIStore>((set) => ({
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Unknown error';
       set({ isGenerating: false, error: msg });
+    }
+  },
+
+  // ── Export PDF ─────────────────────────────────────────────────────────────
+  // Calls generate-report-pdf Edge Function → downloads PDF → opens share sheet.
+  // Returns the signed URL on success so ExportSheet can also offer copy-link.
+  exportPdf: async (userId, reportId) => {
+    set({ isExporting: true, error: null });
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) throw new Error('Not authenticated');
+
+      const fnUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/generate-report-pdf`;
+      const res = await fetch(fnUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ report_id: reportId }),
+      });
+
+      if (!res.ok) throw new Error(`PDF generation failed: ${res.statusText}`);
+      const { url } = await res.json() as { url: string; expires_at: string };
+
+      // Download to a local cache file so expo-sharing can access it
+      const localPath = `${FileSystem.cacheDirectory}equi-report-${reportId.slice(0, 8)}.pdf`;
+      await FileSystem.downloadAsync(url, localPath);
+
+      set({ isExporting: false });
+      await Sharing.shareAsync(localPath, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf' });
+      return url;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Export failed';
+      set({ isExporting: false, error: msg });
+      return null;
+    }
+  },
+
+  // ── Share with companion ───────────────────────────────────────────────────
+  // Generates a 7-day signed URL and records the share in report_shares.
+  shareWithCompanion: async (userId, reportId, companionId) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) return;
+
+      const fnUrl = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/functions/v1/generate-report-pdf`;
+      const res = await fetch(fnUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ report_id: reportId, share_ttl_seconds: 604800 }), // 7 days
+      });
+
+      if (!res.ok) return;
+      const { url, expires_at } = await res.json() as { url: string; expires_at: string };
+
+      // Record in report_shares
+      await supabase.from('report_shares').insert({
+        report_id: reportId,
+        user_id: userId,
+        companion_id: companionId,
+        share_url: url,
+        expires_at,
+      });
+    } catch {
+      // Silent — companion sharing is best-effort
     }
   },
 }));

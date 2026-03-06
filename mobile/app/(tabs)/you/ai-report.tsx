@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../../stores/auth';
 import { useAIStore } from '../../../stores/ai';
+import { ExportSheet } from '../../../components/ui/ExportSheet';
 import type { ReportJSON } from '../../../stores/ai';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -61,6 +62,7 @@ export default function AIReportScreen() {
   const { session } = useAuthStore();
   const store = useAIStore();
   const router = useRouter();
+  const [showExport, setShowExport] = useState(false);
   const userId = session?.user.id;
 
   useEffect(() => {
@@ -123,7 +125,7 @@ export default function AIReportScreen() {
               <Text style={s.period}>
                 {formatPeriod(report.period_start, report.period_end)}
               </Text>
-              <TouchableOpacity style={s.exportBtn}>
+              <TouchableOpacity style={s.exportBtn} onPress={() => setShowExport(true)}>
                 <Text style={s.exportBtnText}>Export PDF</Text>
               </TouchableOpacity>
             </View>
@@ -228,6 +230,16 @@ export default function AIReportScreen() {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {report && userId && (
+        <ExportSheet
+          visible={showExport}
+          onClose={() => setShowExport(false)}
+          userId={userId}
+          reportId={report.id}
+          period={formatPeriod(report.period_start, report.period_end)}
+        />
+      )}
     </SafeAreaView>
   );
 }
