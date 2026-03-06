@@ -211,6 +211,38 @@ export interface Psychiatrist {
   created_at: string;
 }
 
+// ── Phase 4B row types ─────────────────────────────────────────────────────
+
+export interface AnchorDetailEntry {
+  anchor_id: string;
+  anchor_name: string;
+  target: string;         // HH:MM:SS
+  actual: string | null;  // HH:MM:SS
+  delta_minutes: number | null;
+}
+
+export interface RoutineAnchorLog {
+  id: string;
+  user_id: string;
+  anchor_id: string;
+  date: string;           // YYYY-MM-DD
+  actual_time: string;    // HH:MM:SS
+  source: string;         // 'manual' | 'healthkit' | 'auto_log_now'
+  created_at: string;
+}
+
+export interface SocialRhythmLog {
+  id: string;
+  user_id: string;
+  date: string;
+  score: number | null;            // 0–100
+  anchors_hit: number | null;
+  anchors_partial: number | null;
+  anchors_total: number | null;
+  anchor_detail: AnchorDetailEntry[] | null;
+  created_at: string;
+}
+
 // ── Phase 4A row types ─────────────────────────────────────────────────────
 
 export type SleepSource = 'manual' | 'healthkit' | 'google_fit';

@@ -8,6 +8,8 @@ import { useAuthStore } from '../../stores/auth';
 import { useTodayStore } from '../../stores/today';
 import { useCrisisStore } from '../../stores/crisis';
 import { useSleepStore } from '../../stores/sleep';
+import { useSocialRhythmStore } from '../../stores/socialRhythm';
+import { useRouter } from 'expo-router';
 import type { CycleState, MedicationStatus } from '../../types/database';
 
 const MOOD_EMOJIS = ['😔', '😟', '😕', '😐', '🙂', '😊', '😄', '😁', '🤩', '✨'];
@@ -52,6 +54,8 @@ export default function TodayScreen() {
   const today = useTodayStore();
   const crisis = useCrisisStore();
   const sleep = useSleepStore();
+  const rhythm = useSocialRhythmStore();
+  const router = useRouter();
   const userId = session?.user.id;
 
   const [skipSheetVisible, setSkipSheetVisible] = useState(false);
@@ -62,6 +66,7 @@ export default function TodayScreen() {
     if (userId) {
       today.load(userId);
       sleep.load(userId);
+      rhythm.load(userId);
     }
   }, [userId]);
 
@@ -245,6 +250,28 @@ export default function TodayScreen() {
               })}
             </View>
           </View>
+
+          {/* Rhythm chip — only when anchors are configured */}
+          {rhythm.todayAnchorsTotal > 0 && (
+            <TouchableOpacity
+              style={[s.checkinRow, s.checkinRowBorder, s.rhythmRow]}
+              onPress={() => router.push('/(tabs)/you/routine')}
+              activeOpacity={0.7}
+            >
+              <Text style={s.checkinLabel}>🗓  Daily Routine</Text>
+              <View style={s.rhythmRight}>
+                <Text style={s.rhythmCount}>
+                  {rhythm.todayAnchorsHit} / {rhythm.todayAnchorsTotal}
+                </Text>
+                {rhythm.todayScore !== null && (
+                  <View style={s.rhythmBar}>
+                    <View style={[s.rhythmFill, { width: `${rhythm.todayScore}%` as unknown as number }]} />
+                  </View>
+                )}
+                <Text style={s.rhythmChevron}>›</Text>
+              </View>
+            </TouchableOpacity>
+          )}
         </Card>
 
         {/* Activity suggestions placeholder */}
@@ -349,6 +376,16 @@ const s = StyleSheet.create({
   subBtnTextActive: { color: '#C4A0B0', opacity: 1, fontWeight: '600' },
 
   placeholderText: { fontSize: 13, color: '#3D3935', opacity: 0.4, lineHeight: 18 },
+
+  rhythmRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  rhythmRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  rhythmCount: { fontSize: 13, color: '#3D3935', opacity: 0.5, fontWeight: '500' },
+  rhythmBar: {
+    width: 48, height: 5, borderRadius: 3,
+    backgroundColor: '#E0DDD8', overflow: 'hidden',
+  },
+  rhythmFill: { height: 5, backgroundColor: '#A8C5A0', borderRadius: 3 },
+  rhythmChevron: { fontSize: 18, color: '#3D3935', opacity: 0.2 },
 
   sleepTitle: { fontSize: 14, fontWeight: '600', color: '#3D3935', marginBottom: 12 },
   sleepRow: { flexDirection: 'row', gap: 6 },

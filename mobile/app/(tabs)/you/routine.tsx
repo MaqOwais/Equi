@@ -3,7 +3,9 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../../stores/auth';
+import { useSocialRhythmStore } from '../../../stores/socialRhythm';
 import { supabase } from '../../../lib/supabase';
+import { nowHHMM } from '../../../utils/socialRhythm';
 import type { RoutineAnchor } from '../../../types/database';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -70,6 +72,7 @@ const tp = StyleSheet.create({
 
 export default function RoutineScreen() {
   const { session } = useAuthStore();
+  const rhythm = useSocialRhythmStore();
   const router = useRouter();
   const userId = session?.user.id;
 
@@ -78,8 +81,15 @@ export default function RoutineScreen() {
   const [editingTime, setEditingTime] = useState('08:00');
   const [saved, setSaved] = useState(false);
 
+  // Anchor logging state (separate from target-time editing)
+  const [loggingAnchor, setLoggingAnchor] = useState<string | null>(null);
+  const [logTime, setLogTime] = useState('08:00');
+
   useEffect(() => {
-    if (userId) loadAnchors();
+    if (userId) {
+      loadAnchors();
+      rhythm.load(userId);
+    }
   }, [userId]);
 
   async function loadAnchors() {
@@ -120,6 +130,31 @@ export default function RoutineScreen() {
     loadAnchors();
   }
 
+  function startLog(name: string) {
+    setLoggingAnchor(name);
+    // Pre-fill with existing logged time or current time
+    const existing = rhythm.todayAnchorLogs.find(
+      (l) => anchors.find((a) => a.id === l.anchor_id)?.anchor_name === name,
+    );
+    setLogTime(existing?.actual_time?.slice(0, 5) ?? nowHHMM());
+    setEditingAnchor(null); // close target-time panel if open
+  }
+
+  async function confirmLog() {
+    if (!userId || !loggingAnchor) return;
+    const anchor = getAnchor(loggingAnchor);
+    if (!anchor) return;
+    await rhythm.logAnchor(userId, anchor, logTime);
+    setLoggingAnchor(null);
+  }
+
+  function getLoggedTime(anchorName: string): string | null {
+    const anchor = getAnchor(anchorName);
+    if (!anchor) return null;
+    const log = rhythm.todayAnchorLogs.find((l) => l.anchor_id === anchor.id);
+    return log?.actual_time?.slice(0, 5) ?? null;
+  }
+
   return (
     <SafeAreaView style={s.safe}>
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
@@ -145,6 +180,8 @@ export default function RoutineScreen() {
             ? formatDisplay(stored.target_time.slice(0, 5))
             : 'Not set';
           const isEditing = editingAnchor === a.name;
+          const isLogging = loggingAnchor === a.name;
+          const loggedTime = getLoggedTime(a.name);
 
           return (
             <View key={a.name} style={s.anchorCard}>
@@ -152,7 +189,10 @@ export default function RoutineScreen() {
                 <Text style={s.anchorIcon}>{a.icon}</Text>
                 <View style={{ flex: 1 }}>
                   <Text style={s.anchorLabel}>{a.label}</Text>
-                  <Text style={s.anchorTime}>{displayTime}</Text>
+                  <Text style={s.anchorTime}>
+                    Target: {displayTime}
+                    {loggedTime ? `  ·  Logged: ${formatDisplay(loggedTime)}` : ''}
+                  </Text>
                 </View>
                 <TouchableOpacity
                   style={s.editBtn}
@@ -160,6 +200,16 @@ export default function RoutineScreen() {
                 >
                   <Text style={s.editBtnText}>{isEditing ? 'Cancel' : 'Set'}</Text>
                 </TouchableOpacity>
+                {stored && (
+                  <TouchableOpacity
+                    style={[s.logBtn, loggedTime && s.logBtnDone]}
+                    onPress={() => isLogging ? setLoggingAnchor(null) : startLog(a.name)}
+                  >
+                    <Text style={[s.logBtnText, loggedTime && s.logBtnTextDone]}>
+                      {isLogging ? 'Cancel' : loggedTime ? '✓' : 'Log'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
 
               {isEditing && (
@@ -168,6 +218,24 @@ export default function RoutineScreen() {
                   <TouchableOpacity style={s.confirmBtn} onPress={confirmTime}>
                     <Text style={s.confirmBtnText}>Confirm  ✓</Text>
                   </TouchableOpacity>
+                </View>
+              )}
+
+              {isLogging && (
+                <View style={s.pickerContainer}>
+                  <Text style={s.logPickerHint}>Actual time today:</Text>
+                  <TimePicker value={logTime} onChange={setLogTime} />
+                  <View style={s.logBtnRow}>
+                    <TouchableOpacity
+                      style={[s.confirmBtn, { flex: 1, marginRight: 6 }]}
+                      onPress={() => { setLogTime(nowHHMM()); }}
+                    >
+                      <Text style={s.confirmBtnText}>Now  ({formatDisplay(nowHHMM())})</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[s.confirmBtn, { flex: 1 }]} onPress={confirmLog}>
+                      <Text style={s.confirmBtnText}>Save  ✓</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               )}
             </View>
@@ -224,6 +292,18 @@ const s = StyleSheet.create({
     backgroundColor: '#A8C5A0', borderRadius: 10, paddingVertical: 10, alignItems: 'center',
   },
   confirmBtnText: { fontSize: 14, fontWeight: '600', color: '#F7F3EE' },
+
+  // Log button
+  logBtn: {
+    paddingVertical: 6, paddingHorizontal: 10, borderRadius: 10,
+    borderWidth: 1.5, borderColor: '#E0DDD8', marginLeft: 6,
+  },
+  logBtnDone: { borderColor: '#A8C5A0', backgroundColor: '#A8C5A010' },
+  logBtnText: { fontSize: 13, color: '#3D3935', opacity: 0.4, fontWeight: '600' },
+  logBtnTextDone: { color: '#A8C5A0', opacity: 1 },
+
+  logPickerHint: { fontSize: 12, color: '#3D3935', opacity: 0.4, textAlign: 'center', paddingTop: 8 },
+  logBtnRow: { flexDirection: 'row', gap: 6 },
 
   infoCard: { backgroundColor: '#FFFFFF', borderRadius: 12, padding: 14, marginTop: 8 },
   infoText: { fontSize: 12, color: '#3D3935', opacity: 0.4, lineHeight: 18 },

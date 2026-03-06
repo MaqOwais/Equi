@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import Svg, { Polygon, Line, Circle, Text as SvgText } from 'react-native-svg';
 import { useAuthStore } from '../../../stores/auth';
 import { useSleepStore } from '../../../stores/sleep';
+import { useSocialRhythmStore } from '../../../stores/socialRhythm';
 import { supabase } from '../../../lib/supabase';
 import type { Diagnosis } from '../../../types/database';
 
@@ -126,6 +127,7 @@ export default function YouScreen() {
   const { session, profile, signOut, updateProfile } = useAuthStore();
   const router = useRouter();
   const sleep = useSleepStore();
+  const rhythm = useSocialRhythmStore();
   const userId = session?.user.id;
 
   const [stats, setStats] = useState({ days: 0, activities: 0, stableDays: 0 });
@@ -141,6 +143,7 @@ export default function YouScreen() {
     if (userId) {
       loadStats();
       sleep.load(userId);
+      rhythm.load(userId);
     }
   }, [userId]);
 
@@ -185,7 +188,11 @@ export default function YouScreen() {
       activity: Math.min(100, Math.round((allActivities / 30) * 100)),
       journal:  Math.round((journalCount / 30) * 100),
       mindful:  Math.min(100, groundingCount * 10),
-      social:   0,  // Social rhythm — from social_rhythm_logs (Phase 4B)
+      social:   (() => {
+        const scored = rhythm.history.filter((l) => l.score !== null);
+        if (!scored.length) return 0;
+        return Math.round(scored.reduce((a, b) => a + (b.score ?? 0), 0) / scored.length);
+      })(),
       sleep:    (() => {
         const sleepLogs = sleep.history;
         if (!sleepLogs.length) return 0;
@@ -231,7 +238,7 @@ export default function YouScreen() {
         <View style={s.radarCard}>
           <Text style={s.sectionLabel}>WELLNESS RADAR · 30 DAYS</Text>
           <WellnessRadar scores={radarScores} />
-          <Text style={s.radarNote}>Sleep & Social require wearable sync (Phase 4)</Text>
+          <Text style={s.radarNote}>Sleep requires wearable sync · Social from rhythm logs</Text>
         </View>
 
         {/* AI & Insights */}
@@ -260,6 +267,19 @@ export default function YouScreen() {
             label="Daily Routine"
             sub="IPSRT social rhythm anchors"
             onPress={() => router.push('/(tabs)/you/routine')}
+          />
+          <View style={s.divider} />
+          <MenuItem
+            icon="📊"
+            label="Social Rhythm History"
+            sub={rhythm.history.length > 0
+              ? (() => {
+                  const scored = rhythm.history.filter((l) => l.score !== null);
+                  const avg = scored.length ? Math.round(scored.reduce((a, b) => a + (b.score ?? 0), 0) / scored.length) : 0;
+                  return `30-day average: ${avg}%`;
+                })()
+              : 'Log anchors to see your trend'}
+            onPress={() => router.push('/(tabs)/you/social-rhythm')}
           />
           <View style={s.divider} />
           <MenuItem
