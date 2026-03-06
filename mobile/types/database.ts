@@ -211,6 +211,38 @@ export interface Psychiatrist {
   created_at: string;
 }
 
+// ── Phase 4A row types ─────────────────────────────────────────────────────
+
+export type SleepSource = 'manual' | 'healthkit' | 'google_fit';
+export type WearableProvider = 'healthkit' | 'google_fit';
+
+export interface SleepLog {
+  id: string;
+  user_id: string;
+  date: string;                   // YYYY-MM-DD
+  duration_minutes: number | null;
+  quality_score: number | null;   // 1–5
+  source: SleepSource;
+  bedtime: string | null;         // HH:MM:SS
+  wake_time: string | null;
+  deep_minutes: number | null;
+  rem_minutes: number | null;
+  awakenings: number | null;
+  raw_healthkit: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export interface WearableConnection {
+  id: string;
+  user_id: string;
+  provider: WearableProvider;
+  access_token: string | null;
+  refresh_token: string | null;
+  token_expires_at: string | null;
+  connected_at: string;
+  last_synced_at: string | null;
+}
+
 export interface Database {
   public: {
     Tables: {

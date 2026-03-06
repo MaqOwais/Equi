@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../stores/auth';
 import { useTodayStore } from '../../stores/today';
 import { useCrisisStore } from '../../stores/crisis';
+import { useSleepStore } from '../../stores/sleep';
 import type { CycleState, MedicationStatus } from '../../types/database';
 
 const MOOD_EMOJIS = ['😔', '😟', '😕', '😐', '🙂', '😊', '😄', '😁', '🤩', '✨'];
@@ -38,10 +39,19 @@ function Card({ children }: { children: React.ReactNode }) {
   return <View style={s.card}>{children}</View>;
 }
 
+const SLEEP_OPTIONS = [
+  { label: 'Poorly', sub: '< 5h', score: 1 },
+  { label: 'Light',  sub: '5–6h', score: 2 },
+  { label: 'OK',     sub: '6–7h', score: 3 },
+  { label: 'Good',   sub: '7–8h', score: 4 },
+  { label: 'Great',  sub: '8h+',  score: 5 },
+];
+
 export default function TodayScreen() {
   const { session, profile } = useAuthStore();
   const today = useTodayStore();
   const crisis = useCrisisStore();
+  const sleep = useSleepStore();
   const userId = session?.user.id;
 
   const [skipSheetVisible, setSkipSheetVisible] = useState(false);
@@ -49,7 +59,10 @@ export default function TodayScreen() {
   const [selectedSkipReason, setSelectedSkipReason] = useState<string | null>(null);
 
   useEffect(() => {
-    if (userId) today.load(userId);
+    if (userId) {
+      today.load(userId);
+      sleep.load(userId);
+    }
   }, [userId]);
 
   function handleMoodTap(score: number) {
@@ -86,6 +99,8 @@ export default function TodayScreen() {
   const cycleColor = CYCLE_COLORS[cycleState];
   const trackMedication = profile?.track_medication ?? false;
   const showRuminationPrompt = today.moodScore !== null && today.moodScore <= 3;
+  // Show sleep prompt in the morning (before noon) if not yet logged
+  const showSleepPrompt = sleep.todayLog === null && new Date().getHours() < 14;
 
   return (
     <SafeAreaView style={s.safe}>
@@ -146,6 +161,47 @@ export default function TodayScreen() {
             <TouchableOpacity style={s.ruminationBtn}>
               <Text style={s.ruminationBtnText}>Show grounding activities</Text>
             </TouchableOpacity>
+          </Card>
+        )}
+
+        {/* Sleep prompt — morning only, until logged */}
+        {showSleepPrompt && (
+          <Card>
+            <Text style={s.sleepTitle}>🌙  How did you sleep?</Text>
+            <View style={s.sleepRow}>
+              {SLEEP_OPTIONS.map((opt) => {
+                const logged = sleep.todayLog?.quality_score === opt.score;
+                return (
+                  <TouchableOpacity
+                    key={opt.score}
+                    style={[s.sleepBtn, logged && s.sleepBtnActive]}
+                    onPress={() => userId && sleep.logManual(userId, opt.score)}
+                    disabled={sleep.todayLog !== null}
+                  >
+                    <Text style={[s.sleepBtnLabel, logged && s.sleepBtnLabelActive]}>{opt.label}</Text>
+                    <Text style={[s.sleepBtnSub, logged && s.sleepBtnSubActive]}>{opt.sub}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </Card>
+        )}
+
+        {/* Sleep logged chip — shown after logging */}
+        {sleep.todayLog !== null && (
+          <Card>
+            <View style={s.sleepLoggedRow}>
+              <Text style={s.sleepLoggedIcon}>🌙</Text>
+              <View>
+                <Text style={s.sleepLoggedLabel}>Sleep logged</Text>
+                <Text style={s.sleepLoggedSub}>
+                  {['', 'Poorly', 'Light', 'OK', 'Good', 'Great'][sleep.todayLog.quality_score ?? 0]}
+                  {sleep.todayLog.duration_minutes
+                    ? `  ·  ${Math.floor(sleep.todayLog.duration_minutes / 60)}h ${sleep.todayLog.duration_minutes % 60}m`
+                    : ''}
+                </Text>
+              </View>
+            </View>
           </Card>
         )}
 
@@ -293,6 +349,23 @@ const s = StyleSheet.create({
   subBtnTextActive: { color: '#C4A0B0', opacity: 1, fontWeight: '600' },
 
   placeholderText: { fontSize: 13, color: '#3D3935', opacity: 0.4, lineHeight: 18 },
+
+  sleepTitle: { fontSize: 14, fontWeight: '600', color: '#3D3935', marginBottom: 12 },
+  sleepRow: { flexDirection: 'row', gap: 6 },
+  sleepBtn: {
+    flex: 1, borderRadius: 10, borderWidth: 1.5, borderColor: '#E0DDD8',
+    paddingVertical: 9, alignItems: 'center',
+  },
+  sleepBtnActive: { borderColor: '#89B4CC', backgroundColor: '#89B4CC15' },
+  sleepBtnLabel: { fontSize: 12, fontWeight: '500', color: '#3D3935', opacity: 0.55 },
+  sleepBtnLabelActive: { color: '#89B4CC', opacity: 1, fontWeight: '700' },
+  sleepBtnSub: { fontSize: 10, color: '#3D3935', opacity: 0.3, marginTop: 2 },
+  sleepBtnSubActive: { color: '#89B4CC', opacity: 0.7 },
+
+  sleepLoggedRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  sleepLoggedIcon: { fontSize: 22 },
+  sleepLoggedLabel: { fontSize: 14, fontWeight: '600', color: '#3D3935' },
+  sleepLoggedSub: { fontSize: 12, color: '#3D3935', opacity: 0.45, marginTop: 2 },
 
   sosContainer: {
     position: 'absolute', bottom: 0, left: 0, right: 0,

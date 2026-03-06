@@ -4,10 +4,11 @@ import {
   StyleSheet, TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Rect } from 'react-native-svg';
+import Svg, { Rect, Line as SvgLine } from 'react-native-svg';
 import { useAuthStore } from '../../stores/auth';
 import { useTodayStore } from '../../stores/today';
 import { useCycleStore } from '../../stores/cycle';
+import { useSleepStore } from '../../stores/sleep';
 import type { CycleState } from '../../types/database';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -72,12 +73,58 @@ function CycleGraph({ logs }: { logs: { date: string; state: CycleState; intensi
   );
 }
 
+// ─── Sleep Mini-chart ─────────────────────────────────────────────────────────
+
+const SLEEP_Q_COLORS = ['', '#C4A0B0', '#C4A0B0', '#E8DCC8', '#A8C5A0', '#89B4CC'];
+
+function SleepMiniChart({ logs }: { logs: { date: string; duration_minutes: number | null; quality_score: number | null }[] }) {
+  const BAR_W = 7;
+  const GAP = 3;
+  const CHART_H = 40;
+  const MAX_MINUTES = 600;
+  const days = 30;
+  const totalW = days * (BAR_W + GAP);
+
+  const logMap: Record<string, typeof logs[0]> = {};
+  logs.forEach((l) => { logMap[l.date] = l; });
+
+  const bars: JSX.Element[] = [];
+  for (let i = 0; i < days; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() - (days - 1 - i));
+    const key = d.toISOString().split('T')[0];
+    const log = logMap[key];
+    const x = i * (BAR_W + GAP);
+    const rawH = log?.duration_minutes
+      ? Math.round((Math.min(log.duration_minutes, MAX_MINUTES) / MAX_MINUTES) * (CHART_H - 4))
+      : 0;
+    const barH = Math.max(rawH, log ? 3 : 2);
+    const color = log?.quality_score ? SLEEP_Q_COLORS[log.quality_score] : '#E0DDD8';
+    bars.push(
+      <Rect key={key} x={x} y={CHART_H - barH} width={BAR_W} height={barH} rx={2} fill={color} />,
+    );
+  }
+
+  // 7h reference line
+  const refY = CHART_H - Math.round(((7 * 60) / MAX_MINUTES) * (CHART_H - 4));
+
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+      <Svg width={totalW} height={CHART_H}>
+        <SvgLine x1={0} y1={refY} x2={totalW} y2={refY} stroke="#E0DDD8" strokeWidth={0.5} strokeDasharray="3,3" />
+        {bars}
+      </Svg>
+    </ScrollView>
+  );
+}
+
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function TrackerScreen() {
   const { session } = useAuthStore();
   const today = useTodayStore();
   const cycle = useCycleStore();
+  const sleep = useSleepStore();
   const userId = session?.user.id;
 
   const [selectedState, setSelectedState] = useState<CycleState>(
@@ -89,7 +136,10 @@ export default function TrackerScreen() {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    if (userId) cycle.load90Days(userId);
+    if (userId) {
+      cycle.load90Days(userId);
+      sleep.load(userId);
+    }
   }, [userId]);
 
   useEffect(() => {
@@ -204,6 +254,29 @@ export default function TrackerScreen() {
           </View>
         </View>
 
+        {/* Sleep mini-chart */}
+        <Text style={s.sectionLabel}>SLEEP · LAST 30 DAYS</Text>
+        <View style={s.graphCard}>
+          {sleep.history.length > 0 ? (
+            <>
+              <SleepMiniChart logs={sleep.history} />
+              <View style={s.graphLegend}>
+                {(['Great', 'Good', 'OK', 'Poor'] as const).map((label, i) => (
+                  <View key={label} style={s.legendItem}>
+                    <View style={[s.legendDot, { backgroundColor: ['#89B4CC', '#A8C5A0', '#E8DCC8', '#C4A0B0'][i] }]} />
+                    <Text style={s.legendText}>{label}</Text>
+                  </View>
+                ))}
+              </View>
+              <Text style={s.sleepHint}>Dashed line = 7h target</Text>
+            </>
+          ) : (
+            <Text style={s.sleepEmpty}>
+              Log sleep on the Today tab each morning to see your trend here.
+            </Text>
+          )}
+        </View>
+
         {/* Save */}
         <TouchableOpacity
           style={[s.saveBtn, { backgroundColor: accentColor }]}
@@ -278,6 +351,9 @@ const s = StyleSheet.create({
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   legendDot: { width: 8, height: 8, borderRadius: 4 },
   legendText: { fontSize: 11, color: '#3D3935', opacity: 0.5 },
+
+  sleepHint: { fontSize: 11, color: '#3D3935', opacity: 0.25, marginTop: 8 },
+  sleepEmpty: { fontSize: 13, color: '#3D3935', opacity: 0.35, lineHeight: 18 },
 
   // Save
   saveBtn: {

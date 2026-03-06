@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Svg, { Polygon, Line, Circle, Text as SvgText } from 'react-native-svg';
 import { useAuthStore } from '../../../stores/auth';
+import { useSleepStore } from '../../../stores/sleep';
 import { supabase } from '../../../lib/supabase';
 import type { Diagnosis } from '../../../types/database';
 
@@ -124,6 +125,7 @@ function MenuItem({
 export default function YouScreen() {
   const { session, profile, signOut, updateProfile } = useAuthStore();
   const router = useRouter();
+  const sleep = useSleepStore();
   const userId = session?.user.id;
 
   const [stats, setStats] = useState({ days: 0, activities: 0, stableDays: 0 });
@@ -136,7 +138,10 @@ export default function YouScreen() {
   const diagnosisLabel = profile?.diagnosis ? DIAGNOSIS_LABELS[profile.diagnosis] : null;
 
   useEffect(() => {
-    if (userId) loadStats();
+    if (userId) {
+      loadStats();
+      sleep.load(userId);
+    }
   }, [userId]);
 
   useEffect(() => {
@@ -180,8 +185,13 @@ export default function YouScreen() {
       activity: Math.min(100, Math.round((allActivities / 30) * 100)),
       journal:  Math.round((journalCount / 30) * 100),
       mindful:  Math.min(100, groundingCount * 10),
-      social:   0,  // Social rhythm — from social_rhythm_logs (Phase 4)
-      sleep:    0,  // Sleep — from sleep_logs (Phase 4)
+      social:   0,  // Social rhythm — from social_rhythm_logs (Phase 4B)
+      sleep:    (() => {
+        const sleepLogs = sleep.history;
+        if (!sleepLogs.length) return 0;
+        const avg = sleepLogs.reduce((a, b) => a + (b.duration_minutes ?? 0), 0) / sleepLogs.length;
+        return Math.min(100, Math.round((avg / 480) * 100)); // 480min = 8h target
+      })(),
     });
   }
 
@@ -312,10 +322,24 @@ export default function YouScreen() {
           <MenuItem icon="🔔" label="Notifications" onPress={() => {}} />
         </View>
 
-        {/* Coming soon */}
-        <Text style={s.sectionLabel}>COMING SOON</Text>
+        {/* Wearable */}
+        <Text style={s.sectionLabel}>WEARABLE</Text>
         <View style={s.menuCard}>
-          <MenuItem icon="⌚" label="Wearable sync" sub="Apple Health · Google Fit" onPress={() => {}} />
+          <MenuItem
+            icon="⌚"
+            label="Wearable sync"
+            sub={sleep.wearableConnections.length > 0 ? 'Apple Health connected' : 'Apple Health · Google Fit'}
+            onPress={() => router.push('/(tabs)/you/wearable-setup')}
+          />
+          <View style={s.divider} />
+          <MenuItem
+            icon="🌙"
+            label="Sleep"
+            sub={sleep.history.length > 0
+              ? `${sleep.history.length} nights logged`
+              : 'No data yet'}
+            onPress={() => router.push('/(tabs)/you/sleep-detail')}
+          />
         </View>
 
         {/* Sign out */}
