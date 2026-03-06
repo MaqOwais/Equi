@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { View, Text, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { useAuthStore } from '../stores/auth';
+import { DEV_MODE } from '../constants/dev';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -110,7 +112,20 @@ export default function SplashScreen() {
       withTiming(1, { duration: 600, easing: Easing.out(Easing.quad) }),
     );
 
-    const timer = setTimeout(() => router.replace('/(tabs)'), 3800);
+    const timer = setTimeout(() => {
+      if (DEV_MODE) {
+        router.replace('/(tabs)');
+        return;
+      }
+      const { session, profile } = useAuthStore.getState();
+      if (!session) {
+        router.replace('/(auth)/sign-in');
+      } else if (!profile?.onboarding_complete) {
+        router.replace('/(auth)/onboarding');
+      } else {
+        router.replace('/(tabs)');
+      }
+    }, 3800);
     return () => clearTimeout(timer);
   }, []);
 
