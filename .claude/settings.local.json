@@ -16,7 +16,10 @@
       "Bash(npm install)",
       "Bash(npm install --legacy-peer-deps)",
       "Bash(gh api repos/MaqOwais/Equi/)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(npx expo install react-native-svg)",
+      "Bash(npm install @resvg/resvg-js --save-dev)",
+      "Bash(node scripts/generate-icon.mjs)"
     ]
   }
 }
