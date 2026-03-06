@@ -19,7 +19,8 @@
       "WebFetch(domain:github.com)",
       "Bash(npx expo install react-native-svg)",
       "Bash(npm install @resvg/resvg-js --save-dev)",
-      "Bash(node scripts/generate-icon.mjs)"
+      "Bash(node scripts/generate-icon.mjs)",
+      "Bash(cat /Users/maqowais/Documents/Equi/mobile/app/\\\\\\(tabs\\\\\\)/index.tsx)"
     ]
   }
 }
