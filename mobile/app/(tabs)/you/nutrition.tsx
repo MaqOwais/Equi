@@ -97,7 +97,7 @@ export default function NutritionScreen() {
   const showLithiumWarning = showLithium && caffeineCount >= 3;
 
   return (
-    <SafeAreaView style={s.safe}>
+    <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
         {/* Nav */}
@@ -166,7 +166,7 @@ export default function NutritionScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F7F3EE' },
+  safe: { flex: 1, backgroundColor: '#FFFFFF' },
   scroll: { paddingHorizontal: 18, paddingTop: 8 },
 
   nav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8 },

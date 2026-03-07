@@ -136,7 +136,7 @@ export default function VerifyScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F7F3EE' },
+  safe: { flex: 1, backgroundColor: '#FFFFFF' },
   back: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4 },
   backText: { fontSize: 22, color: '#A8C5A0' },
   content: { flex: 1, paddingHorizontal: 28, paddingTop: 36, paddingBottom: 32 },

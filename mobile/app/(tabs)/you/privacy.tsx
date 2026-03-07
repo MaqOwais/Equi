@@ -84,7 +84,7 @@ function ExportBlock({ userId }: { userId: string }) {
         >
           {loading ? (
             <>
-              <ActivityIndicator color="#F7F3EE" size="small" style={{ marginRight: 8 }} />
+              <ActivityIndicator color="#FFFFFF" size="small" style={{ marginRight: 8 }} />
               <Text style={s.actionBtnText}>Preparing your export…</Text>
             </>
           ) : (
@@ -219,7 +219,7 @@ export default function PrivacyScreen() {
   if (!userId) return null;
 
   return (
-    <SafeAreaView style={s.safe}>
+    <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
         <View style={s.nav}>
@@ -262,7 +262,7 @@ export default function PrivacyScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F7F3EE' },
+  safe: { flex: 1, backgroundColor: '#FFFFFF' },
   scroll: { paddingHorizontal: 18, paddingTop: 8 },
 
   nav: { paddingVertical: 8 },
@@ -298,7 +298,7 @@ const s = StyleSheet.create({
 
   downloadRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
   reExportBtn: {
-    width: 44, height: 44, borderRadius: 12, backgroundColor: '#F7F3EE',
+    width: 44, height: 44, borderRadius: 12, backgroundColor: '#FFFFFF',
     alignItems: 'center', justifyContent: 'center',
   },
   reExportText: { fontSize: 20, color: '#3D3935', opacity: 0.4 },
@@ -309,7 +309,7 @@ const s = StyleSheet.create({
     marginBottom: 12,
   },
   actionBtnDisabled: { opacity: 0.5 },
-  actionBtnText: { fontSize: 14, fontWeight: '600', color: '#F7F3EE' },
+  actionBtnText: { fontSize: 14, fontWeight: '600', color: '#FFFFFF' },
 
   cancelDeletionBtn: {
     backgroundColor: '#FFFFFF', borderWidth: 1.5, borderColor: '#C4A0B030',

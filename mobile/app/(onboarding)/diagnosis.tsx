@@ -72,7 +72,7 @@ export default function DiagnosisScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F7F3EE' },
+  safe: { flex: 1, backgroundColor: '#FFFFFF' },
   content: { flex: 1, paddingHorizontal: 28, paddingTop: 64, paddingBottom: 32 },
   title: { fontSize: 34, fontWeight: '700', color: '#3D3935', letterSpacing: -0.6, lineHeight: 42, marginBottom: 12 },
   sub: { fontSize: 14, color: '#3D3935', opacity: 0.45, lineHeight: 20, marginBottom: 36 },
@@ -96,6 +96,6 @@ const s = StyleSheet.create({
     paddingVertical: 16, alignItems: 'center', marginTop: 28, marginBottom: 16,
   },
   btnDisabled: { opacity: 0.4 },
-  btnText: { fontSize: 16, fontWeight: '600', color: '#F7F3EE' },
+  btnText: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
   skip: { fontSize: 14, color: '#3D3935', opacity: 0.4, textAlign: 'center', paddingVertical: 8 },
 });

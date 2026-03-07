@@ -220,7 +220,7 @@ const s = StyleSheet.create({
 
   previewCard: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#F7F3EE', borderRadius: 12,
+    backgroundColor: '#FFFFFF', borderRadius: 12,
     padding: 14, marginBottom: 20, gap: 12,
   },
   previewEmoji: { fontSize: 28 },
@@ -248,7 +248,7 @@ const s = StyleSheet.create({
 
   cancelBtn: {
     alignItems: 'center', paddingVertical: 13,
-    borderRadius: 12, backgroundColor: '#F7F3EE', marginTop: 4,
+    borderRadius: 12, backgroundColor: '#FFFFFF', marginTop: 4,
   },
   cancelText: { fontSize: 14, fontWeight: '600', color: '#3D3935', opacity: 0.5 },
 });

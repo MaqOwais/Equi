@@ -89,7 +89,7 @@ export default function ForgotPassword() {
                 disabled={loading}
               >
                 {loading
-                  ? <ActivityIndicator color="#F7F3EE" />
+                  ? <ActivityIndicator color="#FFFFFF" />
                   : <Text style={s.buttonText}>Send reset link</Text>
                 }
               </TouchableOpacity>
@@ -104,7 +104,7 @@ export default function ForgotPassword() {
 const s = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#F7F3EE',
+    backgroundColor: '#FFFFFF',
   },
   waveBar: {
     height: 6,
@@ -173,7 +173,7 @@ const s = StyleSheet.create({
   buttonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#F7F3EE',
+    color: '#FFFFFF',
     letterSpacing: 0.2,
   },
   sentBox: {

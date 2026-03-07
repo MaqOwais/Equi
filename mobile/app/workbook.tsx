@@ -266,7 +266,7 @@ export default function WorkbookScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F7F3EE' },
+  safe: { flex: 1, backgroundColor: '#FFFFFF' },
   scroll: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 20 },
 
   nav: { paddingVertical: 8, marginBottom: 4 },
@@ -308,7 +308,7 @@ const s = StyleSheet.create({
   promptNumber: { fontSize: 11, fontWeight: '700', color: '#A8C5A0', letterSpacing: 0.5, marginBottom: 6 },
   promptText: { fontSize: 15, fontWeight: '600', color: '#3D3935', lineHeight: 21, marginBottom: 12 },
   responseInput: {
-    backgroundColor: '#F7F3EE', borderRadius: 10, padding: 12,
+    backgroundColor: '#FFFFFF', borderRadius: 10, padding: 12,
     minHeight: 80, fontSize: 14, color: '#3D3935', lineHeight: 20,
   },
   promptFooter: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 10 },
@@ -317,7 +317,7 @@ const s = StyleSheet.create({
     backgroundColor: '#A8C5A0', borderRadius: 8, paddingVertical: 6, paddingHorizontal: 16,
   },
   savePromptBtnDisabled: { opacity: 0.35 },
-  savePromptBtnText: { fontSize: 13, fontWeight: '600', color: '#F7F3EE' },
+  savePromptBtnText: { fontSize: 13, fontWeight: '600', color: '#FFFFFF' },
 
   privacyNote: {
     backgroundColor: '#FFFFFF', borderRadius: 12, padding: 14, marginBottom: 8,

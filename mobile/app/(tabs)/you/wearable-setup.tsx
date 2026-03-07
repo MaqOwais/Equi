@@ -89,7 +89,7 @@ export default function WearableSetupScreen() {
   }
 
   return (
-    <SafeAreaView style={s.safe}>
+    <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
         {/* Nav */}
@@ -143,7 +143,7 @@ export default function WearableSetupScreen() {
                   disabled={isSyncing}
                 >
                   {isSyncing
-                    ? <ActivityIndicator color="#F7F3EE" size="small" />
+                    ? <ActivityIndicator color="#FFFFFF" size="small" />
                     : <Text style={s.actionBtnPrimaryText}>Sync now</Text>}
                 </TouchableOpacity>
                 <TouchableOpacity style={[s.actionBtn, s.actionBtnOutline]} onPress={handleDisconnectHealthKit}>
@@ -238,7 +238,7 @@ export default function WearableSetupScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F7F3EE' },
+  safe: { flex: 1, backgroundColor: '#FFFFFF' },
   scroll: { paddingHorizontal: 18, paddingTop: 8 },
 
   nav: { paddingVertical: 8 },
@@ -256,7 +256,7 @@ const s = StyleSheet.create({
   providerCard: {
     backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 12,
     shadowColor: '#3D3935', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
+    shadowOpacity: 0.07, shadowRadius: 6, elevation: 2, borderWidth: 1, borderColor: '#F0EDE8',
   },
   providerHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   providerIcon: { fontSize: 24, marginRight: 12 },
@@ -282,7 +282,7 @@ const s = StyleSheet.create({
   providerActions: { flexDirection: 'row', gap: 10, marginTop: 4 },
   actionBtn: { flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center' },
   actionBtnPrimary: { backgroundColor: '#A8C5A0' },
-  actionBtnPrimaryText: { fontSize: 14, fontWeight: '600', color: '#F7F3EE' },
+  actionBtnPrimaryText: { fontSize: 14, fontWeight: '600', color: '#FFFFFF' },
   actionBtnOutline: { borderWidth: 1.5, borderColor: '#E0DDD8' },
   actionBtnOutlineText: { fontSize: 14, fontWeight: '500', color: '#3D3935', opacity: 0.6 },
   actionBtnDisabled: { opacity: 0.4 },
@@ -290,7 +290,7 @@ const s = StyleSheet.create({
   nightsCard: {
     backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 16,
     shadowColor: '#3D3935', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
+    shadowOpacity: 0.07, shadowRadius: 6, elevation: 2, borderWidth: 1, borderColor: '#F0EDE8',
     gap: 12,
   },
   nightRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },

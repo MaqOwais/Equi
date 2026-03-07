@@ -33,38 +33,47 @@ function ActivityCard({
   completionCount,
   isBookmarked,
   lastNote,
+  accentColor,
   onPress,
 }: {
   activity: Activity;
   completionCount?: number;
   isBookmarked?: boolean;
   lastNote?: string | null;
+  accentColor?: string;
   onPress: () => void;
 }) {
   return (
-    <TouchableOpacity style={s.card} onPress={onPress} activeOpacity={0.75}>
+    <TouchableOpacity
+      style={[s.card, accentColor && { borderLeftColor: accentColor + '80', borderLeftWidth: 3 }]}
+      onPress={onPress}
+      activeOpacity={0.75}
+    >
       <View style={s.cardHeader}>
         <View style={{ flex: 1 }}>
           <Text style={s.cardTitle}>{activity.title}</Text>
-          {activity.duration_minutes && (
-            <Text style={s.cardMeta}>{activity.duration_minutes} min</Text>
+          <View style={s.cardMetaRow}>
+            {activity.duration_minutes ? (
+              <View style={s.durationPill}>
+                <Text style={s.durationText}>{activity.duration_minutes} min</Text>
+              </View>
+            ) : null}
+            {activity.evidence_label ? (
+              <Text style={s.evidenceTag}>{activity.evidence_label}</Text>
+            ) : null}
+          </View>
+        </View>
+        <View style={s.cardRight}>
+          {isBookmarked && <Text style={s.bookmarkIcon}>🔖</Text>}
+          {completionCount != null && completionCount > 0 && (
+            <Text style={s.completionCount}>{completionCount}×</Text>
           )}
         </View>
-        {isBookmarked && <Text style={s.bookmarkIcon}>🔖</Text>}
       </View>
 
       {activity.description ? (
         <Text style={s.cardDesc} numberOfLines={2}>{activity.description}</Text>
       ) : null}
-
-      <View style={s.cardFooter}>
-        {activity.evidence_label ? (
-          <Text style={s.evidenceTag}>{activity.evidence_label}</Text>
-        ) : null}
-        {completionCount != null && completionCount > 0 && (
-          <Text style={s.completionCount}>{completionCount}× done</Text>
-        )}
-      </View>
 
       {lastNote ? (
         <Text style={s.lastNote} numberOfLines={1}>"{lastNote}"</Text>
@@ -142,7 +151,7 @@ export default function ActivitiesScreen() {
   };
 
   return (
-    <SafeAreaView style={s.safe}>
+    <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
       {/* Header */}
       <View style={s.header}>
         <Text style={s.title}>Activities</Text>
@@ -157,7 +166,7 @@ export default function ActivitiesScreen() {
         {(['all', 'prescribed', 'bookmarked'] as Tab[]).map((t) => (
           <TouchableOpacity
             key={t}
-            style={[s.tab, tab === t && s.tabActive]}
+            style={[s.tab, tab === t && { borderBottomWidth: 2, borderBottomColor: accentColor }]}
             onPress={() => setTab(t)}
           >
             <Text style={[s.tabText, tab === t && s.tabTextActive]}>
@@ -192,7 +201,7 @@ export default function ActivitiesScreen() {
                     {suggestedActivities.map((a) => (
                       <TouchableOpacity
                         key={a.id}
-                        style={s.suggestedCard}
+                        style={[s.suggestedCard, { borderLeftColor: accentColor }]}
                         onPress={() => navigateToActivity(a)}
                         activeOpacity={0.75}
                       >
@@ -234,6 +243,7 @@ export default function ActivitiesScreen() {
                       completionCount={completionCountMap[a.id]}
                       isBookmarked={bookmarkedIds.has(a.id)}
                       lastNote={lastNoteMap[a.id]}
+                      accentColor={accentColor}
                       onPress={() => navigateToActivity(a)}
                     />
                   ))}
@@ -267,6 +277,7 @@ export default function ActivitiesScreen() {
                     <ActivityCard
                       activity={p.activity}
                       completionCount={completionCountMap[p.activity_id]}
+                      accentColor={accentColor}
                       onPress={() => navigateToActivity(p.activity!)}
                     />
                     <View style={s.prescribedMeta}>
@@ -312,6 +323,7 @@ export default function ActivitiesScreen() {
                     completionCount={completionCountMap[activity.id]}
                     isBookmarked
                     lastNote={lastNoteMap[activity.id]}
+                    accentColor={accentColor}
                     onPress={() => navigateToActivity(activity)}
                   />
                 ))
@@ -329,7 +341,7 @@ export default function ActivitiesScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F7F3EE' },
+  safe: { flex: 1, backgroundColor: '#FFFFFF' },
 
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
@@ -348,7 +360,6 @@ const s = StyleSheet.create({
     paddingHorizontal: 18,
   },
   tab: { paddingVertical: 10, marginRight: 20 },
-  tabActive: { borderBottomWidth: 2, borderBottomColor: '#A8C5A0' },
   tabText: { fontSize: 13, color: '#3D3935', opacity: 0.4, fontWeight: '500' },
   tabTextActive: { opacity: 1, fontWeight: '700', color: '#3D3935' },
 
@@ -371,14 +382,18 @@ const s = StyleSheet.create({
   card: {
     backgroundColor: '#FFFFFF', borderRadius: 14, padding: 14, marginBottom: 8,
     shadowColor: '#3D3935', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05, shadowRadius: 3, elevation: 1,
+    shadowOpacity: 0.07, shadowRadius: 5, elevation: 2, borderWidth: 1, borderColor: '#F0EDE8',
   },
   cardHeader: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 4 },
-  cardTitle: { fontSize: 15, fontWeight: '600', color: '#3D3935' },
-  cardMeta: { fontSize: 12, color: '#3D3935', opacity: 0.4, marginTop: 2 },
-  bookmarkIcon: { fontSize: 16, marginLeft: 6 },
-  cardDesc: { fontSize: 13, color: '#3D3935', opacity: 0.55, lineHeight: 18, marginBottom: 8 },
-  cardFooter: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  cardTitle: { fontSize: 15, fontWeight: '600', color: '#3D3935', marginBottom: 6 },
+  cardMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  durationPill: {
+    backgroundColor: '#F0EDE8', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2,
+  },
+  durationText: { fontSize: 11, color: '#3D3935', opacity: 0.5, fontWeight: '500' },
+  cardRight: { alignItems: 'flex-end', gap: 4, marginLeft: 8 },
+  bookmarkIcon: { fontSize: 15 },
+  cardDesc: { fontSize: 13, color: '#3D3935', opacity: 0.55, lineHeight: 18, marginTop: 6 },
   evidenceTag: { fontSize: 11, color: '#A8C5A0', fontWeight: '500' },
   completionCount: { fontSize: 11, color: '#3D3935', opacity: 0.35 },
   lastNote: { fontSize: 12, color: '#3D3935', opacity: 0.4, marginTop: 6, fontStyle: 'italic' },
@@ -402,8 +417,8 @@ const s = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: '#FFFFFF', borderRadius: 14, padding: 14, marginBottom: 8,
     shadowColor: '#3D3935', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05, shadowRadius: 3, elevation: 1,
-    borderLeftWidth: 3, borderLeftColor: '#A8C5A0',
+    shadowOpacity: 0.07, shadowRadius: 5, elevation: 2, borderWidth: 1, borderColor: '#F0EDE8',
+    borderLeftWidth: 3,
   },
   suggestedTitle: { fontSize: 15, fontWeight: '600', color: '#3D3935' },
   suggestedMeta: { fontSize: 12, color: '#3D3935', opacity: 0.4, marginTop: 2 },

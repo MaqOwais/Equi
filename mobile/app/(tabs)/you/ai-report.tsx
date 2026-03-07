@@ -205,7 +205,7 @@ export default function AIReportScreen() {
   const generatingLabel = isMonthly ? 'Analysing 30 days…' : 'Analysing your data…';
 
   return (
-    <SafeAreaView style={s.safe}>
+    <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
         {/* Nav */}
@@ -251,7 +251,7 @@ export default function AIReportScreen() {
             >
               {isGenerating ? (
                 <>
-                  <ActivityIndicator color="#F7F3EE" size="small" style={{ marginRight: 8 }} />
+                  <ActivityIndicator color="#FFFFFF" size="small" style={{ marginRight: 8 }} />
                   <Text style={s.generateBtnText}>{generatingLabel}</Text>
                 </>
               ) : (
@@ -316,7 +316,7 @@ export default function AIReportScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F7F3EE' },
+  safe: { flex: 1, backgroundColor: '#FFFFFF' },
   scroll: { paddingHorizontal: 18, paddingTop: 8 },
   center: { paddingVertical: 60, alignItems: 'center' },
 
@@ -335,7 +335,7 @@ const s = StyleSheet.create({
   toggleBtn: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 8 },
   toggleBtnActive: { backgroundColor: '#A8C5A0' },
   toggleText: { fontSize: 13, fontWeight: '600', color: '#3D3935', opacity: 0.4 },
-  toggleTextActive: { color: '#F7F3EE', opacity: 1 },
+  toggleTextActive: { color: '#FFFFFF', opacity: 1 },
 
   periodRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
   period: { fontSize: 13, color: '#3D3935', opacity: 0.45, fontWeight: '500' },
@@ -376,7 +376,7 @@ const s = StyleSheet.create({
     backgroundColor: '#A8C5A0', borderRadius: 14, paddingVertical: 14, paddingHorizontal: 24,
   },
   generateBtnDisabled: { opacity: 0.5 },
-  generateBtnText: { fontSize: 15, fontWeight: '600', color: '#F7F3EE' },
+  generateBtnText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF' },
   errorText: { fontSize: 13, color: '#C4A0B0', marginTop: 10, textAlign: 'center' },
 
   regenBtn: {

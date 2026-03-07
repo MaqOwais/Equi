@@ -93,7 +93,7 @@ export default function CompanionConnectScreen() {
                 disabled={!patientEmail.trim() || loading}
               >
                 {loading
-                  ? <ActivityIndicator color="#F7F3EE" />
+                  ? <ActivityIndicator color="#FFFFFF" />
                   : <Text style={s.btnText}>Send invite</Text>}
               </TouchableOpacity>
             </>
@@ -111,7 +111,7 @@ export default function CompanionConnectScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F7F3EE' },
+  safe: { flex: 1, backgroundColor: '#FFFFFF' },
   content: { flex: 1, paddingHorizontal: 28, paddingTop: 64, paddingBottom: 40 },
   title: { fontSize: 34, fontWeight: '700', color: '#3D3935', letterSpacing: -0.6, lineHeight: 42, marginBottom: 12 },
   sub: { fontSize: 14, color: '#3D3935', opacity: 0.45, lineHeight: 20, marginBottom: 36 },
@@ -125,7 +125,7 @@ const s = StyleSheet.create({
     paddingVertical: 16, alignItems: 'center',
   },
   btnDisabled: { opacity: 0.45 },
-  btnText: { fontSize: 16, fontWeight: '600', color: '#F7F3EE' },
+  btnText: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
   sentCard: {
     backgroundColor: '#A8C5A015', borderRadius: 16, padding: 24,
     alignItems: 'center', gap: 8,
@@ -137,5 +137,5 @@ const s = StyleSheet.create({
     backgroundColor: '#3D3935', borderRadius: 14,
     paddingVertical: 18, alignItems: 'center',
   },
-  finishBtnText: { fontSize: 16, fontWeight: '600', color: '#F7F3EE' },
+  finishBtnText: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
 });

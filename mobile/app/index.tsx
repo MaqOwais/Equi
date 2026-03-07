@@ -143,7 +143,7 @@ export default function SplashScreen() {
   }));
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F7F3EE', alignItems: 'center', justifyContent: 'center' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' }}>
       {/* Wave illustration — pinned to top */}
       <View style={{ position: 'absolute', top: 0, width, height: waveH, overflow: 'hidden' }}>
         {/* Back wave — sky blue, most transparent, highest amplitude */}

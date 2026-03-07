@@ -3,7 +3,7 @@ export const Colors = {
   skyBlue:    '#89B4CC', // Manic / elevated
   dustyMauve: '#C4A0B0', // Depressive / low
   warmSand:   '#E8DCC8', // Neutral backgrounds
-  softWhite:  '#F7F3EE', // Cards / surfaces
+  softWhite:  '#FFFFFF', // Cards / surfaces
   charcoal:   '#3D3935', // Primary text
   mutedGold:  '#C9A84C', // Achievements / rewards
 } as const;

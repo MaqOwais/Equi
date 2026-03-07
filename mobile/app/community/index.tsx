@@ -279,7 +279,7 @@ export default function CommunityScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F7F3EE' },
+  safe: { flex: 1, backgroundColor: '#FFFFFF' },
 
   nav: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
@@ -292,7 +292,7 @@ const s = StyleSheet.create({
   crisisBanner: {
     backgroundColor: '#3D3935', paddingHorizontal: 16, paddingVertical: 10,
   },
-  crisisTitle: { fontSize: 11, fontWeight: '700', color: '#F7F3EE', opacity: 0.6, letterSpacing: 0.5, marginBottom: 6 },
+  crisisTitle: { fontSize: 11, fontWeight: '700', color: '#FFFFFF', opacity: 0.6, letterSpacing: 0.5, marginBottom: 6 },
   crisisLinks: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   crisisLink: { fontSize: 12, color: '#A8C5A0', fontWeight: '600' },
 
@@ -313,7 +313,7 @@ const s = StyleSheet.create({
   postCard: {
     backgroundColor: '#FFFFFF', borderRadius: 14, padding: 14, marginBottom: 10,
     shadowColor: '#3D3935', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05, shadowRadius: 3, elevation: 1,
+    shadowOpacity: 0.07, shadowRadius: 5, elevation: 2, borderWidth: 1, borderColor: '#F0EDE8',
   },
   postCardPending: { borderWidth: 1.5, borderColor: '#E8DCC8', borderStyle: 'dashed' },
   pendingTag: { fontSize: 11, color: '#3D3935', opacity: 0.35, marginBottom: 8, fontStyle: 'italic' },
@@ -346,11 +346,11 @@ const s = StyleSheet.create({
     shadowColor: '#3D3935', shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2, shadowRadius: 8, elevation: 4,
   },
-  fabText: { fontSize: 14, fontWeight: '700', color: '#F7F3EE' },
+  fabText: { fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
 
   backdrop: { flex: 1, backgroundColor: '#00000030', justifyContent: 'flex-end' },
   sheet: {
-    backgroundColor: '#F7F3EE', borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    backgroundColor: '#FFFFFF', borderTopLeftRadius: 20, borderTopRightRadius: 20,
     padding: 24, paddingBottom: 40,
   },
   sheetTitle: { fontSize: 17, fontWeight: '700', color: '#3D3935', marginBottom: 2 },
@@ -363,5 +363,5 @@ const s = StyleSheet.create({
   moderationNote: { fontSize: 12, color: '#3D3935', opacity: 0.4, lineHeight: 17, marginBottom: 14 },
   postBtn: { backgroundColor: '#3D3935', borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
   postBtnDisabled: { opacity: 0.35 },
-  postBtnText: { fontSize: 15, fontWeight: '600', color: '#F7F3EE' },
+  postBtnText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF' },
 });

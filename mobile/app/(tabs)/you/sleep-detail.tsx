@@ -131,7 +131,7 @@ export default function SleepDetailScreen() {
     : null;
 
   return (
-    <SafeAreaView style={s.safe}>
+    <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
         {/* Nav */}
@@ -278,7 +278,7 @@ export default function SleepDetailScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F7F3EE' },
+  safe: { flex: 1, backgroundColor: '#FFFFFF' },
   scroll: { paddingHorizontal: 18, paddingTop: 8 },
 
   nav: { paddingVertical: 8 },
@@ -294,7 +294,7 @@ const s = StyleSheet.create({
   lastNightCard: {
     backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 16,
     shadowColor: '#3D3935', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
+    shadowOpacity: 0.07, shadowRadius: 6, elevation: 2, borderWidth: 1, borderColor: '#F0EDE8',
   },
   lastNightTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
   lastNightDuration: { fontSize: 32, fontWeight: '700', color: '#3D3935', letterSpacing: -0.5 },
@@ -320,7 +320,7 @@ const s = StyleSheet.create({
   chartCard: {
     backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 16,
     shadowColor: '#3D3935', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
+    shadowOpacity: 0.07, shadowRadius: 6, elevation: 2, borderWidth: 1, borderColor: '#F0EDE8',
   },
   chartLegend: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 10 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },

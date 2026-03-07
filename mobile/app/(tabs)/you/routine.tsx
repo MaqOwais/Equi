@@ -156,7 +156,7 @@ export default function RoutineScreen() {
   }
 
   return (
-    <SafeAreaView style={s.safe}>
+    <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
         {/* Nav */}
@@ -258,7 +258,7 @@ export default function RoutineScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F7F3EE' },
+  safe: { flex: 1, backgroundColor: '#FFFFFF' },
   scroll: { paddingHorizontal: 18, paddingTop: 8 },
 
   nav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8 },
@@ -291,7 +291,7 @@ const s = StyleSheet.create({
   confirmBtn: {
     backgroundColor: '#A8C5A0', borderRadius: 10, paddingVertical: 10, alignItems: 'center',
   },
-  confirmBtnText: { fontSize: 14, fontWeight: '600', color: '#F7F3EE' },
+  confirmBtnText: { fontSize: 14, fontWeight: '600', color: '#FFFFFF' },
 
   // Log button
   logBtn: {

@@ -159,7 +159,7 @@ export default function SocialRhythmScreen() {
   const hardestAnchor = anchorStats.length ? anchorStats[anchorStats.length - 1] : null;
 
   return (
-    <SafeAreaView style={s.safe}>
+    <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
         {/* Nav */}
@@ -274,7 +274,7 @@ export default function SocialRhythmScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F7F3EE' },
+  safe: { flex: 1, backgroundColor: '#FFFFFF' },
   scroll: { paddingHorizontal: 18, paddingTop: 8 },
 
   nav: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8 },
@@ -292,7 +292,7 @@ const s = StyleSheet.create({
   card: {
     backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 12,
     shadowColor: '#3D3935', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
+    shadowOpacity: 0.07, shadowRadius: 6, elevation: 2, borderWidth: 1, borderColor: '#F0EDE8',
   },
 
   scoreRow: { flexDirection: 'row', alignItems: 'center' },

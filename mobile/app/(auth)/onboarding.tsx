@@ -518,7 +518,7 @@ export default function Onboarding() {
           disabled={!canAdvance() || loading}
         >
           {loading ? (
-            <ActivityIndicator color="#F7F3EE" />
+            <ActivityIndicator color="#FFFFFF" />
           ) : (
             <Text style={s.buttonText}>
               {isLastStep ? "Let's go →" : 'Continue'}
@@ -535,7 +535,7 @@ export default function Onboarding() {
 const s = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#F7F3EE',
+    backgroundColor: '#FFFFFF',
   },
   waveBar: {
     height: 6,
@@ -779,7 +779,7 @@ const s = StyleSheet.create({
   buttonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#F7F3EE',
+    color: '#FFFFFF',
     letterSpacing: 0.2,
   },
   devSkip: {

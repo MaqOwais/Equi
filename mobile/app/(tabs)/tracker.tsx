@@ -168,12 +168,20 @@ export default function TrackerScreen() {
   const accentColor = STATE_COLORS[selectedState];
 
   return (
-    <SafeAreaView style={s.safe}>
+    <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
         {/* Header */}
-        <Text style={s.title}>Cycle Tracker</Text>
-        <Text style={s.subtitle}>How have you been today?</Text>
+        <View style={s.headerRow}>
+          <View>
+            <Text style={s.title}>Cycle Tracker</Text>
+            <Text style={s.subtitle}>How have you been today?</Text>
+          </View>
+          <View style={[s.stateSummaryPill, { backgroundColor: accentColor + '22', borderColor: accentColor + '66' }]}>
+            <View style={[s.stateSummaryDot, { backgroundColor: accentColor }]} />
+            <Text style={[s.stateSummaryText, { color: accentColor }]}>{STATE_LABELS[selectedState]}</Text>
+          </View>
+        </View>
 
         {/* State selector */}
         <View style={s.stateRow}>
@@ -195,7 +203,7 @@ export default function TrackerScreen() {
 
         {/* Intensity */}
         <Text style={s.sectionLabel}>INTENSITY</Text>
-        <View style={s.intensityRow}>
+        <View style={s.intensityGrid}>
           {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
             <TouchableOpacity
               key={n}
@@ -210,6 +218,10 @@ export default function TrackerScreen() {
               </Text>
             </TouchableOpacity>
           ))}
+        </View>
+        <View style={s.intensityLabels}>
+          <Text style={s.intensityLabelText}>Mild</Text>
+          <Text style={s.intensityLabelText}>Intense</Text>
         </View>
 
         {/* Symptoms */}
@@ -307,11 +319,23 @@ export default function TrackerScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F7F3EE' },
+  safe: { flex: 1, backgroundColor: '#FFFFFF' },
   scroll: { paddingHorizontal: 18, paddingTop: 20, paddingBottom: 20 },
 
+  headerRow: {
+    flexDirection: 'row', alignItems: 'flex-start',
+    justifyContent: 'space-between', marginBottom: 24,
+  },
+  stateSummaryPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 10, paddingVertical: 5,
+    borderRadius: 20, borderWidth: 1, marginTop: 4,
+  },
+  stateSummaryDot: { width: 7, height: 7, borderRadius: 3.5 },
+  stateSummaryText: { fontSize: 12, fontWeight: '600' },
+
   title: { fontSize: 26, fontWeight: '700', color: '#3D3935', letterSpacing: -0.3, marginBottom: 4 },
-  subtitle: { fontSize: 14, color: '#3D3935', opacity: 0.45, marginBottom: 24 },
+  subtitle: { fontSize: 14, color: '#3D3935', opacity: 0.45 },
 
   sectionLabel: {
     fontSize: 11, fontWeight: '700', color: '#3D3935', opacity: 0.35,
@@ -325,17 +349,19 @@ const s = StyleSheet.create({
     borderWidth: 1.5, borderColor: '#E0DDD8', alignItems: 'center',
   },
   stateBtnText: { fontSize: 13, fontWeight: '500', color: '#3D3935', opacity: 0.5 },
-  stateBtnTextActive: { color: '#3D3935', opacity: 1, fontWeight: '700' },
+  stateBtnTextActive: { color: '#FFFFFF', opacity: 1, fontWeight: '700' },
 
   // Intensity
-  intensityRow: { flexDirection: 'row', gap: 6 },
+  intensityGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   intensityChip: {
-    flex: 1, aspectRatio: 1, borderRadius: 8,
+    width: '18%', aspectRatio: 1, borderRadius: 10,
     borderWidth: 1.5, borderColor: '#E0DDD8',
     alignItems: 'center', justifyContent: 'center',
   },
-  intensityText: { fontSize: 13, color: '#3D3935', opacity: 0.4, fontWeight: '500' },
-  intensityTextActive: { color: '#3D3935', opacity: 1, fontWeight: '700' },
+  intensityText: { fontSize: 14, color: '#3D3935', opacity: 0.4, fontWeight: '500' },
+  intensityTextActive: { color: '#FFFFFF', opacity: 1, fontWeight: '700' },
+  intensityLabels: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 },
+  intensityLabelText: { fontSize: 11, color: '#3D3935', opacity: 0.3 },
 
   // Symptoms
   symptomsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
@@ -356,7 +382,7 @@ const s = StyleSheet.create({
   graphCard: {
     backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16,
     shadowColor: '#3D3935', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
+    shadowOpacity: 0.07, shadowRadius: 6, elevation: 2, borderWidth: 1, borderColor: '#F0EDE8',
   },
   graphLegend: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 12 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
@@ -371,7 +397,7 @@ const s = StyleSheet.create({
     borderRadius: 14, paddingVertical: 15,
     alignItems: 'center', marginTop: 24,
   },
-  saveBtnText: { fontSize: 15, fontWeight: '600', color: '#F7F3EE', letterSpacing: 0.2 },
+  saveBtnText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF', letterSpacing: 0.2 },
 
   insightChip: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 8,

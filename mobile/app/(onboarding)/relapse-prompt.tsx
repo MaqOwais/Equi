@@ -54,7 +54,7 @@ export default function RelapsePromptScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F7F3EE' },
+  safe: { flex: 1, backgroundColor: '#FFFFFF' },
   content: { flex: 1, paddingHorizontal: 28, paddingTop: 80, paddingBottom: 48 },
   iconContainer: { marginBottom: 32 },
   icon: { fontSize: 40, color: '#C9A84C' },
@@ -64,7 +64,7 @@ const s = StyleSheet.create({
     backgroundColor: '#A8C5A0', borderRadius: 14,
     paddingVertical: 18, alignItems: 'center', marginTop: 40, marginBottom: 18,
   },
-  primaryBtnText: { fontSize: 16, fontWeight: '600', color: '#F7F3EE' },
+  primaryBtnText: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
   skip: {
     fontSize: 14, color: '#3D3935', opacity: 0.4,
     textAlign: 'center', lineHeight: 20, paddingHorizontal: 16,

@@ -198,7 +198,7 @@ export default function PsychiatristProfileScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F7F3EE' },
+  safe: { flex: 1, backgroundColor: '#FFFFFF' },
   back: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4 },
   backText: { fontSize: 15, color: '#A8C5A0', fontWeight: '600' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
@@ -220,7 +220,7 @@ const s = StyleSheet.create({
   credentials: { fontSize: 13, color: '#3D3935', opacity: 0.5, marginBottom: 4, textAlign: 'center' },
   location: { fontSize: 13, color: '#3D3935', opacity: 0.4, marginBottom: 14 },
   modeRow: { flexDirection: 'row', gap: 8 },
-  modeChip: { backgroundColor: '#F7F3EE', borderRadius: 10, paddingVertical: 4, paddingHorizontal: 10 },
+  modeChip: { backgroundColor: '#FFFFFF', borderRadius: 10, paddingVertical: 4, paddingHorizontal: 10 },
   modeText: { fontSize: 12, color: '#3D3935', opacity: 0.6 },
 
   section: { marginBottom: 24 },
@@ -240,7 +240,7 @@ const s = StyleSheet.create({
     backgroundColor: '#A8C5A0', borderRadius: 14,
     paddingVertical: 16, alignItems: 'center',
   },
-  bookBtnText: { fontSize: 16, fontWeight: '600', color: '#F7F3EE' },
+  bookBtnText: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
   connectBtn: {
     borderWidth: 1.5, borderColor: '#A8C5A0', borderRadius: 14,
     paddingVertical: 14, alignItems: 'center',

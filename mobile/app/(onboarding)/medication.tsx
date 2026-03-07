@@ -50,7 +50,7 @@ export default function MedicationScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F7F3EE' },
+  safe: { flex: 1, backgroundColor: '#FFFFFF' },
   content: { flex: 1, paddingHorizontal: 28, paddingTop: 64, paddingBottom: 32 },
   title: { fontSize: 30, fontWeight: '700', color: '#3D3935', letterSpacing: -0.5, lineHeight: 38, marginBottom: 12 },
   sub: { fontSize: 14, color: '#3D3935', opacity: 0.45, lineHeight: 20, marginBottom: 40 },

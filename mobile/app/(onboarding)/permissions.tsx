@@ -112,7 +112,7 @@ export default function PermissionsScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F7F3EE' },
+  safe: { flex: 1, backgroundColor: '#FFFFFF' },
   content: { flex: 1, paddingHorizontal: 28, paddingTop: 64, paddingBottom: 40 },
   title: { fontSize: 34, fontWeight: '700', color: '#3D3935', letterSpacing: -0.6, lineHeight: 42, marginBottom: 8 },
   sub: { fontSize: 14, color: '#3D3935', opacity: 0.45, marginBottom: 40, lineHeight: 20 },
@@ -120,7 +120,7 @@ const s = StyleSheet.create({
     backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 14,
     flexDirection: 'row', alignItems: 'flex-start', gap: 12,
     shadowColor: '#3D3935', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
+    shadowOpacity: 0.07, shadowRadius: 6, elevation: 2, borderWidth: 1, borderColor: '#F0EDE8',
   },
   cardIcon: { fontSize: 24, marginTop: 2 },
   cardTitle: { fontSize: 15, fontWeight: '600', color: '#3D3935', marginBottom: 4 },
@@ -130,12 +130,12 @@ const s = StyleSheet.create({
     paddingVertical: 8, paddingHorizontal: 16, alignSelf: 'center',
   },
   permBtnDone: { backgroundColor: '#A8C5A015' },
-  permBtnText: { fontSize: 13, fontWeight: '600', color: '#F7F3EE' },
+  permBtnText: { fontSize: 13, fontWeight: '600', color: '#FFFFFF' },
   permBtnTextDone: { color: '#A8C5A0' },
   finishBtn: {
     backgroundColor: '#3D3935', borderRadius: 14,
     paddingVertical: 18, alignItems: 'center', marginBottom: 16,
   },
-  finishBtnText: { fontSize: 16, fontWeight: '600', color: '#F7F3EE' },
+  finishBtnText: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
   note: { fontSize: 12, color: '#3D3935', opacity: 0.35, textAlign: 'center', lineHeight: 17 },
 });

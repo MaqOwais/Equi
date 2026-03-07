@@ -98,7 +98,7 @@ function buildReportHtml(
 <meta charset="UTF-8">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif; color: #3D3935; background: #F7F3EE; padding: 0; }
+  body { font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif; color: #3D3935; background: #FFFFFF; padding: 0; }
   .page { max-width: 700px; margin: 0 auto; background: #FFFFFF; padding: 40px; }
 
   /* Cover */

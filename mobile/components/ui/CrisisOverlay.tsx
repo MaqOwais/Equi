@@ -65,7 +65,7 @@ const bc = StyleSheet.create({
     backgroundColor: '#A8C5A030', alignItems: 'center', justifyContent: 'center',
   },
   inner: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#A8C5A0' },
-  label: { marginTop: 12, fontSize: 14, color: '#F7F3EE', opacity: 0.6 },
+  label: { marginTop: 12, fontSize: 14, color: '#FFFFFF', opacity: 0.6 },
 });
 
 // ─── 54321 Grounding ──────────────────────────────────────────────────────────
@@ -111,12 +111,12 @@ function GroundingTool() {
 
 const gt = StyleSheet.create({
   container: { backgroundColor: '#FFFFFF10', borderRadius: 12, padding: 14 },
-  instruction: { fontSize: 15, color: '#F7F3EE', lineHeight: 22, marginBottom: 6 },
-  stepCounter: { fontSize: 12, color: '#F7F3EE', opacity: 0.4, marginBottom: 12 },
+  instruction: { fontSize: 15, color: '#FFFFFF', lineHeight: 22, marginBottom: 6 },
+  stepCounter: { fontSize: 12, color: '#FFFFFF', opacity: 0.4, marginBottom: 12 },
   nextBtn: { backgroundColor: '#A8C5A0', borderRadius: 10, paddingVertical: 10, alignItems: 'center' },
-  nextBtnText: { fontSize: 14, fontWeight: '600', color: '#F7F3EE' },
+  nextBtnText: { fontSize: 14, fontWeight: '600', color: '#FFFFFF' },
   done: { alignItems: 'center' },
-  doneText: { fontSize: 15, color: '#F7F3EE', marginBottom: 10 },
+  doneText: { fontSize: 15, color: '#FFFFFF', marginBottom: 10 },
   restart: { paddingVertical: 6 },
   restartText: { fontSize: 13, color: '#A8C5A0', fontWeight: '500' },
 });
@@ -256,30 +256,30 @@ const s = StyleSheet.create({
   scroll: { paddingHorizontal: 20, paddingTop: 8 },
 
   header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 },
-  heading: { fontSize: 26, fontWeight: '700', color: '#F7F3EE', letterSpacing: -0.3, flex: 1 },
+  heading: { fontSize: 26, fontWeight: '700', color: '#FFFFFF', letterSpacing: -0.3, flex: 1 },
   closeBtn: { paddingVertical: 4, paddingLeft: 16 },
-  closeBtnText: { fontSize: 14, color: '#F7F3EE', opacity: 0.4 },
+  closeBtnText: { fontSize: 14, color: '#FFFFFF', opacity: 0.4 },
 
   tabs: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#FFFFFF15', marginBottom: 20 },
   tab: { paddingVertical: 10, marginRight: 20 },
   tabActive: { borderBottomWidth: 2, borderBottomColor: '#A8C5A0' },
-  tabText: { fontSize: 14, color: '#F7F3EE', opacity: 0.35, fontWeight: '500' },
+  tabText: { fontSize: 14, color: '#FFFFFF', opacity: 0.35, fontWeight: '500' },
   tabTextActive: { opacity: 1, fontWeight: '700', color: '#A8C5A0' },
 
   sectionLabel: {
-    fontSize: 11, fontWeight: '700', color: '#F7F3EE', opacity: 0.35,
+    fontSize: 11, fontWeight: '700', color: '#FFFFFF', opacity: 0.35,
     letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10,
   },
-  toolDesc: { fontSize: 14, color: '#F7F3EE', opacity: 0.55, lineHeight: 20, marginBottom: 16 },
+  toolDesc: { fontSize: 14, color: '#FFFFFF', opacity: 0.55, lineHeight: 20, marginBottom: 16 },
 
-  noContacts: { fontSize: 14, color: '#F7F3EE', opacity: 0.35, lineHeight: 20, marginBottom: 16 },
+  noContacts: { fontSize: 14, color: '#FFFFFF', opacity: 0.35, lineHeight: 20, marginBottom: 16 },
 
   contactRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     backgroundColor: '#FFFFFF08', borderRadius: 12, padding: 14, marginBottom: 8,
   },
-  contactName: { fontSize: 15, fontWeight: '600', color: '#F7F3EE', marginBottom: 2 },
-  contactPhone: { fontSize: 13, color: '#F7F3EE', opacity: 0.45 },
+  contactName: { fontSize: 15, fontWeight: '600', color: '#FFFFFF', marginBottom: 2 },
+  contactPhone: { fontSize: 13, color: '#FFFFFF', opacity: 0.45 },
   // Red is acceptable here — Design Rule #1 exception for crisis UI
   callBtn: { backgroundColor: '#C0392B', borderRadius: 10, paddingVertical: 8, paddingHorizontal: 18 },
   callBtnText: { fontSize: 14, fontWeight: '700', color: '#FFFFFF' },

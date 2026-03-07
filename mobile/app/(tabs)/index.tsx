@@ -18,9 +18,6 @@ const MOOD_EMOJIS = ['😔', '😟', '😕', '😐', '🙂', '😊', '😄', '�
 const CYCLE_COLORS: Record<CycleState, string> = {
   stable: '#A8C5A0', manic: '#89B4CC', depressive: '#C4A0B0', mixed: '#E8DCC8',
 };
-const CYCLE_LABELS: Record<CycleState, string> = {
-  stable: 'Stable', manic: 'Elevated', depressive: 'Low', mixed: 'Mixed',
-};
 const SKIP_REASONS = ['Forgot', 'Side effects', 'Felt fine', 'Ran out', 'Other'];
 
 function greeting() {
@@ -28,10 +25,6 @@ function greeting() {
   if (h < 12) return 'Good morning';
   if (h < 17) return 'Good afternoon';
   return 'Good evening';
-}
-
-function formatDate(d: Date) {
-  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
 function SectionHeader({ label }: { label: string }) {
@@ -110,25 +103,15 @@ export default function TodayScreen() {
   const showSleepPrompt = sleep.todayLog === null && new Date().getHours() < 14;
 
   return (
-    <SafeAreaView style={s.safe}>
+    <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
-        {/* Header */}
-        <View style={s.header}>
-          <Text style={s.headerDate}>{formatDate(new Date())}</Text>
-          <Text style={s.headerGreeting}>
-            {greeting()}{profile?.display_name ? `, ${profile.display_name.split(' ')[0]}` : ''}.
-          </Text>
-        </View>
+        {/* Greeting */}
+        <Text style={s.headerGreeting}>{greeting()}.</Text>
 
         {/* Today card */}
         <SectionHeader label="TODAY" />
         <Card>
-          <View style={s.cycleRow}>
-            <View style={[s.cycleDot, { backgroundColor: cycleColor }]} />
-            <Text style={s.cycleLabel}>{CYCLE_LABELS[cycleState]}</Text>
-            <Text style={s.cycleHint}>  ·  log on Tracker tab</Text>
-          </View>
           <Text style={s.cardSubLabel}>
             {today.moodScore !== null ? `Mood logged  ·  ${today.moodScore}/10` : 'How are you feeling?'}
           </Text>
@@ -276,13 +259,28 @@ export default function TodayScreen() {
           )}
         </Card>
 
-        {/* Activity suggestions placeholder */}
-        <SectionHeader label="SUGGESTED ACTIVITIES" />
-        <Card>
-          <Text style={s.placeholderText}>
-            Personalised activities matched to your cycle state — arriving in Phase 3C.
-          </Text>
-        </Card>
+        {/* Quick actions */}
+        <SectionHeader label="EXPLORE" />
+        <View style={s.quickRow}>
+          <TouchableOpacity
+            style={[s.quickCard, { borderColor: cycleColor + '50' }]}
+            onPress={() => router.push('/(tabs)/activities')}
+            activeOpacity={0.78}
+          >
+            <Text style={s.quickIcon}>🌿</Text>
+            <Text style={s.quickLabel}>Activities</Text>
+            <Text style={s.quickSub}>Matched to your state</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[s.quickCard, { borderColor: '#89B4CC50' }]}
+            onPress={() => router.push('/(tabs)/tracker')}
+            activeOpacity={0.78}
+          >
+            <Text style={s.quickIcon}>📊</Text>
+            <Text style={s.quickLabel}>90-Day Cycle</Text>
+            <Text style={s.quickSub}>View your pattern</Text>
+          </TouchableOpacity>
+        </View>
 
         <View style={{ height: 88 }} />
       </ScrollView>
@@ -290,7 +288,8 @@ export default function TodayScreen() {
       {/* Floating SOS */}
       <View style={s.sosContainer}>
         <TouchableOpacity style={s.sosBtn} onPress={() => crisis.open(notifs.prefs?.post_crisis_enabled)}>
-          <Text style={s.sosBtnText}>SOS  ·  Crisis support</Text>
+          <Text style={s.sosBtnIcon}>🆘</Text>
+          <Text style={s.sosBtnText}>Crisis Support</Text>
         </TouchableOpacity>
       </View>
 
@@ -325,12 +324,10 @@ export default function TodayScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F7F3EE' },
+  safe: { flex: 1, backgroundColor: '#FFFFFF' },
   scroll: { paddingHorizontal: 18, paddingTop: 16, paddingBottom: 20 },
 
-  header: { marginBottom: 20 },
-  headerDate: { fontSize: 13, color: '#3D3935', opacity: 0.45, fontWeight: '500', letterSpacing: 0.4 },
-  headerGreeting: { fontSize: 26, fontWeight: '700', color: '#3D3935', letterSpacing: -0.3, marginTop: 2 },
+  headerGreeting: { fontSize: 28, fontWeight: '700', color: '#3D3935', letterSpacing: -0.5, marginBottom: 16 },
 
   sectionLabel: {
     fontSize: 11, fontWeight: '700', color: '#3D3935', opacity: 0.35,
@@ -340,13 +337,8 @@ const s = StyleSheet.create({
   card: {
     backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 12,
     shadowColor: '#3D3935', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
+    shadowOpacity: 0.07, shadowRadius: 6, elevation: 2, borderWidth: 1, borderColor: '#F0EDE8',
   },
-
-  cycleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
-  cycleDot: { width: 10, height: 10, borderRadius: 5, marginRight: 6 },
-  cycleLabel: { fontSize: 14, fontWeight: '600', color: '#3D3935' },
-  cycleHint: { fontSize: 12, color: '#3D3935', opacity: 0.35 },
 
   cardSubLabel: { fontSize: 12, color: '#3D3935', opacity: 0.45, marginBottom: 10 },
   moodRow: { flexDirection: 'row', justifyContent: 'space-between' },
@@ -377,7 +369,16 @@ const s = StyleSheet.create({
   subBtnText: { fontSize: 13, color: '#3D3935', opacity: 0.45, fontWeight: '500' },
   subBtnTextActive: { color: '#C4A0B0', opacity: 1, fontWeight: '600' },
 
-  placeholderText: { fontSize: 13, color: '#3D3935', opacity: 0.4, lineHeight: 18 },
+  quickRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
+  quickCard: {
+    flex: 1, backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16,
+    borderWidth: 1.5,
+    shadowColor: '#3D3935', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
+  },
+  quickIcon: { fontSize: 22, marginBottom: 8 },
+  quickLabel: { fontSize: 14, fontWeight: '600', color: '#3D3935', marginBottom: 3 },
+  quickSub: { fontSize: 11, color: '#3D3935', opacity: 0.4 },
 
   rhythmRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   rhythmRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -408,13 +409,19 @@ const s = StyleSheet.create({
 
   sosContainer: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
-    paddingHorizontal: 18, paddingBottom: 24, paddingTop: 8, backgroundColor: '#F7F3EE',
+    paddingHorizontal: 18, paddingBottom: 24, paddingTop: 8,
+    backgroundColor: '#FFFFFF',
   },
-  sosBtn: { backgroundColor: '#3D3935', borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
-  sosBtnText: { fontSize: 15, fontWeight: '600', color: '#F7F3EE', letterSpacing: 0.3 },
+  sosBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: '#3D393514', borderRadius: 14, paddingVertical: 13,
+    borderWidth: 1.5, borderColor: '#3D393520',
+  },
+  sosBtnIcon: { fontSize: 15 },
+  sosBtnText: { fontSize: 14, fontWeight: '600', color: '#3D3935', opacity: 0.65, letterSpacing: 0.2 },
 
   sheetBackdrop: { flex: 1, backgroundColor: '#00000030', justifyContent: 'flex-end' },
-  sheet: { backgroundColor: '#F7F3EE', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, paddingBottom: 40 },
+  sheet: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, paddingBottom: 40 },
   sheetTitle: { fontSize: 17, fontWeight: '700', color: '#3D3935', marginBottom: 16 },
   sheetOption: { paddingVertical: 13, paddingHorizontal: 14, borderRadius: 12, borderWidth: 1.5, borderColor: '#E0DDD8', marginBottom: 8 },
   sheetOptionActive: { borderColor: '#A8C5A0', backgroundColor: '#A8C5A015' },
@@ -422,5 +429,5 @@ const s = StyleSheet.create({
   sheetOptionTextActive: { color: '#3D3935', opacity: 1, fontWeight: '500' },
   sheetConfirm: { backgroundColor: '#A8C5A0', borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 8 },
   sheetConfirmDisabled: { opacity: 0.4 },
-  sheetConfirmText: { fontSize: 15, fontWeight: '600', color: '#F7F3EE' },
+  sheetConfirmText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF' },
 });

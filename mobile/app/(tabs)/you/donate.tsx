@@ -54,7 +54,7 @@ export default function DonateScreen() {
     (customAmount.length > 0 && parseFloat(customAmount) >= 1);
 
   return (
-    <SafeAreaView style={s.safe}>
+    <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
           {/* Nav */}
@@ -157,7 +157,7 @@ export default function DonateScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F7F3EE' },
+  safe: { flex: 1, backgroundColor: '#FFFFFF' },
   scroll: { paddingHorizontal: 24, paddingBottom: 40 },
   nav: { paddingTop: 12, paddingBottom: 4 },
   backText: { fontSize: 15, color: '#A8C5A0', fontWeight: '600' },
@@ -201,7 +201,7 @@ const s = StyleSheet.create({
     paddingVertical: 18, alignItems: 'center', marginBottom: 12,
   },
   payBtnDisabled: { opacity: 0.4 },
-  payBtnText: { fontSize: 16, fontWeight: '600', color: '#F7F3EE' },
+  payBtnText: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
   stripeNote: { fontSize: 12, color: '#3D3935', opacity: 0.35, textAlign: 'center', marginBottom: 4 },
 
   sponsorSection: { gap: 8 },

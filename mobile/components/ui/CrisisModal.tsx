@@ -239,7 +239,7 @@ export function CrisisModal() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F7F3EE' },
+  safe: { flex: 1, backgroundColor: '#FFFFFF' },
   scroll: { paddingHorizontal: 22, paddingTop: 20, paddingBottom: 16 },
 
   hero: {
@@ -276,7 +276,7 @@ const s = StyleSheet.create({
     backgroundColor: '#A8C5A0', borderRadius: 10,
     paddingVertical: 8, paddingHorizontal: 16, marginLeft: 12,
   },
-  actionBtnText: { fontSize: 13, fontWeight: '600', color: '#F7F3EE' },
+  actionBtnText: { fontSize: 13, fontWeight: '600', color: '#FFFFFF' },
 
   exerciseHeader: { flex: 1 },
 
@@ -323,11 +323,11 @@ const s = StyleSheet.create({
 
   footer: {
     paddingHorizontal: 22, paddingBottom: 24, paddingTop: 8,
-    backgroundColor: '#F7F3EE',
+    backgroundColor: '#FFFFFF',
   },
   backBtn: {
     backgroundColor: '#3D3935', borderRadius: 14,
     paddingVertical: 16, alignItems: 'center',
   },
-  backBtnText: { fontSize: 15, fontWeight: '600', color: '#F7F3EE' },
+  backBtnText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF' },
 });

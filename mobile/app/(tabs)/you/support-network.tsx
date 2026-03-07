@@ -235,7 +235,7 @@ export default function SupportNetworkScreen() {
   const filtered = companions.filter((c) => c.role === roleFilter);
 
   return (
-    <SafeAreaView style={s.safe}>
+    <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
         {/* Nav */}
@@ -350,7 +350,7 @@ export default function SupportNetworkScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F7F3EE' },
+  safe: { flex: 1, backgroundColor: '#FFFFFF' },
   scroll: { paddingHorizontal: 18, paddingTop: 8 },
 
   nav: { paddingVertical: 8 },
@@ -374,7 +374,7 @@ const s = StyleSheet.create({
   companionCard: {
     backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 12,
     shadowColor: '#3D3935', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
+    shadowOpacity: 0.07, shadowRadius: 6, elevation: 2, borderWidth: 1, borderColor: '#F0EDE8',
   },
   companionCardPending: { borderWidth: 1.5, borderColor: '#E8DCC8', borderStyle: 'dashed' },
   companionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
@@ -410,7 +410,7 @@ const s = StyleSheet.create({
   levelSub: { fontSize: 11, color: '#3D3935', opacity: 0.4 },
   levelCheck: { fontSize: 14, color: '#A8C5A0', fontWeight: '700', marginLeft: 8 },
 
-  alertTriggersCard: { backgroundColor: '#F7F3EE', borderRadius: 10, padding: 12 },
+  alertTriggersCard: { backgroundColor: '#FFFFFF', borderRadius: 10, padding: 12 },
   alertTrigger: { fontSize: 12, color: '#3D3935', opacity: 0.5, marginBottom: 4, lineHeight: 18 },
 
   addBtn: {
@@ -421,7 +421,7 @@ const s = StyleSheet.create({
 
   backdrop: { flex: 1, backgroundColor: '#00000030', justifyContent: 'flex-end' },
   sheet: {
-    backgroundColor: '#F7F3EE', borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    backgroundColor: '#FFFFFF', borderTopLeftRadius: 20, borderTopRightRadius: 20,
     padding: 24, paddingBottom: 40,
   },
   sheetTitle: { fontSize: 17, fontWeight: '700', color: '#3D3935', marginBottom: 4 },
@@ -432,5 +432,5 @@ const s = StyleSheet.create({
   },
   sendBtn: { backgroundColor: '#A8C5A0', borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
   sendBtnDisabled: { opacity: 0.4 },
-  sendBtnText: { fontSize: 15, fontWeight: '600', color: '#F7F3EE' },
+  sendBtnText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF' },
 });

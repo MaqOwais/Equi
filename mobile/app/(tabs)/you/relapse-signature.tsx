@@ -194,13 +194,13 @@ const b = StyleSheet.create({
     backgroundColor: '#FFFFFF', borderRadius: 10, padding: 12,
     borderWidth: 1.5, borderColor: '#E0DDD8', marginBottom: 6,
   },
-  optionRowActive: { backgroundColor: '#F7F3EE' },
+  optionRowActive: { backgroundColor: '#FFFFFF' },
   optionLabel: { fontSize: 14, fontWeight: '600', color: '#3D3935', marginBottom: 2 },
   optionSub: { fontSize: 12, color: '#3D3935', opacity: 0.4 },
   optionCheck: { fontSize: 16, fontWeight: '700', marginLeft: 8 },
   saveBtn: { borderRadius: 12, paddingVertical: 13, alignItems: 'center', marginTop: 12 },
   saveBtnDisabled: { opacity: 0.4 },
-  saveBtnText: { fontSize: 15, fontWeight: '600', color: '#F7F3EE' },
+  saveBtnText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF' },
 });
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
@@ -238,7 +238,7 @@ export default function RelapseSignatureScreen() {
   ];
 
   return (
-    <SafeAreaView style={s.safe}>
+    <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
         {/* Nav */}
@@ -301,7 +301,7 @@ export default function RelapseSignatureScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F7F3EE' },
+  safe: { flex: 1, backgroundColor: '#FFFFFF' },
   scroll: { paddingHorizontal: 18, paddingTop: 8 },
 
   nav: { paddingVertical: 8 },

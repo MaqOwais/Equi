@@ -153,7 +153,7 @@ export default function PsychiatristsScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F7F3EE' },
+  safe: { flex: 1, backgroundColor: '#FFFFFF' },
   nav: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingVertical: 10,
@@ -185,7 +185,7 @@ const s = StyleSheet.create({
   card: {
     backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 12,
     shadowColor: '#3D3935', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
+    shadowOpacity: 0.07, shadowRadius: 6, elevation: 2, borderWidth: 1, borderColor: '#F0EDE8',
   },
   partnerBanner: {
     backgroundColor: '#C9A84C15', borderRadius: 8, paddingVertical: 4,
@@ -202,7 +202,7 @@ const s = StyleSheet.create({
   credentials: { fontSize: 12, color: '#3D3935', opacity: 0.5, marginBottom: 2 },
   location: { fontSize: 12, color: '#3D3935', opacity: 0.35 },
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 10 },
-  tag: { backgroundColor: '#F7F3EE', borderRadius: 8, paddingVertical: 3, paddingHorizontal: 8 },
+  tag: { backgroundColor: '#FFFFFF', borderRadius: 8, paddingVertical: 3, paddingHorizontal: 8 },
   tagText: { fontSize: 11, color: '#3D3935', opacity: 0.55 },
   moreText: { fontSize: 11, color: '#3D3935', opacity: 0.35, alignSelf: 'center' },
   viewProfile: { fontSize: 13, color: '#A8C5A0', fontWeight: '600' },

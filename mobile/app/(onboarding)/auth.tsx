@@ -74,7 +74,7 @@ export default function OnboardingAuthScreen() {
             disabled={!email.trim() || loading}
           >
             {loading
-              ? <ActivityIndicator color="#F7F3EE" />
+              ? <ActivityIndicator color="#FFFFFF" />
               : <Text style={s.btnText}>Continue</Text>}
           </TouchableOpacity>
 
@@ -94,7 +94,7 @@ export default function OnboardingAuthScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F7F3EE' },
+  safe: { flex: 1, backgroundColor: '#FFFFFF' },
   back: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 4 },
   backText: { fontSize: 22, color: '#A8C5A0' },
   content: { flex: 1, paddingHorizontal: 28, paddingTop: 36, paddingBottom: 32 },
@@ -110,7 +110,7 @@ const s = StyleSheet.create({
     paddingVertical: 16, alignItems: 'center', marginBottom: 20,
   },
   btnDisabled: { opacity: 0.45 },
-  btnText: { fontSize: 16, fontWeight: '600', color: '#F7F3EE' },
+  btnText: { fontSize: 16, fontWeight: '600', color: '#FFFFFF' },
   legal: { fontSize: 12, color: '#3D3935', opacity: 0.4, textAlign: 'center', lineHeight: 18 },
   link: { color: '#3D3935', opacity: 0.7, textDecorationLine: 'underline' },
   note: {

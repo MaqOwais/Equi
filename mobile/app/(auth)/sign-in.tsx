@@ -86,7 +86,7 @@ export default function SignIn() {
               disabled={loading}
             >
               {loading
-                ? <ActivityIndicator color="#F7F3EE" />
+                ? <ActivityIndicator color="#FFFFFF" />
                 : <Text style={s.buttonText}>Sign in</Text>
               }
             </TouchableOpacity>
@@ -116,7 +116,7 @@ export default function SignIn() {
 const s = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#F7F3EE',
+    backgroundColor: '#FFFFFF',
   },
   scroll: {
     flexGrow: 1,
@@ -187,7 +187,7 @@ const s = StyleSheet.create({
   buttonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#F7F3EE',
+    color: '#FFFFFF',
     letterSpacing: 0.2,
   },
   footer: {

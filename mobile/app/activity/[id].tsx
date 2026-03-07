@@ -193,7 +193,7 @@ export default function ActivityDetailScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F7F3EE' },
+  safe: { flex: 1, backgroundColor: '#FFFFFF' },
   scroll: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 20 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   emptyText: { fontSize: 14, color: '#3D3935', opacity: 0.35 },
@@ -236,14 +236,14 @@ const s = StyleSheet.create({
   footer: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
     paddingHorizontal: 20, paddingBottom: 34, paddingTop: 12,
-    backgroundColor: '#F7F3EE',
+    backgroundColor: '#FFFFFF',
   },
   completeBtn: { borderRadius: 14, paddingVertical: 15, alignItems: 'center' },
-  completeBtnText: { fontSize: 15, fontWeight: '600', color: '#F7F3EE', letterSpacing: 0.2 },
+  completeBtnText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF', letterSpacing: 0.2 },
 
   backdrop: { flex: 1, backgroundColor: '#00000030', justifyContent: 'flex-end' },
   sheet: {
-    backgroundColor: '#F7F3EE', borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    backgroundColor: '#FFFFFF', borderTopLeftRadius: 20, borderTopRightRadius: 20,
     padding: 24, paddingBottom: 40,
   },
   sheetTitle: { fontSize: 17, fontWeight: '700', color: '#3D3935', marginBottom: 14 },
@@ -252,5 +252,5 @@ const s = StyleSheet.create({
     minHeight: 80, fontSize: 15, color: '#3D3935', lineHeight: 22, marginBottom: 14,
   },
   sheetConfirm: { borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
-  sheetConfirmText: { fontSize: 15, fontWeight: '600', color: '#F7F3EE' },
+  sheetConfirmText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF' },
 });
