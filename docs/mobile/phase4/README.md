@@ -1,5 +1,7 @@
 # Phase 4 — AI Enhancement & Wearable Integration
 
+**Status:** ✅ Complete
+
 Phase 4 transforms Equi from a manual tracking app into a proactive health companion. It connects real-world physiological data (sleep, wearables) to the AI layer, adds smart notifications that respect the user's autonomy, enables clinical-grade PDF export, and upgrades the AI with longer-horizon pattern analysis.
 
 Phase 3 must be fully complete before starting Phase 4. CocoaPods must be installed (`pod install` in `mobile/ios/`) before wearable APIs can be tested on device.

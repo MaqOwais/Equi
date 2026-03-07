@@ -1,6 +1,6 @@
 # Phase 3 — Core Features
 
-**Status:** Planned
+**Status:** ✅ Complete
 **Depends on:** Phase 2 complete (Expo SDK 55, NativeWind, Supabase client, 5-tab shell)
 **Goal:** A fully functional v1 app. Every screen works end-to-end with real Supabase data. AI connects to Groq. Nothing hidden behind flags.
 

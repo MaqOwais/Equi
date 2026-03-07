@@ -1,5 +1,7 @@
 # Phase 5 — Beta Launch
 
+**Status:** ✅ Complete (5A–5F implemented; 5D app store submission pending native build)
+
 Phase 5 transforms Equi from a complete feature set into a shippable, observable, and monetised product. It covers the full pipeline from native builds to App Store submission, adds the psychiatrist marketplace, wires in donations, and hardens every layer for real users in production.
 
 Phase 4 must be fully complete before Phase 5 begins. A native build (EAS Build, not Expo Go) is required from 5A onwards — all feature work after this point must be tested on a real device or simulator via the development client.

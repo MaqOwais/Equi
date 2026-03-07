@@ -1,6 +1,8 @@
+import { View } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/colors';
+import { CrisisModal } from '../../components/ui/CrisisModal';
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -17,6 +19,7 @@ function TabIcon({ name, outlineName, focused, color }: TabIconProps) {
 
 export default function TabLayout() {
   return (
+    <View style={{ flex: 1 }}>
     <Tabs
       screenOptions={{
         headerShown: false,
@@ -84,5 +87,7 @@ export default function TabLayout() {
         }}
       />
     </Tabs>
+    <CrisisModal />
+    </View>
   );
 }
