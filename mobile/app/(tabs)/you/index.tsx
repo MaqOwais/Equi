@@ -362,6 +362,12 @@ export default function YouScreen() {
           />
         </View>
 
+        {/* Support Equi */}
+        <TouchableOpacity style={s.donateBtn} onPress={() => router.push('/(tabs)/you/donate')}>
+          <Text style={s.donateBtnText}>Support Equi →</Text>
+          <Text style={s.donateBtnSub}>Free forever · No ads · Donate optionally</Text>
+        </TouchableOpacity>
+
         {/* Sign out */}
         <TouchableOpacity style={s.signOutBtn} onPress={signOut}>
           <Text style={s.signOutText}>Sign out</Text>
@@ -423,6 +429,13 @@ const s = StyleSheet.create({
   menuSub: { fontSize: 12, color: '#3D3935', opacity: 0.4, marginTop: 1 },
   menuChevron: { fontSize: 20, color: '#3D3935', opacity: 0.2 },
   divider: { height: 1, backgroundColor: '#F0EDE8', marginLeft: 48 },
+
+  donateBtn: {
+    backgroundColor: '#C9A84C12', borderRadius: 14, padding: 16, marginBottom: 10,
+    borderWidth: 1, borderColor: '#C9A84C25',
+  },
+  donateBtnText: { fontSize: 15, fontWeight: '700', color: '#C9A84C', marginBottom: 2 },
+  donateBtnSub: { fontSize: 12, color: '#3D3935', opacity: 0.4 },
 
   signOutBtn: { paddingVertical: 14, alignItems: 'center', marginTop: 8 },
   signOutText: { fontSize: 14, color: '#3D3935', opacity: 0.35, fontWeight: '500' },

@@ -119,9 +119,14 @@ export default function SplashScreen() {
       }
       const { session, profile } = useAuthStore.getState();
       if (!session) {
-        router.replace('/(auth)/sign-in');
-      } else if (!profile?.onboarding_complete) {
-        router.replace('/(auth)/onboarding');
+        router.replace('/(onboarding)/role');
+      } else if (!profile || profile.onboarding_step !== 'complete') {
+        const step = profile?.onboarding_step ?? 'role';
+        if (step === 'role' || step === 'auth') {
+          router.replace('/(onboarding)/role');
+        } else {
+          router.replace(`/(onboarding)/${step}` as never);
+        }
       } else {
         router.replace('/(tabs)');
       }

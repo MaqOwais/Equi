@@ -1,200 +1,148 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, ActivityIndicator, Alert,
+  StyleSheet, ActivityIndicator, TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { useAuthStore } from '../../stores/auth';
-import { supabase } from '../../lib/supabase';
+import { usePsychiatristsStore } from '../../stores/psychiatrists';
 import type { Psychiatrist } from '../../types/database';
 
-// ─── Psychiatrist Card ────────────────────────────────────────────────────────
+// ─── Card ─────────────────────────────────────────────────────────────────────
 
-function PsychiatristCard({
-  psych,
-  onConnect,
-}: { psych: Psychiatrist; onConnect: (psych: Psychiatrist) => void }) {
+function PsychiatristCard({ psych }: { psych: Psychiatrist }) {
+  const router = useRouter();
   return (
-    <View style={s.card}>
-      {/* Header */}
+    <TouchableOpacity
+      style={s.card}
+      activeOpacity={0.88}
+      onPress={() => router.push(`/psychiatrists/${psych.id}` as never)}
+    >
+      {psych.is_equi_partner && (
+        <View style={s.partnerBanner}>
+          <Text style={s.partnerBannerText}>⭐ EQUI PARTNER</Text>
+        </View>
+      )}
+
       <View style={s.cardHeader}>
         <View style={s.avatar}>
           <Text style={s.avatarText}>{psych.name.charAt(0)}</Text>
         </View>
         <View style={{ flex: 1 }}>
-          <View style={s.nameRow}>
-            <Text style={s.name}>{psych.name}</Text>
-            {psych.is_equi_partner && (
-              <View style={s.partnerBadge}>
-                <Text style={s.partnerBadgeText}>Equi Partner</Text>
-              </View>
-            )}
-          </View>
-          <Text style={s.credentials}>{psych.credentials}</Text>
+          <Text style={s.name}>{psych.name}</Text>
+          {psych.credentials && <Text style={s.credentials}>{psych.credentials}</Text>}
           <Text style={s.location}>
-            {[psych.location_city, psych.location_country].filter(Boolean).join(', ')}
+            {[psych.location_city, psych.location_state].filter(Boolean).join(', ')}
           </Text>
         </View>
       </View>
 
-      {/* Bio */}
-      {psych.bio && (
-        <Text style={s.bio} numberOfLines={3}>{psych.bio}</Text>
-      )}
-
-      {/* Tags */}
       <View style={s.tagRow}>
-        {psych.offers_telehealth && (
-          <View style={s.tag}><Text style={s.tagText}>📱 Telehealth</Text></View>
-        )}
-        {psych.offers_in_person && (
-          <View style={s.tag}><Text style={s.tagText}>🏥 In-person</Text></View>
-        )}
+        {psych.offers_telehealth && <View style={s.tag}><Text style={s.tagText}>📱 Telehealth</Text></View>}
+        {psych.offers_in_person && <View style={s.tag}><Text style={s.tagText}>🏥 In-person</Text></View>}
+        {psych.sliding_scale && <View style={s.tag}><Text style={s.tagText}>$ Sliding scale</Text></View>}
         {psych.insurance_accepted?.slice(0, 2).map((ins) => (
           <View key={ins} style={s.tag}><Text style={s.tagText}>{ins}</Text></View>
         ))}
         {(psych.insurance_accepted?.length ?? 0) > 2 && (
-          <Text style={s.moreInsurance}>
-            +{(psych.insurance_accepted?.length ?? 0) - 2} more
-          </Text>
+          <Text style={s.moreText}>+{(psych.insurance_accepted?.length ?? 0) - 2} more</Text>
         )}
       </View>
 
-      {/* CTAs */}
-      <View style={s.ctaRow}>
-        <TouchableOpacity
-          style={s.connectBtn}
-          onPress={() => onConnect(psych)}
-        >
-          <Text style={s.connectBtnText}>Connect</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={s.bookBtn}>
-          <Text style={s.bookBtnText}>Book appointment →</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+      <Text style={s.viewProfile}>View profile →</Text>
+    </TouchableOpacity>
   );
 }
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function PsychiatristsScreen() {
-  const { session } = useAuthStore();
   const router = useRouter();
-  const userId = session?.user.id;
-
-  const [psychiatrists, setPsychiatrists] = useState<Psychiatrist[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [filterPartner, setFilterPartner] = useState(false);
-  const [filterTelehealth, setFilterTelehealth] = useState(false);
+  const store = usePsychiatristsStore();
+  const results = store.filtered();
 
   useEffect(() => {
-    loadPsychiatrists();
+    store.load();
   }, []);
 
-  async function loadPsychiatrists() {
-    setIsLoading(true);
-    const { data } = await supabase
-      .from('psychiatrists')
-      .select('*')
-      .order('is_equi_partner', { ascending: false })
-      .order('name');
-    setPsychiatrists((data ?? []) as Psychiatrist[]);
-    setIsLoading(false);
-  }
-
-  async function handleConnect(psych: Psychiatrist) {
-    if (!userId) return;
-
-    Alert.alert(
-      `Connect with ${psych.name}?`,
-      'By default, only your activity completion data will be shared. You can adjust this in Support Network at any time.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Connect',
-          onPress: async () => {
-            const { error } = await supabase.from('companions').upsert({
-              patient_id: userId,
-              role: 'guardian',
-              guardian_level: 'view_only',
-              invite_email: psych.name,
-              status: 'pending',
-              share_mood_summaries: false,
-              share_cycle_data: false,
-              share_ai_report: false,
-              share_medication: false,
-            });
-            if (!error) {
-              Alert.alert(
-                'Request sent',
-                `${psych.name} will be notified. Manage access in Support Network.`,
-              );
-            }
-          },
-        },
-      ],
-    );
-  }
-
-  const filtered = psychiatrists.filter((p) => {
-    if (filterPartner && !p.is_equi_partner) return false;
-    if (filterTelehealth && !p.offers_telehealth) return false;
-    return true;
-  });
+  const filterDefs = [
+    { key: 'telehealth' as const, label: 'Telehealth' },
+    { key: 'in_person' as const, label: 'In-person' },
+    { key: 'equi_partner' as const, label: 'Equi Partner' },
+    { key: 'sliding_scale' as const, label: 'Sliding $' },
+  ];
 
   return (
     <SafeAreaView style={s.safe}>
-      {/* Nav */}
       <View style={s.nav}>
         <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
           <Text style={s.backText}>←  Back</Text>
         </TouchableOpacity>
-        <Text style={s.navTitle}>Psychiatrists</Text>
-        <View style={{ width: 60 }} />
+        <Text style={s.navTitle}>Find a Psychiatrist</Text>
+        <View style={{ width: 64 }} />
+      </View>
+
+      {/* Search bar */}
+      <View style={s.searchBar}>
+        <Text style={s.searchIcon}>⌕</Text>
+        <TextInput
+          style={s.searchInput}
+          value={store.query}
+          onChangeText={store.setQuery}
+          placeholder="City or state"
+          placeholderTextColor="#3D393550"
+          returnKeyType="search"
+        />
+        {store.query.length > 0 && (
+          <TouchableOpacity onPress={() => store.setQuery('')}>
+            <Text style={s.searchClear}>✕</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Filters */}
-      <View style={s.filterRow}>
-        <TouchableOpacity
-          style={[s.filterChip, filterPartner && s.filterChipActive]}
-          onPress={() => setFilterPartner((v) => !v)}
-        >
-          <Text style={[s.filterChipText, filterPartner && s.filterChipTextActive]}>
-            Equi Partners
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[s.filterChip, filterTelehealth && s.filterChipActive]}
-          onPress={() => setFilterTelehealth((v) => !v)}
-        >
-          <Text style={[s.filterChipText, filterTelehealth && s.filterChipTextActive]}>
-            Telehealth
-          </Text>
-        </TouchableOpacity>
-      </View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={s.filtersRow}
+      >
+        {filterDefs.map(({ key, label }) => {
+          const active = store.filters[key];
+          return (
+            <TouchableOpacity
+              key={key}
+              style={[s.filterChip, active && s.filterChipActive]}
+              onPress={() => store.setFilter(key, !active)}
+            >
+              <Text style={[s.filterChipText, active && s.filterChipTextActive]}>
+                {label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
 
-      {isLoading ? (
-        <View style={s.center}>
-          <ActivityIndicator color="#A8C5A0" />
-        </View>
+      {store.isLoading ? (
+        <View style={s.center}><ActivityIndicator color="#A8C5A0" /></View>
       ) : (
         <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
-          <Text style={s.resultCount}>{filtered.length} psychiatrists</Text>
+          <Text style={s.resultCount}>
+            {results.length} {results.length === 1 ? 'psychiatrist' : 'psychiatrists'}
+          </Text>
 
-          {filtered.map((p) => (
-            <PsychiatristCard key={p.id} psych={p} onConnect={handleConnect} />
-          ))}
+          {results.length === 0 ? (
+            <View style={s.emptyCard}>
+              <Text style={s.emptyText}>No results for that search. Try a different city or remove a filter.</Text>
+            </View>
+          ) : (
+            results.map((p) => <PsychiatristCard key={p.id} psych={p} />)
+          )}
 
           <View style={s.disclaimerCard}>
             <Text style={s.disclaimerText}>
-              Equi Partners understand the app's monitoring approach and can receive structured
-              activity compliance data. Connecting shares only activity data by default — you control
-              all other sharing from Support Network.
+              Insurance information is self-reported. Check your plan directly. Equi Partners understand the app's monitoring approach and can receive your AI report before appointments.
             </Text>
           </View>
-
           <View style={{ height: 40 }} />
         </ScrollView>
       )}
@@ -206,18 +154,24 @@ export default function PsychiatristsScreen() {
 
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#F7F3EE' },
-
   nav: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 16, paddingVertical: 10,
   },
-  backBtn: { paddingVertical: 6, paddingRight: 16 },
+  backBtn: { paddingVertical: 6, paddingRight: 12 },
   backText: { fontSize: 15, color: '#A8C5A0', fontWeight: '600' },
   navTitle: { fontSize: 16, fontWeight: '700', color: '#3D3935' },
-
-  filterRow: {
-    flexDirection: 'row', gap: 8, paddingHorizontal: 16, paddingBottom: 12,
+  searchBar: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: '#FFFFFF', borderRadius: 12, marginHorizontal: 16,
+    paddingHorizontal: 14, paddingVertical: 10, marginBottom: 10,
+    shadowColor: '#3D3935', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
   },
+  searchIcon: { fontSize: 16, color: '#3D3935', opacity: 0.3 },
+  searchInput: { flex: 1, fontSize: 15, color: '#3D3935' },
+  searchClear: { fontSize: 13, color: '#3D3935', opacity: 0.3, paddingLeft: 4 },
+  filtersRow: { paddingHorizontal: 16, gap: 8, paddingBottom: 10 },
   filterChip: {
     paddingVertical: 6, paddingHorizontal: 14, borderRadius: 16,
     borderWidth: 1.5, borderColor: '#E0DDD8',
@@ -225,53 +179,35 @@ const s = StyleSheet.create({
   filterChipActive: { borderColor: '#A8C5A0', backgroundColor: '#A8C5A015' },
   filterChipText: { fontSize: 13, color: '#3D3935', opacity: 0.5, fontWeight: '500' },
   filterChipTextActive: { color: '#A8C5A0', opacity: 1, fontWeight: '700' },
-
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   scroll: { paddingHorizontal: 16, paddingTop: 4 },
   resultCount: { fontSize: 12, color: '#3D3935', opacity: 0.35, marginBottom: 12 },
-
   card: {
     backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 12,
     shadowColor: '#3D3935', shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
   },
-  cardHeader: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 10 },
+  partnerBanner: {
+    backgroundColor: '#C9A84C15', borderRadius: 8, paddingVertical: 4,
+    paddingHorizontal: 10, alignSelf: 'flex-start', marginBottom: 10,
+  },
+  partnerBannerText: { fontSize: 10, fontWeight: '700', color: '#C9A84C', letterSpacing: 0.4 },
+  cardHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 10 },
   avatar: {
     width: 44, height: 44, borderRadius: 22,
-    backgroundColor: '#A8C5A020', alignItems: 'center', justifyContent: 'center', marginRight: 12,
+    backgroundColor: '#A8C5A020', alignItems: 'center', justifyContent: 'center',
   },
   avatarText: { fontSize: 18, fontWeight: '700', color: '#A8C5A0' },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 2 },
-  name: { fontSize: 15, fontWeight: '700', color: '#3D3935' },
-  partnerBadge: {
-    backgroundColor: '#A8C5A020', borderRadius: 8,
-    paddingVertical: 2, paddingHorizontal: 7,
-  },
-  partnerBadgeText: { fontSize: 10, color: '#A8C5A0', fontWeight: '700', letterSpacing: 0.3 },
+  name: { fontSize: 15, fontWeight: '700', color: '#3D3935', marginBottom: 2 },
   credentials: { fontSize: 12, color: '#3D3935', opacity: 0.5, marginBottom: 2 },
   location: { fontSize: 12, color: '#3D3935', opacity: 0.35 },
-
-  bio: { fontSize: 13, color: '#3D3935', opacity: 0.6, lineHeight: 18, marginBottom: 10 },
-
-  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 },
-  tag: {
-    backgroundColor: '#F7F3EE', borderRadius: 8,
-    paddingVertical: 3, paddingHorizontal: 8,
-  },
+  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 10 },
+  tag: { backgroundColor: '#F7F3EE', borderRadius: 8, paddingVertical: 3, paddingHorizontal: 8 },
   tagText: { fontSize: 11, color: '#3D3935', opacity: 0.55 },
-  moreInsurance: { fontSize: 11, color: '#3D3935', opacity: 0.35, alignSelf: 'center' },
-
-  ctaRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  connectBtn: {
-    backgroundColor: '#A8C5A0', borderRadius: 10,
-    paddingVertical: 9, paddingHorizontal: 20,
-  },
-  connectBtnText: { fontSize: 13, fontWeight: '600', color: '#F7F3EE' },
-  bookBtn: { paddingVertical: 9 },
-  bookBtnText: { fontSize: 13, color: '#3D3935', opacity: 0.4, fontWeight: '500' },
-
-  disclaimerCard: {
-    backgroundColor: '#FFFFFF', borderRadius: 12, padding: 14, marginTop: 4,
-  },
+  moreText: { fontSize: 11, color: '#3D3935', opacity: 0.35, alignSelf: 'center' },
+  viewProfile: { fontSize: 13, color: '#A8C5A0', fontWeight: '600' },
+  emptyCard: { backgroundColor: '#FFFFFF', borderRadius: 12, padding: 20, alignItems: 'center' },
+  emptyText: { fontSize: 14, color: '#3D3935', opacity: 0.45, textAlign: 'center', lineHeight: 20 },
+  disclaimerCard: { backgroundColor: '#FFFFFF', borderRadius: 12, padding: 14, marginTop: 4 },
   disclaimerText: { fontSize: 12, color: '#3D3935', opacity: 0.4, lineHeight: 18 },
 });

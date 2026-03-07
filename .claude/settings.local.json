@@ -22,7 +22,16 @@
       "Bash(node scripts/generate-icon.mjs)",
       "Bash(cat /Users/maqowais/Documents/Equi/mobile/app/\\\\\\(tabs\\\\\\)/index.tsx)",
       "Bash(npx expo install expo-notifications expo-device)",
-      "Bash(npx expo install expo-sharing)"
+      "Bash(npx expo install expo-sharing)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); [print\\(k\\) for k in sorted\\({**d.get\\(''dependencies'',{}\\), **d.get\\(''devDependencies'',{}\\)}.keys\\(\\)\\)]\")",
+      "Bash(npx tsc --noEmit)",
+      "Bash(python3 -c \"import sys; lines = sys.stdin.read\\(\\).splitlines\\(\\); [print\\(l\\) for l in lines if any\\(x in l for x in [''onboarding'',''psychiatrist'',''donate'',''sentry'',''offline'',''5E'',''5F'']\\)]\")",
+      "Bash(timeout 10 npx expo export --platform web --output-dir /tmp/equi-export-check)",
+      "Bash(python3 -c \"import sys; t = sys.stdin.read\\(\\); print\\(t[-3000:] if len\\(t\\)>3000 else t\\)\")",
+      "Bash(npx expo-doctor)",
+      "Bash(python3 -c \"import sys; t = sys.stdin.read\\(\\); print\\(t[-2000:]\\)\")",
+      "Bash(node -e \"console.log\\(''Node OK:'', process.version\\)\")",
+      "Bash(node -e \"require\\(''./node_modules/expo-router/package.json''\\); console.log\\(''expo-router OK''\\)\")"
     ]
   }
 }

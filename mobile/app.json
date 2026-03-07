@@ -11,16 +11,37 @@
       "backgroundColor": "#F7F3EE"
     },
     "ios": {
-      "supportsTablet": true
+      "bundleIdentifier": "com.equi.app",
+      "buildNumber": "1",
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSHealthShareUsageDescription": "Equi reads your sleep data to track patterns that affect your mood.",
+        "NSHealthUpdateUsageDescription": "Equi writes sleep quality scores to Apple Health.",
+        "NSMotionUsageDescription": "Equi uses motion data to infer activity levels.",
+        "UIBackgroundModes": ["fetch", "remote-notification"]
+      },
+      "entitlements": {
+        "com.apple.developer.healthkit": true,
+        "com.apple.developer.healthkit.access": ["health-records"]
+      }
     },
     "android": {
+      "package": "com.equi.app",
+      "versionCode": 1,
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#F7F3EE",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.VIBRATE",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.ACTIVITY_RECOGNITION",
+        "android.permission.BODY_SENSORS"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -30,6 +51,15 @@
       "expo-router",
       "expo-secure-store",
       "expo-sharing"
-    ]
+    ],
+    "updates": {
+      "fallbackToCacheTimeout": 0,
+      "checkAutomatically": "OFF"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "YOUR_EAS_PROJECT_ID"
+      }
+    }
   }
 }

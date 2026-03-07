@@ -8,9 +8,13 @@ import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../stores/auth';
 import { useNotificationsStore } from '../stores/notifications';
 import { CrisisOverlay } from '../components/ui/CrisisOverlay';
+import { initialiseSentry } from '../lib/sentry';
+import { flushQueue } from '../lib/offline-queue';
 
 // expo-notifications was removed from Expo Go in SDK 53 — only load in builds.
 const IS_EXPO_GO = Constants.appOwnership === 'expo';
+
+initialiseSentry();
 
 if (!IS_EXPO_GO) {
   // Handle notifications while app is foregrounded (dev/production builds only)
@@ -65,6 +69,9 @@ export default function RootLayout() {
       );
     }
 
+    // Flush any queued offline writes when the app loads
+    flushQueue().catch(() => {});
+
     return () => {
       subscription.unsubscribe();
       notifResponseListener.current?.remove();
@@ -78,6 +85,7 @@ export default function RootLayout() {
         <Stack.Screen name="index" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(onboarding)" />
         <Stack.Screen name="+not-found" />
       </Stack>
       <CrisisOverlay />

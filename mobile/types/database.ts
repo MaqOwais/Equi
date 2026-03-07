@@ -79,7 +79,15 @@ export interface Profile {
   companion_relationship: string | null;
   timezone: string;
   theme: Record<string, unknown> | null;
+  // Phase 5C additions
+  onboarding_step: OnboardingStep;
+  onboarding_completed_at: string | null;
+  last_active_at: string | null;
 }
+
+export type OnboardingStep =
+  | 'role' | 'auth' | 'diagnosis' | 'medication'
+  | 'network' | 'relapse' | 'permissions' | 'complete';
 
 export interface EmergencyContact {
   id: string;
@@ -199,15 +207,50 @@ export interface Companion {
 
 export interface Psychiatrist {
   id: string;
+  // Identity
+  npi_number: string;
   name: string;
   credentials: string | null;
   bio: string | null;
-  is_equi_partner: boolean;
+  photo_url: string | null;
+  // Practice
   offers_telehealth: boolean;
   offers_in_person: boolean;
-  insurance_accepted: string[] | null;
   location_city: string | null;
-  location_country: string | null;
+  location_state: string | null;   // 2-letter US state
+  // Insurance
+  insurance_accepted: string[] | null;
+  sliding_scale: boolean;
+  // Equi integration
+  is_equi_partner: boolean;
+  calendly_username: string | null;
+  activity_prescribing_enabled: boolean;
+  // Status
+  verified_at: string | null;
+  profile_visible: boolean;
+  created_at: string;
+}
+
+export interface PsychiatristConnection {
+  id: string;
+  patient_id: string;
+  psychiatrist_id: string;
+  status: 'requested' | 'accepted' | 'ended';
+  share_ai_report: boolean;
+  share_medication: boolean;
+  share_cycle_data: boolean;
+  connected_at: string;
+}
+
+export interface Booking {
+  id: string;
+  patient_id: string;
+  psychiatrist_id: string;
+  calendly_event_uri: string | null;
+  appointment_at: string | null;
+  appointment_type: 'telehealth' | 'in_person' | null;
+  insurance_claimed: string | null;
+  status: 'scheduled' | 'completed' | 'cancelled';
   created_at: string;
 }
 
