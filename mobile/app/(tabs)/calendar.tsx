@@ -187,7 +187,7 @@ const s = StyleSheet.create({
     fontSize: 11, fontWeight: '600', color: '#3D393566', letterSpacing: 0.5,
   },
 
-  grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, gap: 2 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16 },
   emptyCell: { width: DAY_SIZE - 2, height: DAY_SIZE - 2, margin: 1 },
   dayCell: {
     width: DAY_SIZE - 2, height: DAY_SIZE - 2, margin: 1,

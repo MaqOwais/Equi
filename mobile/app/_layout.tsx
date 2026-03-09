@@ -4,12 +4,14 @@ import { Stack, useRouter } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import Constants from 'expo-constants';
+import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../stores/auth';
 import { useNotificationsStore } from '../stores/notifications';
 import { CrisisOverlay } from '../components/ui/CrisisOverlay';
 import { initialiseSentry } from '../lib/sentry';
 import { flushQueue } from '../lib/offline-queue';
+import { DEV_MODE } from '../constants/dev';
 
 // expo-notifications was removed from Expo Go in SDK 53 — only load in builds.
 const IS_EXPO_GO = Constants.appOwnership === 'expo';
@@ -40,18 +42,20 @@ export default function RootLayout() {
 
   useEffect(() => {
     // Hydrate initial session on cold start
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }: { data: { session: Session | null } }) => {
       setSession(session);
       if (session) {
         loadProfile(session.user.id);
-        notifs.registerToken(session.user.id);
-        notifs.load(session.user.id);
+        if (!DEV_MODE) {
+          notifs.registerToken(session.user.id);
+          notifs.load(session.user.id);
+        }
       }
     });
 
     // Listen for sign-in / sign-out / token refresh
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (_event: string, session: Session | null) => {
         setSession(session);
         if (!session) setProfile(null);
       },
@@ -69,8 +73,8 @@ export default function RootLayout() {
       );
     }
 
-    // Flush any queued offline writes when the app loads
-    flushQueue().catch(() => {});
+    // Flush any queued offline writes when the app loads (skip in dev — no Supabase)
+    if (!DEV_MODE) flushQueue().catch(() => {});
 
     return () => {
       subscription.unsubscribe();

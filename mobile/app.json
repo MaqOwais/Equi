@@ -18,11 +18,16 @@
         "NSHealthShareUsageDescription": "Equi reads your sleep data to track patterns that affect your mood.",
         "NSHealthUpdateUsageDescription": "Equi writes sleep quality scores to Apple Health.",
         "NSMotionUsageDescription": "Equi uses motion data to infer activity levels.",
-        "UIBackgroundModes": ["fetch", "remote-notification"]
+        "UIBackgroundModes": [
+          "fetch",
+          "remote-notification"
+        ]
       },
       "entitlements": {
         "com.apple.developer.healthkit": true,
-        "com.apple.developer.healthkit.access": ["health-records"]
+        "com.apple.developer.healthkit.access": [
+          "health-records"
+        ]
       }
     },
     "android": {
@@ -50,7 +55,8 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      "expo-sharing"
+      "expo-sharing",
+      "expo-sqlite"
     ],
     "updates": {
       "fallbackToCacheTimeout": 0,
