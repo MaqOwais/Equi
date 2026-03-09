@@ -12,6 +12,15 @@ import { useSleepStore } from '../../stores/sleep';
 import { useAIStore } from '../../stores/ai';
 import type { CycleState } from '../../types/database';
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function toLocalIso(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const STATES: CycleState[] = ['stable', 'manic', 'depressive', 'mixed'];
@@ -47,7 +56,7 @@ function CycleGraph({ logs }: { logs: { date: string; state: CycleState; intensi
   for (let i = 0; i < days; i++) {
     const d = new Date();
     d.setDate(d.getDate() - (days - 1 - i));
-    const key = d.toISOString().split('T')[0];
+    const key = toLocalIso(d);
     const log = logMap[key];
     const h = log ? Math.max(8, (log.intensity / 10) * GRAPH_H) : 4;
     const color = log ? STATE_COLORS[log.state] : '#E0DDD8';
@@ -93,7 +102,7 @@ function SleepMiniChart({ logs }: { logs: { date: string; duration_minutes: numb
   for (let i = 0; i < days; i++) {
     const d = new Date();
     d.setDate(d.getDate() - (days - 1 - i));
-    const key = d.toISOString().split('T')[0];
+    const key = toLocalIso(d);
     const log = logMap[key];
     const x = i * (BAR_W + GAP);
     const rawH = log?.duration_minutes

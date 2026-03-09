@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, KeyboardAvoidingView, Platform,
@@ -76,7 +76,12 @@ function totalWords(blocks: Block[]) {
 function addDays(date: Date, days: number) {
   const d = new Date(date); d.setDate(d.getDate() + days); return d;
 }
-function toIso(d: Date) { return d.toISOString().split('T')[0]; }
+function toIso(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
 function formatBigDate(d: Date) {
   const isToday = toIso(d) === toIso(new Date());
   if (isToday) return 'Today';
@@ -324,7 +329,12 @@ export default function JournalScreen() {
   }
 
   // Recent 7-day strip
-  const recentDays = Array.from({ length: 7 }, (_, i) => addDays(new Date(), -6 + i));
+  const todayKey = toIso(new Date());
+  const recentDays = useMemo(
+    () => Array.from({ length: 7 }, (_, i) => addDays(new Date(), -6 + i)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [todayKey],
+  );
   const focusedBlock = blocks.find((b) => b.id === focusedId);
 
   return (
