@@ -10,15 +10,63 @@ import { useCrisisStore } from '../../stores/crisis';
 import { useSleepStore } from '../../stores/sleep';
 import { useSocialRhythmStore } from '../../stores/socialRhythm';
 import { useNotificationsStore } from '../../stores/notifications';
+import { useJournalStore } from '../../stores/journal';
+import { useAIStore } from '../../stores/ai';
 import { useRouter } from 'expo-router';
 import type { CycleState, MedicationStatus } from '../../types/database';
+
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const MOOD_EMOJIS = ['😔', '😟', '😕', '😐', '🙂', '😊', '😄', '😁', '🤩', '✨'];
 
 const CYCLE_COLORS: Record<CycleState, string> = {
   stable: '#A8C5A0', manic: '#89B4CC', depressive: '#C4A0B0', mixed: '#E8DCC8',
 };
+const CYCLE_LABELS: Record<CycleState, string> = {
+  stable: 'Stable', manic: 'Elevated', depressive: 'Low', mixed: 'Mixed',
+};
+const CYCLE_TIPS: Record<CycleState, { icon: string; title: string; body: string }> = {
+  stable: {
+    icon: '🌿',
+    title: 'Protect your rhythm',
+    body: "Stable phases are your foundation. Consistent sleep, meals, and routines are your best medicine right now.",
+  },
+  manic: {
+    icon: '🧊',
+    title: 'Slow down gently',
+    body: "You may feel energised \u2014 that's okay. Try to stick to your usual sleep time and avoid big decisions today.",
+  },
+  depressive: {
+    icon: '☀️',
+    title: 'One small thing',
+    body: "You don't need to do everything. Just one gentle movement \u2014 a short walk, stretching, or stepping outside.",
+  },
+  mixed: {
+    icon: '🌊',
+    title: 'Be extra gentle today',
+    body: "Mixed states can feel unpredictable. Prioritise safety and reach out to someone you trust if needed.",
+  },
+};
+
 const SKIP_REASONS = ['Forgot', 'Side effects', 'Felt fine', 'Ran out', 'Other'];
+const SLEEP_OPTIONS = [
+  { label: 'Poor',  sub: '< 5h', score: 1 },
+  { label: 'Light', sub: '5–6h', score: 2 },
+  { label: 'OK',    sub: '6–7h', score: 3 },
+  { label: 'Good',  sub: '7–8h', score: 4 },
+  { label: 'Great', sub: '8h+',  score: 5 },
+];
+
+const EXPLORE_LINKS: { icon: string; label: string; sub: string; route: string }[] = [
+  { icon: '🌿', label: 'Activities',    sub: 'Matched to state',    route: '/(tabs)/activities' },
+  { icon: '💬', label: 'Community',     sub: 'Share a win',         route: '/(tabs)/community' },
+  { icon: '🧠', label: 'AI Report',     sub: 'Weekly insights',     route: '/(tabs)/you/reports' },
+  { icon: '📋', label: 'Workbook',      sub: 'Bipolar exercises',   route: '/(tabs)/you/workbook' },
+  { icon: '🩺', label: 'Psychiatrists', sub: 'Find & book',         route: '/psychiatrists' },
+  { icon: '📊', label: '90-Day Cycle',  sub: 'View patterns',       route: '/(tabs)/tracker' },
+];
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function greeting() {
   const h = new Date().getHours();
@@ -27,21 +75,19 @@ function greeting() {
   return 'Good evening';
 }
 
-function SectionHeader({ label }: { label: string }) {
-  return <Text style={s.sectionLabel}>{label}</Text>;
+function formatDate() {
+  return new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 }
 
-function Card({ children }: { children: React.ReactNode }) {
-  return <View style={s.card}>{children}</View>;
+function isoToday() {
+  return new Date().toISOString().split('T')[0];
 }
 
-const SLEEP_OPTIONS = [
-  { label: 'Poorly', sub: '< 5h', score: 1 },
-  { label: 'Light',  sub: '5–6h', score: 2 },
-  { label: 'OK',     sub: '6–7h', score: 3 },
-  { label: 'Good',   sub: '7–8h', score: 4 },
-  { label: 'Great',  sub: '8h+',  score: 5 },
-];
+function wordCount(text: string) {
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
+// ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function TodayScreen() {
   const { session, profile } = useAuthStore();
@@ -50,6 +96,8 @@ export default function TodayScreen() {
   const sleep = useSleepStore();
   const rhythm = useSocialRhythmStore();
   const notifs = useNotificationsStore();
+  const journal = useJournalStore();
+  const ai = useAIStore();
   const router = useRouter();
   const userId = session?.user.id;
 
@@ -57,17 +105,26 @@ export default function TodayScreen() {
   const [pendingMedStatus, setPendingMedStatus] = useState<MedicationStatus | null>(null);
   const [selectedSkipReason, setSelectedSkipReason] = useState<string | null>(null);
 
+  const todayDate = isoToday();
+
   useEffect(() => {
     if (userId) {
       today.load(userId);
       sleep.load(userId);
       rhythm.load(userId);
+      journal.loadEntry(userId, todayDate);
+      ai.loadTrackerInsight(userId);
     }
   }, [userId]);
 
   function handleMoodTap(score: number) {
     if (today.moodScore !== null || !userId) return;
     today.logMood(userId, score);
+  }
+
+  function handleCycleTap(state: CycleState) {
+    if (!userId) return;
+    today.logCycle(userId, state, today.cycleIntensity ?? 5, today.cycleSymptoms ?? []);
   }
 
   function handleMedTap(status: MedicationStatus) {
@@ -97,201 +154,368 @@ export default function TodayScreen() {
 
   const cycleState: CycleState = today.cycleState ?? profile?.current_cycle_state ?? 'stable';
   const cycleColor = CYCLE_COLORS[cycleState];
+  const tip = CYCLE_TIPS[cycleState];
   const trackMedication = profile?.track_medication ?? false;
   const showRuminationPrompt = today.moodScore !== null && today.moodScore <= 3;
-  // Show sleep prompt in the morning (before noon) if not yet logged
   const showSleepPrompt = sleep.todayLog === null && new Date().getHours() < 14;
+
+  const todayJournal = journal.entries[todayDate];
+  const journalWordCount = todayJournal ? wordCount(todayJournal.text) : 0;
+
+  // Completion chips
+  const checks = [
+    { label: 'Mood',    done: today.moodScore !== null },
+    { label: 'Sleep',   done: sleep.todayLog !== null },
+    { label: 'Meds',    done: today.medicationStatus !== null, hidden: !trackMedication },
+    { label: 'Cycle',   done: today.cycleState !== null },
+    { label: 'Journal', done: journalWordCount > 0 },
+    { label: 'Subs',    done: today.alcohol !== null || today.cannabis !== null },
+  ].filter((c) => !c.hidden);
+
+  const doneCount = checks.filter((c) => c.done).length;
 
   return (
     <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
-      <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView showsVerticalScrollIndicator={false}>
 
-        {/* Greeting */}
-        <Text style={s.headerGreeting}>{greeting()}.</Text>
-
-        {/* Today card */}
-        <SectionHeader label="TODAY" />
-        <Card>
-          <Text style={s.cardSubLabel}>
-            {today.moodScore !== null ? `Mood logged  ·  ${today.moodScore}/10` : 'How are you feeling?'}
-          </Text>
-          <View style={s.moodRow}>
-            {MOOD_EMOJIS.map((emoji, i) => {
-              const score = i + 1;
-              const isSelected = today.moodScore === score;
-              const isLogged = today.moodScore !== null;
-              return (
-                <TouchableOpacity
-                  key={score}
-                  onPress={() => handleMoodTap(score)}
-                  disabled={isLogged}
-                  style={[s.moodItem, isSelected && s.moodItemSelected]}
-                  activeOpacity={isLogged ? 1 : 0.65}
-                >
-                  <Text style={[s.moodEmoji, !isSelected && isLogged && s.moodEmojiDimmed]}>
-                    {emoji}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-          {today.moodScore === null && (
-            <Text style={s.tapHint}>Tap once — saved instantly.</Text>
-          )}
-        </Card>
-
-        {/* Rumination prompt */}
-        {showRuminationPrompt && (
-          <Card>
-            <Text style={s.ruminationTitle}>A few hard days?</Text>
-            <Text style={s.ruminationBody}>
-              It looks like you're going through a difficult stretch.
-              Would you like some grounding activities?
-            </Text>
-            <TouchableOpacity style={s.ruminationBtn}>
-              <Text style={s.ruminationBtnText}>Show grounding activities</Text>
-            </TouchableOpacity>
-          </Card>
-        )}
-
-        {/* Sleep prompt — morning only, until logged */}
-        {showSleepPrompt && (
-          <Card>
-            <Text style={s.sleepTitle}>🌙  How did you sleep?</Text>
-            <View style={s.sleepRow}>
-              {SLEEP_OPTIONS.map((opt) => {
-                const logged = sleep.todayLog?.quality_score === opt.score;
-                return (
-                  <TouchableOpacity
-                    key={opt.score}
-                    style={[s.sleepBtn, logged && s.sleepBtnActive]}
-                    onPress={() => userId && sleep.logManual(userId, opt.score)}
-                    disabled={sleep.todayLog !== null}
-                  >
-                    <Text style={[s.sleepBtnLabel, logged && s.sleepBtnLabelActive]}>{opt.label}</Text>
-                    <Text style={[s.sleepBtnSub, logged && s.sleepBtnSubActive]}>{opt.sub}</Text>
-                  </TouchableOpacity>
-                );
-              })}
+        {/* ── State Header ─────────────────────────────────────────────────── */}
+        <View style={[s.header, { backgroundColor: cycleColor + '28' }]}>
+          <View style={s.headerTop}>
+            <View>
+              <Text style={s.headerGreeting}>{greeting()}</Text>
+              <Text style={s.headerDate}>{formatDate()}</Text>
             </View>
-          </Card>
-        )}
-
-        {/* Sleep logged chip — shown after logging */}
-        {sleep.todayLog !== null && (
-          <Card>
-            <View style={s.sleepLoggedRow}>
-              <Text style={s.sleepLoggedIcon}>🌙</Text>
-              <View>
-                <Text style={s.sleepLoggedLabel}>Sleep logged</Text>
-                <Text style={s.sleepLoggedSub}>
-                  {['', 'Poorly', 'Light', 'OK', 'Good', 'Great'][sleep.todayLog.quality_score ?? 0]}
-                  {sleep.todayLog.duration_minutes
-                    ? `  ·  ${Math.floor(sleep.todayLog.duration_minutes / 60)}h ${sleep.todayLog.duration_minutes % 60}m`
-                    : ''}
-                </Text>
-              </View>
-            </View>
-          </Card>
-        )}
-
-        {/* Check-ins */}
-        <SectionHeader label="DAILY CHECK-INS" />
-        <Card>
-          {trackMedication && (
-            <View style={s.checkinRow}>
-              <Text style={s.checkinLabel}>💊  Medication</Text>
-              <View style={s.medButtons}>
-                {(['taken', 'skipped', 'partial'] as MedicationStatus[]).map((status) => (
-                  <TouchableOpacity
-                    key={status}
-                    style={[s.medBtn, today.medicationStatus === status && s.medBtnActive]}
-                    onPress={() => handleMedTap(status)}
-                  >
-                    <Text style={[s.medBtnText, today.medicationStatus === status && s.medBtnTextActive]}>
-                      {status.charAt(0).toUpperCase() + status.slice(1)}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-          )}
-          <View style={[s.checkinRow, trackMedication && s.checkinRowBorder]}>
-            <Text style={s.checkinLabel}>🍃  Substances</Text>
-            <View style={s.substanceRow}>
-              {(['alcohol', 'cannabis'] as const).map((sub) => {
-                const active = today[sub] === true;
-                return (
-                  <TouchableOpacity
-                    key={sub}
-                    style={[s.subBtn, active && s.subBtnActive]}
-                    onPress={() => toggleSubstance(sub)}
-                  >
-                    <Text style={[s.subBtnText, active && s.subBtnTextActive]}>
-                      {sub.charAt(0).toUpperCase() + sub.slice(1)}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+            <View style={[s.stateBadge, { backgroundColor: cycleColor + '33', borderColor: cycleColor + '88' }]}>
+              <View style={[s.stateDot, { backgroundColor: cycleColor }]} />
+              <Text style={[s.stateLabel, { color: cycleColor }]}>{CYCLE_LABELS[cycleState]}</Text>
             </View>
           </View>
 
-          {/* Rhythm chip — only when anchors are configured */}
-          {rhythm.todayAnchorsTotal > 0 && (
-            <TouchableOpacity
-              style={[s.checkinRow, s.checkinRowBorder, s.rhythmRow]}
-              onPress={() => router.push('/(tabs)/you/routine')}
-              activeOpacity={0.7}
-            >
-              <Text style={s.checkinLabel}>🗓  Daily Routine</Text>
-              <View style={s.rhythmRight}>
-                <Text style={s.rhythmCount}>
-                  {rhythm.todayAnchorsHit} / {rhythm.todayAnchorsTotal}
-                </Text>
-                {rhythm.todayScore !== null && (
-                  <View style={s.rhythmBar}>
-                    <View style={[s.rhythmFill, { width: `${rhythm.todayScore}%` as unknown as number }]} />
-                  </View>
-                )}
-                <Text style={s.rhythmChevron}>›</Text>
+          {/* Completion progress */}
+          <View style={s.completionRow}>
+            {checks.map((c) => (
+              <View
+                key={c.label}
+                style={[s.checkChip, c.done && { backgroundColor: cycleColor + '33', borderColor: cycleColor + '66' }]}
+              >
+                <View style={[s.checkDot, { backgroundColor: c.done ? cycleColor : '#3D393530' }]} />
+                <Text style={[s.checkLabel, c.done && { color: cycleColor, opacity: 1 }]}>{c.label}</Text>
               </View>
-            </TouchableOpacity>
-          )}
-        </Card>
-
-        {/* Quick actions */}
-        <SectionHeader label="EXPLORE" />
-        <View style={s.quickRow}>
-          <TouchableOpacity
-            style={[s.quickCard, { borderColor: cycleColor + '50' }]}
-            onPress={() => router.push('/(tabs)/activities')}
-            activeOpacity={0.78}
-          >
-            <Text style={s.quickIcon}>🌿</Text>
-            <Text style={s.quickLabel}>Activities</Text>
-            <Text style={s.quickSub}>Matched to your state</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[s.quickCard, { borderColor: '#89B4CC50' }]}
-            onPress={() => router.push('/(tabs)/tracker')}
-            activeOpacity={0.78}
-          >
-            <Text style={s.quickIcon}>📊</Text>
-            <Text style={s.quickLabel}>90-Day Cycle</Text>
-            <Text style={s.quickSub}>View your pattern</Text>
-          </TouchableOpacity>
+            ))}
+            <Text style={s.checkCount}>{doneCount}/{checks.length}</Text>
+          </View>
         </View>
 
-        <View style={{ height: 88 }} />
-      </ScrollView>
+        <View style={s.content}>
 
-      {/* Floating SOS */}
-      <View style={s.sosContainer}>
-        <TouchableOpacity style={s.sosBtn} onPress={() => crisis.open(notifs.prefs?.post_crisis_enabled)}>
-          <Text style={s.sosBtnIcon}>🆘</Text>
-          <Text style={s.sosBtnText}>Crisis Support</Text>
-        </TouchableOpacity>
-      </View>
+          {/* ── Mood ─────────────────────────────────────────────────────────── */}
+          <Text style={s.sectionLabel}>MOOD</Text>
+          <View style={s.card}>
+            {today.moodScore !== null ? (
+              <View style={s.moodLogged}>
+                <Text style={s.moodLoggedEmoji}>{MOOD_EMOJIS[today.moodScore - 1]}</Text>
+                <View>
+                  <Text style={s.moodLoggedTitle}>Mood logged</Text>
+                  <Text style={s.moodLoggedSub}>{today.moodScore} / 10 · Tap tomorrow to update</Text>
+                </View>
+              </View>
+            ) : (
+              <>
+                <Text style={s.cardPrompt}>How are you feeling right now?</Text>
+                <View style={s.moodRow}>
+                  {MOOD_EMOJIS.map((emoji, i) => {
+                    const score = i + 1;
+                    return (
+                      <TouchableOpacity
+                        key={score}
+                        onPress={() => handleMoodTap(score)}
+                        style={s.moodItem}
+                        activeOpacity={0.6}
+                      >
+                        <Text style={s.moodEmoji}>{emoji}</Text>
+                        {(score === 1 || score === 5 || score === 10) && (
+                          <Text style={s.moodTick}>{score}</Text>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+                <Text style={s.tapHint}>Tap once — saved instantly</Text>
+              </>
+            )}
+          </View>
+
+          {/* Rumination prompt */}
+          {showRuminationPrompt && (
+            <TouchableOpacity
+              style={[s.card, s.ruminationCard]}
+              onPress={() => router.push('/(tabs)/activities')}
+              activeOpacity={0.8}
+            >
+              <Text style={s.ruminationIcon}>🫂</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={s.ruminationTitle}>Difficult stretch?</Text>
+                <Text style={s.ruminationBody}>Some grounding activities are ready for you →</Text>
+              </View>
+            </TouchableOpacity>
+          )}
+
+          {/* ── Cycle State ───────────────────────────────────────────────────── */}
+          <Text style={s.sectionLabel}>CYCLE STATE</Text>
+          <View style={s.card}>
+            {today.cycleState !== null ? (
+              <View style={s.cycleLogged}>
+                <View style={[s.cycleLoggedDot, { backgroundColor: CYCLE_COLORS[today.cycleState] }]} />
+                <View style={{ flex: 1 }}>
+                  <Text style={s.cycleLoggedTitle}>
+                    {CYCLE_LABELS[today.cycleState]} today
+                  </Text>
+                  <Text style={s.cycleLoggedSub}>Tap a state to update</Text>
+                </View>
+              </View>
+            ) : (
+              <Text style={s.cardPrompt}>How is your mood episode today?</Text>
+            )}
+            <View style={s.cycleRow}>
+              {(['stable', 'manic', 'depressive', 'mixed'] as CycleState[]).map((state) => {
+                const active = today.cycleState === state;
+                const col = CYCLE_COLORS[state];
+                return (
+                  <TouchableOpacity
+                    key={state}
+                    style={[s.cycleBtn, { borderColor: active ? col : col + '55', backgroundColor: active ? col + '22' : col + '0A' }]}
+                    onPress={() => handleCycleTap(state)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[s.cycleBtnDot, { backgroundColor: col }]} />
+                    <Text style={[s.cycleBtnText, { color: active ? col : '#3D3935', opacity: active ? 1 : 0.6, fontWeight: active ? '700' : '500' }]}>
+                      {CYCLE_LABELS[state]}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+          {/* ── Journal ───────────────────────────────────────────────────────── */}
+          <Text style={s.sectionLabel}>JOURNAL</Text>
+          <TouchableOpacity
+            style={[s.card, s.journalCard]}
+            onPress={() => router.push('/(tabs)/journal')}
+            activeOpacity={0.8}
+          >
+            {journalWordCount > 0 ? (
+              <>
+                <View style={s.journalLogged}>
+                  <Text style={s.journalLoggedIcon}>📖</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.journalLoggedTitle}>Entry written</Text>
+                    <Text style={s.journalLoggedSub}>{journalWordCount} words · Tap to read or edit</Text>
+                  </View>
+                  <Text style={s.journalChevron}>›</Text>
+                </View>
+                {todayJournal?.text ? (
+                  <Text style={s.journalPreview} numberOfLines={2}>
+                    {todayJournal.text}
+                  </Text>
+                ) : null}
+              </>
+            ) : (
+              <View style={s.journalEmpty}>
+                <Text style={s.journalEmptyIcon}>✏️</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.journalEmptyTitle}>Write today's entry</Text>
+                  <Text style={s.journalEmptySub}>Private · Locked after 48h · Never shared</Text>
+                </View>
+                <Text style={s.journalChevron}>›</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+
+          {/* ── Sleep ────────────────────────────────────────────────────────── */}
+          {(showSleepPrompt || sleep.todayLog !== null) && (
+            <Text style={s.sectionLabel}>SLEEP</Text>
+          )}
+          {showSleepPrompt && (
+            <View style={s.card}>
+              <Text style={s.cardPrompt}>🌙  How did you sleep last night?</Text>
+              <View style={s.sleepRow}>
+                {SLEEP_OPTIONS.map((opt) => {
+                  const logged = sleep.todayLog?.quality_score === opt.score;
+                  return (
+                    <TouchableOpacity
+                      key={opt.score}
+                      style={[s.sleepBtn, logged && { borderColor: '#89B4CC', backgroundColor: '#89B4CC15' }]}
+                      onPress={() => userId && sleep.logManual(userId, opt.score)}
+                      disabled={sleep.todayLog !== null}
+                    >
+                      <Text style={[s.sleepBtnLabel, logged && { color: '#89B4CC', opacity: 1, fontWeight: '700' }]}>
+                        {opt.label}
+                      </Text>
+                      <Text style={[s.sleepBtnSub, logged && { color: '#89B4CC', opacity: 0.7 }]}>
+                        {opt.sub}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+          {sleep.todayLog !== null && (
+            <View style={[s.card, s.sleepLoggedCard]}>
+              <Text style={s.sleepLoggedIcon}>🌙</Text>
+              <View>
+                <Text style={s.sleepLoggedLabel}>
+                  {['', 'Poor', 'Light', 'OK', 'Good', 'Great'][sleep.todayLog.quality_score ?? 0]} sleep
+                </Text>
+                {sleep.todayLog.duration_minutes ? (
+                  <Text style={s.sleepLoggedSub}>
+                    {Math.floor(sleep.todayLog.duration_minutes / 60)}h {sleep.todayLog.duration_minutes % 60}m
+                  </Text>
+                ) : null}
+              </View>
+              <View style={[s.sleepQualBar, { marginLeft: 'auto' }]}>
+                <View style={[
+                  s.sleepQualFill,
+                  { width: `${((sleep.todayLog.quality_score ?? 0) / 5) * 100}%` as unknown as number },
+                ]} />
+              </View>
+            </View>
+          )}
+
+          {/* ── Check-ins ────────────────────────────────────────────────────── */}
+          <Text style={s.sectionLabel}>CHECK-INS</Text>
+          <View style={s.card}>
+            {/* Medication */}
+            {trackMedication && (
+              <View style={s.checkinBlock}>
+                <Text style={s.checkinBlockLabel}>💊  Medication today</Text>
+                <View style={s.medButtons}>
+                  {(['taken', 'skipped', 'partial'] as MedicationStatus[]).map((status) => {
+                    const active = today.medicationStatus === status;
+                    const color = status === 'taken' ? '#A8C5A0' : status === 'skipped' ? '#C4A0B0' : '#C9A84C';
+                    return (
+                      <TouchableOpacity
+                        key={status}
+                        style={[s.medBtn, active && { borderColor: color, backgroundColor: color + '18' }]}
+                        onPress={() => handleMedTap(status)}
+                      >
+                        <Text style={[s.medBtnText, active && { color, opacity: 1, fontWeight: '700' }]}>
+                          {status.charAt(0).toUpperCase() + status.slice(1)}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
+
+            {/* Substances */}
+            <View style={[s.checkinBlock, trackMedication && s.checkinDivider]}>
+              <Text style={s.checkinBlockLabel}>🍃  Substances today</Text>
+              <View style={s.substanceRow}>
+                {(['alcohol', 'cannabis'] as const).map((sub) => {
+                  const active = today[sub] === true;
+                  return (
+                    <TouchableOpacity
+                      key={sub}
+                      style={[s.subBtn, active && { borderColor: '#C4A0B0', backgroundColor: '#C4A0B015' }]}
+                      onPress={() => toggleSubstance(sub)}
+                    >
+                      <Text style={[s.subBtnText, active && { color: '#C4A0B0', opacity: 1, fontWeight: '600' }]}>
+                        {sub === 'alcohol' ? '🍷' : '🌿'} {sub.charAt(0).toUpperCase() + sub.slice(1)}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* Daily Routine rhythm */}
+            {rhythm.todayAnchorsTotal > 0 && (
+              <TouchableOpacity
+                style={[s.checkinBlock, s.checkinDivider, s.rhythmRow]}
+                onPress={() => router.push('/(tabs)/you/routine')}
+                activeOpacity={0.7}
+              >
+                <View>
+                  <Text style={s.checkinBlockLabel}>🗓  Daily Routine</Text>
+                  <Text style={s.rhythmSub}>
+                    {rhythm.todayAnchorsHit} of {rhythm.todayAnchorsTotal} anchors hit
+                  </Text>
+                </View>
+                <View style={s.rhythmRight}>
+                  <View style={s.rhythmBarWrap}>
+                    <View style={[s.rhythmFill, {
+                      width: `${((rhythm.todayAnchorsHit / rhythm.todayAnchorsTotal) * 100)}%` as unknown as number,
+                      backgroundColor: cycleColor,
+                    }]} />
+                  </View>
+                  <Text style={s.rhythmChevron}>›</Text>
+                </View>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* ── State tip ────────────────────────────────────────────────────── */}
+          <Text style={s.sectionLabel}>TODAY'S FOCUS</Text>
+          <View style={[s.tipCard, { borderLeftColor: cycleColor, backgroundColor: cycleColor + '12' }]}>
+            <Text style={s.tipIcon}>{tip.icon}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={[s.tipTitle, { color: cycleColor === '#E8DCC8' ? '#A09060' : cycleColor }]}>
+                {tip.title}
+              </Text>
+              <Text style={s.tipBody}>{tip.body}</Text>
+            </View>
+          </View>
+
+          {/* ── AI Insight ───────────────────────────────────────────────────── */}
+          {ai.trackerInsight && (
+            <>
+              <Text style={s.sectionLabel}>AI INSIGHT</Text>
+              <TouchableOpacity
+                style={[s.insightCard, { borderColor: cycleColor + '55' }]}
+                onPress={() => router.push('/(tabs)/you/reports')}
+                activeOpacity={0.8}
+              >
+                <Text style={s.insightIcon}>✦</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.insightText}>{ai.trackerInsight}</Text>
+                  <Text style={s.insightLink}>See full report →</Text>
+                </View>
+              </TouchableOpacity>
+            </>
+          )}
+
+          {/* ── Explore ──────────────────────────────────────────────────────── */}
+          <Text style={s.sectionLabel}>EXPLORE</Text>
+          <View style={s.exploreGrid}>
+            {EXPLORE_LINKS.map((link) => (
+              <TouchableOpacity
+                key={link.route}
+                style={s.exploreCard}
+                onPress={() => router.push(link.route as never)}
+                activeOpacity={0.75}
+              >
+                <Text style={s.exploreIcon}>{link.icon}</Text>
+                <Text style={s.exploreLabel}>{link.label}</Text>
+                <Text style={s.exploreSub}>{link.sub}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          {/* ── Crisis support (inline) ───────────────────────────────────────── */}
+          <TouchableOpacity
+            style={s.sosBtn}
+            onPress={() => crisis.open(notifs.prefs?.post_crisis_enabled)}
+            activeOpacity={0.8}
+          >
+            <Text style={s.sosBtnText}>🆘  Crisis Support</Text>
+          </TouchableOpacity>
+
+          <View style={{ height: 32 }} />
+        </View>
+      </ScrollView>
 
       {/* Medication skip sheet */}
       <Modal visible={skipSheetVisible} transparent animationType="slide">
@@ -304,9 +528,7 @@ export default function TodayScreen() {
                 style={[s.sheetOption, selectedSkipReason === r && s.sheetOptionActive]}
                 onPress={() => setSelectedSkipReason(r)}
               >
-                <Text style={[s.sheetOptionText, selectedSkipReason === r && s.sheetOptionTextActive]}>
-                  {r}
-                </Text>
+                <Text style={[s.sheetOptionText, selectedSkipReason === r && s.sheetOptionTextActive]}>{r}</Text>
               </TouchableOpacity>
             ))}
             <TouchableOpacity
@@ -323,11 +545,37 @@ export default function TodayScreen() {
   );
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#FFFFFF' },
-  scroll: { paddingHorizontal: 18, paddingTop: 16, paddingBottom: 20 },
 
-  headerGreeting: { fontSize: 28, fontWeight: '700', color: '#3D3935', letterSpacing: -0.5, marginBottom: 16 },
+  // Header
+  header: { paddingHorizontal: 18, paddingTop: 20, paddingBottom: 16 },
+  headerTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 },
+  headerGreeting: { fontSize: 26, fontWeight: '700', color: '#3D3935', letterSpacing: -0.5 },
+  headerDate: { fontSize: 13, color: '#3D3935', opacity: 0.5, marginTop: 2 },
+
+  stateBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 12, paddingVertical: 6,
+    borderRadius: 20, borderWidth: 1,
+  },
+  stateDot: { width: 8, height: 8, borderRadius: 4 },
+  stateLabel: { fontSize: 13, fontWeight: '600' },
+
+  completionRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
+  checkChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: 10, paddingVertical: 5,
+    borderRadius: 20, borderWidth: 1, borderColor: '#3D393520',
+    backgroundColor: '#3D393308',
+  },
+  checkDot: { width: 6, height: 6, borderRadius: 3 },
+  checkLabel: { fontSize: 11, fontWeight: '500', color: '#3D3935', opacity: 0.4 },
+  checkCount: { fontSize: 12, fontWeight: '700', color: '#3D3935', opacity: 0.35, marginLeft: 4 },
+
+  content: { paddingHorizontal: 18, paddingTop: 8 },
 
   sectionLabel: {
     fontSize: 11, fontWeight: '700', color: '#3D3935', opacity: 0.35,
@@ -337,89 +585,154 @@ const s = StyleSheet.create({
   card: {
     backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 12,
     shadowColor: '#3D3935', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.07, shadowRadius: 6, elevation: 2, borderWidth: 1, borderColor: '#F0EDE8',
+    shadowOpacity: 0.06, shadowRadius: 6, elevation: 2,
+    borderWidth: 1, borderColor: '#F0EDE8',
   },
+  cardPrompt: { fontSize: 14, color: '#3D3935', fontWeight: '500', marginBottom: 14, opacity: 0.75 },
 
-  cardSubLabel: { fontSize: 12, color: '#3D3935', opacity: 0.45, marginBottom: 10 },
-  moodRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  moodItem: { alignItems: 'center', padding: 4, borderRadius: 8 },
-  moodItemSelected: { backgroundColor: '#A8C5A015' },
-  moodEmoji: { fontSize: 22 },
-  moodEmojiDimmed: { opacity: 0.25 },
-  tapHint: { fontSize: 11, color: '#3D3935', opacity: 0.3, textAlign: 'center', marginTop: 8 },
+  // Mood logged
+  moodLogged: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  moodLoggedEmoji: { fontSize: 36 },
+  moodLoggedTitle: { fontSize: 15, fontWeight: '600', color: '#3D3935' },
+  moodLoggedSub: { fontSize: 12, color: '#3D3935', opacity: 0.45, marginTop: 2 },
 
-  ruminationTitle: { fontSize: 15, fontWeight: '600', color: '#3D3935', marginBottom: 6 },
-  ruminationBody: { fontSize: 13, color: '#3D3935', opacity: 0.6, lineHeight: 19, marginBottom: 12 },
-  ruminationBtn: { borderWidth: 1, borderColor: '#A8C5A0', borderRadius: 10, paddingVertical: 10, alignItems: 'center' },
-  ruminationBtnText: { fontSize: 13, color: '#A8C5A0', fontWeight: '600' },
+  // Mood picker
+  moodRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+  moodItem: { alignItems: 'center', padding: 2 },
+  moodEmoji: { fontSize: 26 },
+  moodTick: { fontSize: 9, color: '#3D393540', marginTop: 1 },
+  tapHint: { fontSize: 11, color: '#3D3935', opacity: 0.3, textAlign: 'center', marginTop: 4 },
 
-  checkinRow: { paddingVertical: 12 },
-  checkinRowBorder: { borderTopWidth: 1, borderTopColor: '#F0EDE8' },
-  checkinLabel: { fontSize: 14, fontWeight: '500', color: '#3D3935', marginBottom: 10 },
+  // Rumination
+  ruminationCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: '#C4A0B010', borderColor: '#C4A0B040',
+  },
+  ruminationIcon: { fontSize: 24 },
+  ruminationTitle: { fontSize: 14, fontWeight: '600', color: '#3D3935', marginBottom: 2 },
+  ruminationBody: { fontSize: 12, color: '#3D3935', opacity: 0.55 },
+
+  // Cycle state
+  cycleLogged: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
+  cycleLoggedDot: { width: 10, height: 10, borderRadius: 5 },
+  cycleLoggedTitle: { fontSize: 14, fontWeight: '600', color: '#3D3935' },
+  cycleLoggedSub: { fontSize: 11, color: '#3D3935', opacity: 0.4, marginTop: 1 },
+  cycleRow: { flexDirection: 'row', gap: 8 },
+  cycleBtn: {
+    flex: 1, alignItems: 'center', paddingVertical: 10,
+    borderRadius: 12, borderWidth: 1.5,
+    gap: 4,
+  },
+  cycleBtnDot: { width: 8, height: 8, borderRadius: 4 },
+  cycleBtnText: { fontSize: 11, fontWeight: '500' },
+
+  // Journal
+  journalCard: { padding: 0, overflow: 'hidden' },
+  journalLogged: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, paddingBottom: 0 },
+  journalLoggedIcon: { fontSize: 22 },
+  journalLoggedTitle: { fontSize: 14, fontWeight: '600', color: '#3D3935' },
+  journalLoggedSub: { fontSize: 12, color: '#3D3935', opacity: 0.45, marginTop: 1 },
+  journalChevron: { fontSize: 22, color: '#3D3935', opacity: 0.2 },
+  journalPreview: {
+    fontSize: 13, color: '#3D3935', opacity: 0.5, lineHeight: 19,
+    paddingHorizontal: 16, paddingVertical: 12,
+    borderTopWidth: 1, borderTopColor: '#F0EDE8', marginTop: 12,
+  },
+  journalEmpty: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 },
+  journalEmptyIcon: { fontSize: 22 },
+  journalEmptyTitle: { fontSize: 14, fontWeight: '600', color: '#3D3935' },
+  journalEmptySub: { fontSize: 12, color: '#3D3935', opacity: 0.4, marginTop: 1 },
+
+  // Sleep
+  sleepRow: { flexDirection: 'row', gap: 6 },
+  sleepBtn: {
+    flex: 1, borderRadius: 10, borderWidth: 1.5, borderColor: '#E0DDD8',
+    paddingVertical: 10, alignItems: 'center',
+  },
+  sleepBtnLabel: { fontSize: 12, fontWeight: '500', color: '#3D3935', opacity: 0.55 },
+  sleepBtnSub: { fontSize: 10, color: '#3D3935', opacity: 0.3, marginTop: 2 },
+  sleepLoggedCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingVertical: 13,
+  },
+  sleepLoggedIcon: { fontSize: 22 },
+  sleepLoggedLabel: { fontSize: 14, fontWeight: '600', color: '#3D3935' },
+  sleepLoggedSub: { fontSize: 12, color: '#3D3935', opacity: 0.45, marginTop: 1 },
+  sleepQualBar: {
+    width: 48, height: 6, borderRadius: 3, backgroundColor: '#89B4CC22',
+  },
+  sleepQualFill: { height: 6, borderRadius: 3, backgroundColor: '#89B4CC' },
+
+  // Check-ins
+  checkinBlock: { paddingVertical: 12 },
+  checkinDivider: { borderTopWidth: 1, borderTopColor: '#F0EDE8' },
+  checkinBlockLabel: { fontSize: 13, fontWeight: '500', color: '#3D3935', marginBottom: 10, opacity: 0.75 },
 
   medButtons: { flexDirection: 'row', gap: 8 },
-  medBtn: { flex: 1, paddingVertical: 9, borderRadius: 10, borderWidth: 1.5, borderColor: '#E0DDD8', alignItems: 'center' },
-  medBtnActive: { borderColor: '#A8C5A0', backgroundColor: '#A8C5A015' },
-  medBtnText: { fontSize: 13, color: '#3D3935', opacity: 0.5, fontWeight: '500' },
-  medBtnTextActive: { color: '#A8C5A0', opacity: 1, fontWeight: '600' },
+  medBtn: {
+    flex: 1, paddingVertical: 9, borderRadius: 10,
+    borderWidth: 1.5, borderColor: '#E0DDD8', alignItems: 'center',
+  },
+  medBtnText: { fontSize: 13, color: '#3D3935', opacity: 0.45, fontWeight: '500' },
 
   substanceRow: { flexDirection: 'row', gap: 10 },
-  subBtn: { paddingVertical: 8, paddingHorizontal: 18, borderRadius: 10, borderWidth: 1.5, borderColor: '#E0DDD8' },
-  subBtnActive: { borderColor: '#C4A0B0', backgroundColor: '#C4A0B015' },
-  subBtnText: { fontSize: 13, color: '#3D3935', opacity: 0.45, fontWeight: '500' },
-  subBtnTextActive: { color: '#C4A0B0', opacity: 1, fontWeight: '600' },
+  subBtn: { paddingVertical: 9, paddingHorizontal: 16, borderRadius: 10, borderWidth: 1.5, borderColor: '#E0DDD8' },
+  subBtnText: { fontSize: 13, color: '#3D3935', opacity: 0.4, fontWeight: '500' },
 
-  quickRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
-  quickCard: {
-    flex: 1, backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16,
+  rhythmRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  rhythmSub: { fontSize: 12, color: '#3D3935', opacity: 0.4, marginTop: 2 },
+  rhythmRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  rhythmBarWrap: { width: 56, height: 5, borderRadius: 3, backgroundColor: '#E0DDD8', overflow: 'hidden' },
+  rhythmFill: { height: 5, borderRadius: 3 },
+  rhythmChevron: { fontSize: 18, color: '#3D3935', opacity: 0.2 },
+
+  // State tip
+  tipCard: {
+    flexDirection: 'row', gap: 12, alignItems: 'flex-start',
+    borderRadius: 16, padding: 16, marginBottom: 12,
+    borderLeftWidth: 4,
+  },
+  tipIcon: { fontSize: 26, marginTop: 1 },
+  tipTitle: { fontSize: 15, fontWeight: '700', marginBottom: 5 },
+  tipBody: { fontSize: 13, color: '#3D3935', opacity: 0.65, lineHeight: 19 },
+
+  // AI Insight
+  insightCard: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 12,
+    backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 12,
     borderWidth: 1.5,
     shadowColor: '#3D3935', shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
   },
-  quickIcon: { fontSize: 22, marginBottom: 8 },
-  quickLabel: { fontSize: 14, fontWeight: '600', color: '#3D3935', marginBottom: 3 },
-  quickSub: { fontSize: 11, color: '#3D3935', opacity: 0.4 },
+  insightIcon: { fontSize: 18, color: '#C9A84C', marginTop: 1 },
+  insightText: { fontSize: 14, color: '#3D3935', lineHeight: 20, opacity: 0.8, marginBottom: 6 },
+  insightLink: { fontSize: 12, color: '#C9A84C', fontWeight: '600' },
 
-  rhythmRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  rhythmRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  rhythmCount: { fontSize: 13, color: '#3D3935', opacity: 0.5, fontWeight: '500' },
-  rhythmBar: {
-    width: 48, height: 5, borderRadius: 3,
-    backgroundColor: '#E0DDD8', overflow: 'hidden',
+  // Explore grid
+  exploreGrid: {
+    flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 14,
   },
-  rhythmFill: { height: 5, backgroundColor: '#A8C5A0', borderRadius: 3 },
-  rhythmChevron: { fontSize: 18, color: '#3D3935', opacity: 0.2 },
-
-  sleepTitle: { fontSize: 14, fontWeight: '600', color: '#3D3935', marginBottom: 12 },
-  sleepRow: { flexDirection: 'row', gap: 6 },
-  sleepBtn: {
-    flex: 1, borderRadius: 10, borderWidth: 1.5, borderColor: '#E0DDD8',
-    paddingVertical: 9, alignItems: 'center',
+  exploreCard: {
+    width: '47%',
+    backgroundColor: '#FFFFFF', borderRadius: 16, padding: 14,
+    borderWidth: 1, borderColor: '#F0EDE8',
+    shadowColor: '#3D3935', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
   },
-  sleepBtnActive: { borderColor: '#89B4CC', backgroundColor: '#89B4CC15' },
-  sleepBtnLabel: { fontSize: 12, fontWeight: '500', color: '#3D3935', opacity: 0.55 },
-  sleepBtnLabelActive: { color: '#89B4CC', opacity: 1, fontWeight: '700' },
-  sleepBtnSub: { fontSize: 10, color: '#3D3935', opacity: 0.3, marginTop: 2 },
-  sleepBtnSubActive: { color: '#89B4CC', opacity: 0.7 },
+  exploreIcon: { fontSize: 20, marginBottom: 6 },
+  exploreLabel: { fontSize: 13, fontWeight: '600', color: '#3D3935', marginBottom: 2 },
+  exploreSub: { fontSize: 11, color: '#3D3935', opacity: 0.4 },
 
-  sleepLoggedRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  sleepLoggedIcon: { fontSize: 22 },
-  sleepLoggedLabel: { fontSize: 14, fontWeight: '600', color: '#3D3935' },
-  sleepLoggedSub: { fontSize: 12, color: '#3D3935', opacity: 0.45, marginTop: 2 },
-
-  sosContainer: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
-    paddingHorizontal: 18, paddingBottom: 24, paddingTop: 8,
-    backgroundColor: '#FFFFFF',
-  },
+  // Crisis (inline)
   sosBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    backgroundColor: '#3D393514', borderRadius: 14, paddingVertical: 13,
-    borderWidth: 1.5, borderColor: '#3D393520',
+    borderRadius: 14, paddingVertical: 14,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#3D393510', borderWidth: 1.5, borderColor: '#3D393520',
+    marginBottom: 8,
   },
-  sosBtnIcon: { fontSize: 15 },
-  sosBtnText: { fontSize: 14, fontWeight: '600', color: '#3D3935', opacity: 0.65, letterSpacing: 0.2 },
+  sosBtnText: { fontSize: 14, fontWeight: '600', color: '#3D3935', opacity: 0.6 },
 
+  // Med skip sheet
   sheetBackdrop: { flex: 1, backgroundColor: '#00000030', justifyContent: 'flex-end' },
   sheet: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, paddingBottom: 40 },
   sheetTitle: { fontSize: 17, fontWeight: '700', color: '#3D3935', marginBottom: 16 },

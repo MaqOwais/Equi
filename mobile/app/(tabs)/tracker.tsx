@@ -203,22 +203,24 @@ export default function TrackerScreen() {
 
         {/* Intensity */}
         <Text style={s.sectionLabel}>INTENSITY</Text>
-        <View style={s.intensityGrid}>
-          {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-            <TouchableOpacity
-              key={n}
-              style={[
-                s.intensityChip,
-                intensity === n && { backgroundColor: accentColor, borderColor: accentColor },
-              ]}
-              onPress={() => { setIntensity(n); setSaved(false); }}
-            >
-              <Text style={[s.intensityText, intensity === n && s.intensityTextActive]}>
-                {n}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        {[[1,2,3,4,5],[6,7,8,9,10]].map((row, ri) => (
+          <View key={ri} style={[s.intensityRow, ri > 0 && { marginTop: 8 }]}>
+            {row.map((n) => (
+              <TouchableOpacity
+                key={n}
+                style={[
+                  s.intensityChip,
+                  intensity === n && { backgroundColor: accentColor, borderColor: accentColor },
+                ]}
+                onPress={() => { setIntensity(n); setSaved(false); }}
+              >
+                <Text style={[s.intensityText, intensity === n && s.intensityTextActive]}>
+                  {n}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        ))}
         <View style={s.intensityLabels}>
           <Text style={s.intensityLabelText}>Mild</Text>
           <Text style={s.intensityLabelText}>Intense</Text>
@@ -352,9 +354,9 @@ const s = StyleSheet.create({
   stateBtnTextActive: { color: '#FFFFFF', opacity: 1, fontWeight: '700' },
 
   // Intensity
-  intensityGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  intensityRow: { flexDirection: 'row', gap: 8 },
   intensityChip: {
-    width: '18%', aspectRatio: 1, borderRadius: 10,
+    flex: 1, aspectRatio: 1, borderRadius: 10,
     borderWidth: 1.5, borderColor: '#E0DDD8',
     alignItems: 'center', justifyContent: 'center',
   },
