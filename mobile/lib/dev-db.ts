@@ -28,6 +28,24 @@ const DEV_SESSION = {
 
 const sqliteDb = SQLite.openDatabaseSync('equi-dev.db');
 
+// Activities table needs DROP+CREATE to update schema — must be in its own execSync
+sqliteDb.execSync(`DROP TABLE IF EXISTS activities;`);
+sqliteDb.execSync(`
+  CREATE TABLE IF NOT EXISTS activities (
+    id TEXT PRIMARY KEY,
+    title TEXT,
+    description TEXT,
+    duration_minutes INTEGER,
+    category TEXT,
+    compatible_states TEXT DEFAULT '[]',
+    restricted_states TEXT DEFAULT '[]',
+    is_workbook_entry INTEGER DEFAULT 0,
+    illustration_url TEXT,
+    evidence_label TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+  );
+`);
+
 sqliteDb.execSync(`
   PRAGMA journal_mode = WAL;
 
@@ -83,16 +101,6 @@ sqliteDb.execSync(`
     log_date TEXT,
     status TEXT,
     skip_reason TEXT,
-    created_at TEXT DEFAULT (datetime('now'))
-  );
-
-  CREATE TABLE IF NOT EXISTS activities (
-    id TEXT PRIMARY KEY,
-    user_id TEXT,
-    name TEXT,
-    description TEXT,
-    category TEXT,
-    target_per_week INTEGER DEFAULT 3,
     created_at TEXT DEFAULT (datetime('now'))
   );
 
@@ -300,12 +308,19 @@ sqliteDb.execSync(`
   INSERT OR IGNORE INTO profiles (id, display_name, user_role, diagnosis_confirmed, onboarding_complete, onboarding_step, current_cycle_state)
   VALUES ('${DEV_USER_ID}', 'Dev User', 'user', 1, 1, 'complete', 'stable');
 
-  INSERT OR IGNORE INTO activities (id, user_id, name, description, category, target_per_week) VALUES
-    ('act-1', '${DEV_USER_ID}', 'Morning Walk', '15-minute gentle walk', 'movement', 5),
-    ('act-2', '${DEV_USER_ID}', 'Meditation', '10-minute guided meditation', 'mindfulness', 7),
-    ('act-3', '${DEV_USER_ID}', 'Journaling', 'Free-write for 10 minutes', 'expression', 5),
-    ('act-4', '${DEV_USER_ID}', 'Creative Art', 'Drawing, painting, or crafts', 'expression', 3),
-    ('act-5', '${DEV_USER_ID}', 'Social Call', 'Connect with a friend or family member', 'social', 3);
+  INSERT OR IGNORE INTO activities (id, title, description, duration_minutes, category, compatible_states, restricted_states, is_workbook_entry, evidence_label) VALUES
+    ('act-01', '5-4-3-2-1 Grounding', 'Use your five senses to anchor yourself in the present moment. Name 5 things you see, 4 you can touch, 3 you hear, 2 you smell, 1 you taste.', 5, 'grounding', '["stable","manic","depressive","mixed"]', '[]', 0, 'Evidence-based: anxiety & dissociation'),
+    ('act-02', 'Box Breathing', 'Breathe in for 4 counts, hold for 4, breathe out for 4, hold for 4. Repeat 4 times. Activates the parasympathetic system.', 5, 'grounding', '["stable","manic","depressive","mixed"]', '[]', 0, 'Evidence-based: stress regulation'),
+    ('act-03', 'Body Scan', 'Lie down and slowly move attention from head to toe, noticing tension or sensation without judgment. Great for depressive episodes.', 10, 'grounding', '["stable","depressive","mixed"]', '["manic"]', 0, 'Evidence-based: mindfulness & mood'),
+    ('act-04', 'Cold Water Reset', 'Run cold/medium water over your face, nose, ears, wrists till elbow, legs or any visible body part for 30 seconds. This activates the dive reflex and rapidly calms an escalating mood.', 2, 'grounding', '["manic","mixed"]', '[]', 0, 'Evidence-based: emotion regulation'),
+    ('act-05', 'Sleep Hygiene Audit', 'Review your last 3 nights: consistent bed/wake time? Screen-free 30 min before bed? Cool, dark room? Adjust one variable tonight.', 15, 'sleep', '["stable","depressive"]', '["manic"]', 0, 'Evidence-based: circadian stabilisation'),
+    ('act-06', 'Progressive Muscle Relaxation', 'Tense each muscle group for 5 seconds then release, working from feet to head. Reduces physiological tension in 15 minutes.', 15, 'sleep', '["stable","depressive","mixed"]', '[]', 0, 'Evidence-based: anxiety & insomnia'),
+    ('act-07', 'Gratitude Jar', 'Write one thing you are grateful for on a slip of paper and place it in a jar. Read past slips when you need a lift.', 10, 'self_esteem', '["stable","depressive"]', '["manic"]', 0, 'Evidence-based: positive affect'),
+    ('act-08', 'Compliment Diary', 'Write down three kind things someone said to you this week — or three things you did well. Re-read on difficult days.', 5, 'self_esteem', '["stable","depressive"]', '["manic"]', 0, 'Evidence-based: self-compassion'),
+    ('act-09', 'Proud Dandelion', 'Draw a dandelion. On each seed write something you are proud of — big or small. Blow the seeds away as a mindful release.', 10, 'self_esteem', '["stable","depressive"]', '["manic"]', 0, 'Creative expression'),
+    ('act-10', 'Letter I Will Not Send', 'Write an honest letter to someone who has hurt you — or to yourself. You will not send it. Burn, shred, or keep it privately. And write how will you compensate for it if you can later on or may be never!', 20, 'forgiveness', '["stable","depressive"]', '["manic"]', 0, 'Evidence-based: emotional processing'),
+    ('act-11', 'Values Check-In', 'List your top 5 values. For each one, rate 0-10 how much your recent actions reflected it. Choose one value to act on today.', 15, 'reflection', '["stable"]', '[]', 0, 'Evidence-based: ACT therapy'),
+    ('act-12', 'Bipolar Workbook', 'Structured CBT and psychoeducation exercises for bipolar disorder. Work through modules at your own pace.', NULL, 'reflection', '["stable","manic","depressive","mixed"]', '[]', 1, NULL);
 
   INSERT OR IGNORE INTO routine_anchors (id, user_id, anchor_name, label, target_time, window_minutes) VALUES
     ('anc-1', '${DEV_USER_ID}', 'wake', 'Wake up', '07:00', 30),
@@ -320,9 +335,9 @@ sqliteDb.execSync(`
 
 const JSON_COLS = new Set([
   'symptoms', 'blocks', 'categories', 'anchor_detail', 'raw_healthkit',
-  'report_json', 'warning_signs', 'compatible_states',
+  'report_json', 'warning_signs', 'compatible_states', 'restricted_states',
 ]);
-const BOOL_COLS = new Set(['alcohol', 'cannabis', 'diagnosis_confirmed', 'onboarding_complete', 'is_active', 'bookmarked']);
+const BOOL_COLS = new Set(['alcohol', 'cannabis', 'diagnosis_confirmed', 'onboarding_complete', 'is_active', 'bookmarked', 'is_workbook_entry']);
 
 function serializeRow(row: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
@@ -507,7 +522,7 @@ class DevQueryBuilder {
         ) as Record<string, unknown> | null;
         return {
           ...d,
-          activity: act ? deserializeRow(act) : { name: d.activity_name ?? 'Activity', id: d.activity_id },
+          activity: act ? deserializeRow(act) : { title: d.activity_name ?? 'Activity', id: d.activity_id, compatible_states: [], restricted_states: [] },
         };
       }
 
