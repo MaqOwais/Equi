@@ -75,6 +75,15 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
+          name="calendar"
+          options={{
+            title: 'Calendar',
+            tabBarIcon: ({ focused, color }) => (
+              <TabIcon name="calendar" outlineName="calendar-outline" focused={focused} color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
           name="you"
           options={{
             href: null,  // hidden from tab bar — accessible via TopBar profile avatar

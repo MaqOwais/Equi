@@ -6,9 +6,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../../stores/auth';
-import { useTodayStore } from '../../../stores/today';
 import { supabase } from '../../../lib/supabase';
-import type { NutritionLog, Diagnosis } from '../../../types/database';
+import { saveLocal, getLocal } from '../../../lib/local-day-store';
+import type { Diagnosis } from '../../../types/database';
+
+const db = supabase as any;
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -36,7 +38,6 @@ function isoToday() {
 
 export default function NutritionScreen() {
   const { session, profile } = useAuthStore();
-  const today = useTodayStore();
   const router = useRouter();
   const userId = session?.user.id;
 
@@ -58,7 +59,14 @@ export default function NutritionScreen() {
 
   async function loadLog() {
     if (!userId) return;
-    const { data } = await supabase
+    // Local first
+    const local = await getLocal(userId, isoToday());
+    if (local?.nutritionCategories) {
+      setCounts(local.nutritionCategories);
+      return;
+    }
+    // Fall back to Supabase
+    const { data } = await db
       .from('nutrition_logs')
       .select('categories')
       .eq('user_id', userId)
@@ -82,11 +90,8 @@ export default function NutritionScreen() {
     if (saveTimer) clearTimeout(saveTimer);
     const t = setTimeout(async () => {
       if (!userId) return;
-      await supabase.from('nutrition_logs').upsert({
-        user_id: userId,
-        log_date: isoToday(),
-        categories: nextCounts,
-      });
+      // Save locally first — Supabase sync deferred
+      await saveLocal(userId, isoToday(), { nutritionCategories: nextCounts });
       setSaved(true);
     }, 1200);
     setSaveTimer(t);

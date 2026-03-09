@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 import type { CycleState } from '../types/database';
+import { saveLocal, getLocal } from '../lib/local-day-store';
 
 export interface LocalJournalEntry {
   id?: string;
@@ -32,12 +33,33 @@ function isLocked(entry: { locked: boolean; createdAt?: string }): boolean {
   return new Date(entry.createdAt).getTime() < Date.now() - 48 * 3600 * 1000;
 }
 
+const db = supabase as any;
+
 export const useJournalStore = create<JournalStore>((set, get) => ({
   entries: {},
   savingDate: null,
 
   loadEntry: async (userId, date) => {
-    const { data } = await supabase
+    // Check local first
+    const local = await getLocal(userId, date);
+    if (local?.journalText) {
+      set((s) => ({
+        entries: {
+          ...s.entries,
+          [date]: {
+            date,
+            text: local.journalText!,
+            cycleState: (local.cycleState as CycleState) ?? null,
+            moodScore: local.moodScore ?? null,
+            locked: false,
+          },
+        },
+      }));
+      return;
+    }
+
+    // Fall back to Supabase
+    const { data } = await db
       .from('journal_entries')
       .select('id, entry_date, blocks, cycle_state, mood_score, locked, created_at, updated_at')
       .eq('user_id', userId)
@@ -60,8 +82,8 @@ export const useJournalStore = create<JournalStore>((set, get) => ({
   },
 
   saveEntry: async (userId, date, text, meta) => {
-    // Optimistic update
     const existing = get().entries[date];
+    // Optimistic UI update
     set((s) => ({
       savingDate: date,
       entries: {
@@ -79,14 +101,8 @@ export const useJournalStore = create<JournalStore>((set, get) => ({
       },
     }));
 
-    await supabase.from('journal_entries').upsert({
-      user_id: userId,
-      entry_date: date,
-      blocks: text,
-      cycle_state: meta?.cycleState ?? existing?.cycleState ?? null,
-      mood_score: meta?.moodScore ?? existing?.moodScore ?? null,
-      updated_at: new Date().toISOString(),
-    });
+    // Save locally — Supabase sync deferred
+    await saveLocal(userId, date, { journalText: text });
 
     set({ savingDate: null });
   },

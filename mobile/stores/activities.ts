@@ -2,6 +2,9 @@ import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 import type { Activity, ActivityCompletion, PrescribedActivity } from '../types/database';
 import type { CycleState } from '../types/database';
+import { saveLocal, getLocal } from '../lib/local-day-store';
+
+const db = supabase as any;
 
 interface ActivitiesStore {
   all: Activity[];
@@ -24,19 +27,11 @@ export const useActivitiesStore = create<ActivitiesStore>((set, get) => ({
     set({ isLoading: true });
 
     const [activitiesRes, completionsRes, prescribedRes] = await Promise.all([
-      supabase.from('activities').select('*').order('category'),
-      supabase
-        .from('activity_completions')
-        .select('*, activity:activities(*)')
-        .eq('user_id', userId),
-      supabase
-        .from('prescribed_activities')
-        .select('*, activity:activities(*)')
-        .eq('patient_id', userId)
-        .eq('active', true),
+      db.from('activities').select('*').order('category'),
+      db.from('activity_completions').select('*, activity:activities(*)').eq('user_id', userId),
+      db.from('prescribed_activities').select('*, activity:activities(*)').eq('patient_id', userId).eq('active', true),
     ]);
 
-    // Compute completions_this_week for each prescribed activity
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
     const weekAgoISO = weekAgo.toISOString();
@@ -59,6 +54,9 @@ export const useActivitiesStore = create<ActivitiesStore>((set, get) => ({
 
   complete: async (userId, activityId, cycleState, notes) => {
     const now = new Date().toISOString();
+    const today = now.split('T')[0];
+    const activityName = get().all.find((a) => a.id === activityId)?.name ?? 'Activity';
+
     const optimistic: ActivityCompletion = {
       id: `temp-${Date.now()}`,
       user_id: userId,
@@ -70,18 +68,23 @@ export const useActivitiesStore = create<ActivitiesStore>((set, get) => ({
       created_at: now,
     };
 
-    // Optimistic update
+    // Optimistic UI update
     set((s) => ({ completions: [...s.completions, optimistic] }));
 
-    const { data } = await supabase
+    // Save to local storage (calendar display + deferred sync)
+    const existing = await getLocal(userId, today);
+    const existingCompletions = existing?.activityCompletions ?? [];
+    await saveLocal(userId, today, {
+      activityCompletions: [
+        ...existingCompletions,
+        { activityId, name: activityName, completedAt: now },
+      ],
+    });
+
+    // Also write to Supabase immediately (completions need server-side timestamps)
+    const { data } = await db
       .from('activity_completions')
-      .insert({
-        user_id: userId,
-        activity_id: activityId,
-        completed_at: now,
-        cycle_state: cycleState,
-        notes: notes ?? null,
-      })
+      .insert({ user_id: userId, activity_id: activityId, completed_at: now, cycle_state: cycleState, notes: notes ?? null })
       .select('*, activity:activities(*)')
       .single();
 
@@ -100,20 +103,15 @@ export const useActivitiesStore = create<ActivitiesStore>((set, get) => ({
     );
 
     if (existing) {
-      // Toggle bookmarked flag
       const newVal = !existing.bookmarked;
       set((s) => ({
         completions: s.completions.map((c) =>
           c.id === existing.id ? { ...c, bookmarked: newVal } : c,
         ),
       }));
-      await supabase
-        .from('activity_completions')
-        .update({ bookmarked: newVal })
-        .eq('id', existing.id);
+      await db.from('activity_completions').update({ bookmarked: newVal }).eq('id', existing.id);
     } else {
-      // Create bookmark-only row
-      const { data } = await supabase
+      const { data } = await db
         .from('activity_completions')
         .insert({ user_id: userId, activity_id: activityId, completed_at: null, bookmarked: true })
         .select('*, activity:activities(*)')

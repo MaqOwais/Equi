@@ -1,18 +1,18 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
+import { saveLocal } from '../lib/local-day-store';
 import { fetchLastNightSleep, requestSleepPermissions } from '../lib/healthkit';
 import type { SleepLog, WearableConnection, WearableProvider } from '../types/database';
+
+const db = supabase as any;
 
 function isoToday() {
   return new Date().toISOString().split('T')[0];
 }
 
 interface SleepStore {
-  // Today's sleep log (may be null if not yet logged)
   todayLog: SleepLog | null;
-  // 30-day history, newest first
   history: SleepLog[];
-  // Wearable connection status
   wearableConnections: WearableConnection[];
   isLoading: boolean;
   isSyncing: boolean;
@@ -24,13 +24,8 @@ interface SleepStore {
   refreshConnections: (userId: string) => Promise<void>;
 }
 
-// Quality bucket → approximate duration midpoint in minutes
 const QUALITY_DURATION: Record<number, number> = {
-  1: 270,   // ~4.5h
-  2: 330,   // ~5.5h
-  3: 390,   // ~6.5h
-  4: 450,   // ~7.5h
-  5: 510,   // ~8.5h
+  1: 270, 2: 330, 3: 390, 4: 450, 5: 510,
 };
 
 export const useSleepStore = create<SleepStore>((set, get) => ({
@@ -48,22 +43,9 @@ export const useSleepStore = create<SleepStore>((set, get) => ({
     const since = thirtyDaysAgo.toISOString().split('T')[0];
 
     const [todayRes, historyRes, connectionsRes] = await Promise.all([
-      supabase
-        .from('sleep_logs')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('date', today)
-        .maybeSingle(),
-      supabase
-        .from('sleep_logs')
-        .select('*')
-        .eq('user_id', userId)
-        .gte('date', since)
-        .order('date', { ascending: false }),
-      supabase
-        .from('wearable_connections')
-        .select('*')
-        .eq('user_id', userId),
+      db.from('sleep_logs').select('*').eq('user_id', userId).eq('date', today).maybeSingle(),
+      db.from('sleep_logs').select('*').eq('user_id', userId).gte('date', since).order('date', { ascending: false }),
+      db.from('wearable_connections').select('*').eq('user_id', userId),
     ]);
 
     set({
@@ -90,21 +72,23 @@ export const useSleepStore = create<SleepStore>((set, get) => ({
     set((s) => ({
       todayLog: { ...row, id: 'optimistic', bedtime: null, wake_time: null,
         deep_minutes: null, rem_minutes: null, awakenings: null,
-        raw_healthkit: null, created_at: new Date().toISOString() },
+        raw_healthkit: null, created_at: new Date().toISOString() } as unknown as SleepLog,
       history: s.todayLog
         ? s.history.map((h) => (h.date === date ? { ...h, ...row } : h))
         : [{ ...row, id: 'optimistic', bedtime: null, wake_time: null,
           deep_minutes: null, rem_minutes: null, awakenings: null,
-          raw_healthkit: null, created_at: new Date().toISOString() },
+          raw_healthkit: null, created_at: new Date().toISOString() } as unknown as SleepLog,
           ...s.history],
     }));
 
-    const { data } = await supabase
-      .from('sleep_logs')
-      .upsert(row, { onConflict: 'user_id,date' })
-      .select()
-      .single();
+    // Save locally — deferred Supabase sync
+    await saveLocal(userId, date, {
+      sleepQuality: qualityScore,
+      sleepDuration: duration,
+    });
 
+    // Also write to Supabase (HealthKit sync depends on server data)
+    const { data } = await db.from('sleep_logs').upsert(row, { onConflict: 'user_id,date' }).select().single();
     if (data) {
       set((s) => ({
         todayLog: data as SleepLog,
@@ -128,7 +112,6 @@ export const useSleepStore = create<SleepStore>((set, get) => ({
       return { synced: false, message: 'No sleep data found for last night.' };
     }
 
-    // Don't overwrite a more precise source if already logged
     const existing = get().history.find((h) => h.date === sample.date);
     if (existing && existing.source !== 'manual') {
       set({ isSyncing: false });
@@ -149,18 +132,18 @@ export const useSleepStore = create<SleepStore>((set, get) => ({
       raw_healthkit: sample.raw,
     };
 
-    const { data } = await supabase
-      .from('sleep_logs')
-      .upsert(row, { onConflict: 'user_id,date' })
-      .select()
-      .single();
+    const { data } = await db.from('sleep_logs').upsert(row, { onConflict: 'user_id,date' }).select().single();
 
-    // Update last_synced_at
-    await supabase
-      .from('wearable_connections')
+    await db.from('wearable_connections')
       .update({ last_synced_at: new Date().toISOString() })
       .eq('user_id', userId)
       .eq('provider', 'healthkit');
+
+    // Save locally too
+    await saveLocal(userId, sample.date, {
+      sleepQuality: sample.quality_score,
+      sleepDuration: sample.duration_minutes,
+    });
 
     const isToday = sample.date === isoToday();
     set((s) => ({
@@ -176,25 +159,18 @@ export const useSleepStore = create<SleepStore>((set, get) => ({
 
   setWearableConnection: async (userId, provider, connected) => {
     if (connected) {
-      await supabase.from('wearable_connections').upsert(
+      await db.from('wearable_connections').upsert(
         { user_id: userId, provider, connected_at: new Date().toISOString() },
         { onConflict: 'user_id,provider' },
       );
     } else {
-      await supabase
-        .from('wearable_connections')
-        .delete()
-        .eq('user_id', userId)
-        .eq('provider', provider);
+      await db.from('wearable_connections').delete().eq('user_id', userId).eq('provider', provider);
     }
     await get().refreshConnections(userId);
   },
 
   refreshConnections: async (userId) => {
-    const { data } = await supabase
-      .from('wearable_connections')
-      .select('*')
-      .eq('user_id', userId);
+    const { data } = await db.from('wearable_connections').select('*').eq('user_id', userId);
     set({ wearableConnections: (data as WearableConnection[]) ?? [] });
   },
 }));

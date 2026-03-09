@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 import type { CycleState, MedicationStatus } from '../types/database';
+import { saveLocal, getLocal } from '../lib/local-day-store';
 
 function isoToday() {
   return new Date().toISOString().split('T')[0];
@@ -50,11 +51,29 @@ export const useTodayStore = create<TodayStore>((set, get) => ({
     const date = isoToday();
     set({ isLoading: true, date });
 
+    // Local storage is the source of truth for today
+    const local = await getLocal(userId, date);
+    if (local) {
+      set({
+        moodScore: local.moodScore ?? null,
+        cycleState: (local.cycleState as CycleState) ?? null,
+        cycleIntensity: local.cycleIntensity ?? null,
+        cycleSymptoms: local.cycleSymptoms ?? [],
+        alcohol: local.alcohol ?? null,
+        cannabis: local.cannabis ?? null,
+        medicationStatus: (local.medicationStatus as MedicationStatus) ?? null,
+        isLoading: false,
+      });
+      return;
+    }
+
+    // Nothing local yet — fall back to Supabase (e.g. first launch after reinstall)
+    const db = supabase as any;
     const [mood, cycle, checkin, med] = await Promise.all([
-      supabase.from('mood_logs').select('score').eq('user_id', userId).eq('logged_at', date).maybeSingle(),
-      supabase.from('cycle_logs').select('state, intensity, symptoms').eq('user_id', userId).eq('logged_at', date).maybeSingle(),
-      supabase.from('daily_checkins').select('alcohol, cannabis').eq('user_id', userId).eq('checkin_date', date).maybeSingle(),
-      supabase.from('medication_logs').select('status').eq('user_id', userId).eq('log_date', date).maybeSingle(),
+      db.from('mood_logs').select('score').eq('user_id', userId).eq('logged_at', date).maybeSingle(),
+      db.from('cycle_logs').select('state, intensity, symptoms').eq('user_id', userId).eq('logged_at', date).maybeSingle(),
+      db.from('daily_checkins').select('alcohol, cannabis').eq('user_id', userId).eq('checkin_date', date).maybeSingle(),
+      db.from('medication_logs').select('status').eq('user_id', userId).eq('log_date', date).maybeSingle(),
     ]);
 
     set({
@@ -71,47 +90,33 @@ export const useTodayStore = create<TodayStore>((set, get) => ({
 
   logMood: async (userId, score) => {
     set({ moodScore: score });
-    await supabase.from('mood_logs').upsert({
-      user_id: userId,
-      logged_at: get().date,
-      score,
-      cycle_state: get().cycleState,
+    await saveLocal(userId, get().date, {
+      moodScore: score,
+      cycleState: get().cycleState,
     });
   },
 
   logCycle: async (userId, state, intensity, symptoms, notes) => {
     set({ cycleState: state, cycleIntensity: intensity, cycleSymptoms: symptoms });
-    await Promise.all([
-      supabase.from('cycle_logs').upsert({
-        user_id: userId,
-        logged_at: get().date,
-        state,
-        intensity,
-        symptoms,
-        notes: notes ?? null,
-      }),
-      supabase.from('profiles').update({ current_cycle_state: state }).eq('id', userId),
-    ]);
+    await saveLocal(userId, get().date, {
+      cycleState: state,
+      cycleIntensity: intensity,
+      cycleSymptoms: symptoms,
+      cycleNotes: notes ?? null,
+    });
   },
 
   logCheckin: async (userId, alcohol, cannabis) => {
     set({ alcohol, cannabis });
-    await supabase.from('daily_checkins').upsert({
-      user_id: userId,
-      checkin_date: get().date,
-      alcohol,
-      cannabis,
-    });
+    await saveLocal(userId, get().date, { alcohol, cannabis });
   },
 
   logMedication: async (userId, status, skipReason, sideEffects) => {
     set({ medicationStatus: status });
-    await supabase.from('medication_logs').upsert({
-      user_id: userId,
-      log_date: get().date,
-      status,
-      skip_reason: skipReason ?? null,
-      side_effects: sideEffects ?? [],
+    await saveLocal(userId, get().date, {
+      medicationStatus: status,
+      medicationSkipReason: skipReason ?? null,
+      medicationSideEffects: sideEffects ?? [],
     });
   },
 }));
