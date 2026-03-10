@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, Modal, Pressable,
+  StyleSheet, Modal, Pressable, TextInput, Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../stores/auth';
@@ -216,6 +216,15 @@ export default function TodayScreen() {
   const [selectedSkipReason, setSelectedSkipReason] = useState<string | null>(null);
   const [heroScrollRef, setHeroScrollRef] = useState<string | null>(null);
 
+  // Medication settings sheet
+  const [medSettingsVisible, setMedSettingsVisible] = useState(false);
+  const [medNameDraft, setMedNameDraft] = useState('');
+  const [medDosageDraft, setMedDosageDraft] = useState('');
+
+  // Substance settings sheet
+  const [subSettingsVisible, setSubSettingsVisible] = useState(false);
+  const [trackSubsDraft, setTrackSubsDraft] = useState(true);
+
   const todayDate = isoToday();
 
   useEffect(() => {
@@ -264,10 +273,41 @@ export default function TodayScreen() {
     today.logCheckin(userId, alcohol, cannabis);
   }
 
+  const { updateProfile } = useAuthStore();
   const cycleState: CycleState = today.cycleState ?? profile?.current_cycle_state ?? 'stable';
   const cycleColor = CYCLE_COLORS[cycleState];
   const tip = CYCLE_TIPS[cycleState];
   const trackMedication = profile?.track_medication ?? false;
+  const medName = profile?.medication_name ?? null;
+  const medDosage = profile?.medication_dosage ?? null;
+  const trackSubstances = profile?.track_substances ?? true;
+  const medLabel = medName ? `${medName}${medDosage ? ` · ${medDosage}` : ''}` : 'Medication';
+
+  function openMedSettings() {
+    setMedNameDraft(profile?.medication_name ?? '');
+    setMedDosageDraft(profile?.medication_dosage ?? '');
+    setMedSettingsVisible(true);
+  }
+
+  async function saveMedSettings() {
+    if (!userId) return;
+    await updateProfile(userId, {
+      medication_name: medNameDraft.trim() || null,
+      medication_dosage: medDosageDraft.trim() || null,
+    });
+    setMedSettingsVisible(false);
+  }
+
+  function openSubSettings() {
+    setTrackSubsDraft(profile?.track_substances ?? true);
+    setSubSettingsVisible(true);
+  }
+
+  async function saveSubSettings() {
+    if (!userId) return;
+    await updateProfile(userId, { track_substances: trackSubsDraft });
+    setSubSettingsVisible(false);
+  }
   const showRuminationPrompt = today.moodScore !== null && today.moodScore <= 3;
   const showSleepPrompt = sleep.todayLog === null && new Date().getHours() < 14;
 
@@ -544,7 +584,17 @@ export default function TodayScreen() {
           <View style={s.card}>
             {trackMedication && (
               <View style={s.checkinBlock}>
-                <Text style={s.checkinBlockLabel}>💊  Medication today</Text>
+                <View style={s.checkinLabelRow}>
+                  <Text style={s.checkinBlockLabel}>💊  {medLabel}</Text>
+                  <TouchableOpacity onPress={openMedSettings} hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+                    <Text style={s.settingsGear}>⚙</Text>
+                  </TouchableOpacity>
+                </View>
+                {!medName && (
+                  <TouchableOpacity onPress={openMedSettings}>
+                    <Text style={s.addMedHint}>+ Add medication name & dosage</Text>
+                  </TouchableOpacity>
+                )}
                 <View style={s.medButtons}>
                   {(['taken', 'skipped', 'partial'] as MedicationStatus[]).map((status) => {
                     const active = today.medicationStatus === status;
@@ -564,25 +614,39 @@ export default function TodayScreen() {
                 </View>
               </View>
             )}
-            <View style={[s.checkinBlock, trackMedication && s.checkinDivider]}>
-              <Text style={s.checkinBlockLabel}>🍃  Substances today</Text>
-              <View style={s.substanceRow}>
-                {(['alcohol', 'cannabis'] as const).map((sub) => {
-                  const active = today[sub] === true;
-                  return (
-                    <TouchableOpacity
-                      key={sub}
-                      style={[s.subBtn, active && { borderColor: '#C4A0B0', backgroundColor: '#C4A0B015' }]}
-                      onPress={() => toggleSubstance(sub)}
-                    >
-                      <Text style={[s.subBtnText, active && { color: '#C4A0B0', opacity: 1, fontWeight: '600' }]}>
-                        {sub === 'alcohol' ? '🍷' : '🌿'} {sub.charAt(0).toUpperCase() + sub.slice(1)}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
+            {trackSubstances && (
+              <View style={[s.checkinBlock, trackMedication && s.checkinDivider]}>
+                <View style={s.checkinLabelRow}>
+                  <Text style={s.checkinBlockLabel}>🍃  Substances today</Text>
+                  <TouchableOpacity onPress={openSubSettings} hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+                    <Text style={s.settingsGear}>⚙</Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={s.substanceRow}>
+                  {(['alcohol', 'cannabis'] as const).map((sub) => {
+                    const active = today[sub] === true;
+                    return (
+                      <TouchableOpacity
+                        key={sub}
+                        style={[s.subBtn, active && { borderColor: '#C4A0B0', backgroundColor: '#C4A0B015' }]}
+                        onPress={() => toggleSubstance(sub)}
+                      >
+                        <Text style={[s.subBtnText, active && { color: '#C4A0B0', opacity: 1, fontWeight: '600' }]}>
+                          {sub === 'alcohol' ? '🍷' : '🌿'} {sub.charAt(0).toUpperCase() + sub.slice(1)}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
               </View>
-            </View>
+            )}
+            {!trackSubstances && !trackMedication && (
+              <View style={s.checkinBlock}>
+                <TouchableOpacity onPress={openSubSettings}>
+                  <Text style={s.addMedHint}>+ Configure substance tracking</Text>
+                </TouchableOpacity>
+              </View>
+            )}
             {rhythm.todayAnchorsTotal > 0 && (
               <TouchableOpacity
                 style={[s.checkinBlock, s.checkinDivider, s.rhythmRow]}
@@ -590,7 +654,7 @@ export default function TodayScreen() {
                 activeOpacity={0.7}
               >
                 <View>
-                  <Text style={s.checkinBlockLabel}>🗓  Daily Routine</Text>
+                  <Text style={[s.checkinBlockLabel, { marginBottom: 2 }]}>🗓  Daily Routine</Text>
                   <Text style={s.rhythmSub}>{rhythm.todayAnchorsHit} of {rhythm.todayAnchorsTotal} anchors hit</Text>
                 </View>
                 <View style={s.rhythmRight}>
@@ -682,6 +746,59 @@ export default function TodayScreen() {
           <View style={{ height: 32 }} />
         </View>
       </ScrollView>
+
+      {/* Medication settings sheet */}
+      <Modal visible={medSettingsVisible} transparent animationType="slide">
+        <Pressable style={s.sheetBackdrop} onPress={() => setMedSettingsVisible(false)}>
+          <Pressable style={s.sheet} onPress={() => {}}>
+            <Text style={s.sheetTitle}>Medication</Text>
+            <Text style={s.sheetFieldLabel}>Name</Text>
+            <TextInput
+              style={s.sheetInput}
+              value={medNameDraft}
+              onChangeText={setMedNameDraft}
+              placeholder="e.g. Lithium, Quetiapine…"
+              placeholderTextColor="#3D393540"
+              autoCapitalize="words"
+            />
+            <Text style={s.sheetFieldLabel}>Dosage</Text>
+            <TextInput
+              style={s.sheetInput}
+              value={medDosageDraft}
+              onChangeText={setMedDosageDraft}
+              placeholder="e.g. 400mg, 50mg twice daily…"
+              placeholderTextColor="#3D393540"
+            />
+            <TouchableOpacity style={s.sheetConfirm} onPress={saveMedSettings}>
+              <Text style={s.sheetConfirmText}>Save</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Substance settings sheet */}
+      <Modal visible={subSettingsVisible} transparent animationType="slide">
+        <Pressable style={s.sheetBackdrop} onPress={() => setSubSettingsVisible(false)}>
+          <Pressable style={s.sheet} onPress={() => {}}>
+            <Text style={s.sheetTitle}>Substance Tracking</Text>
+            <View style={s.subToggleRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={s.subToggleLabel}>Track substances</Text>
+                <Text style={s.subToggleSub}>Shows alcohol & cannabis check-ins on your home screen</Text>
+              </View>
+              <Switch
+                value={trackSubsDraft}
+                onValueChange={setTrackSubsDraft}
+                trackColor={{ true: '#A8C5A0', false: '#E0DDD8' }}
+                thumbColor="#FFFFFF"
+              />
+            </View>
+            <TouchableOpacity style={s.sheetConfirm} onPress={saveSubSettings}>
+              <Text style={s.sheetConfirmText}>Save</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {/* Medication skip sheet */}
       <Modal visible={skipSheetVisible} transparent animationType="slide">
@@ -843,7 +960,10 @@ const s = StyleSheet.create({
   // Check-ins
   checkinBlock: { paddingVertical: 12 },
   checkinDivider: { borderTopWidth: 1, borderTopColor: '#F0EDE8' },
-  checkinBlockLabel: { fontSize: 13, fontWeight: '500', color: '#3D3935', marginBottom: 10, opacity: 0.75 },
+  checkinBlockLabel: { fontSize: 13, fontWeight: '500', color: '#3D3935', opacity: 0.75 },
+  checkinLabelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+  settingsGear: { fontSize: 14, color: '#3D3935', opacity: 0.3 },
+  addMedHint: { fontSize: 12, color: '#A8C5A0', fontWeight: '600', marginBottom: 10 },
   medButtons: { flexDirection: 'row', gap: 8 },
   medBtn: { flex: 1, paddingVertical: 9, borderRadius: 10, borderWidth: 1.5, borderColor: '#E0DDD8', alignItems: 'center' },
   medBtnText: { fontSize: 13, color: '#3D3935', opacity: 0.45, fontWeight: '500' },
@@ -913,6 +1033,14 @@ const s = StyleSheet.create({
   sheetBackdrop: { flex: 1, backgroundColor: '#00000030', justifyContent: 'flex-end' },
   sheet: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, paddingBottom: 40 },
   sheetTitle: { fontSize: 17, fontWeight: '700', color: '#3D3935', marginBottom: 16 },
+  sheetFieldLabel: { fontSize: 12, fontWeight: '700', color: '#3D3935', opacity: 0.45, letterSpacing: 0.5, marginBottom: 6 },
+  sheetInput: {
+    backgroundColor: '#F7F3EE', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14,
+    fontSize: 15, color: '#3D3935', marginBottom: 14,
+  },
+  subToggleRow: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingVertical: 8, marginBottom: 16 },
+  subToggleLabel: { fontSize: 15, fontWeight: '600', color: '#3D3935', marginBottom: 3 },
+  subToggleSub: { fontSize: 12, color: '#3D3935', opacity: 0.45, lineHeight: 17 },
   sheetOption: { paddingVertical: 13, paddingHorizontal: 14, borderRadius: 12, borderWidth: 1.5, borderColor: '#E0DDD8', marginBottom: 8 },
   sheetOptionActive: { borderColor: '#A8C5A0', backgroundColor: '#A8C5A015' },
   sheetOptionText: { fontSize: 15, color: '#3D3935', opacity: 0.5 },

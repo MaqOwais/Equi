@@ -28,6 +28,12 @@ const DEV_SESSION = {
 
 const sqliteDb = SQLite.openDatabaseSync('equi-dev.db');
 
+// Add profile columns that may not exist yet (ALTER TABLE is idempotent via try/catch)
+try { sqliteDb.execSync(`ALTER TABLE profiles ADD COLUMN track_medication INTEGER DEFAULT 1;`); } catch {}
+try { sqliteDb.execSync(`ALTER TABLE profiles ADD COLUMN medication_name TEXT;`); } catch {}
+try { sqliteDb.execSync(`ALTER TABLE profiles ADD COLUMN medication_dosage TEXT;`); } catch {}
+try { sqliteDb.execSync(`ALTER TABLE profiles ADD COLUMN track_substances INTEGER DEFAULT 1;`); } catch {}
+
 // Activities table needs DROP+CREATE to update schema — must be in its own execSync
 sqliteDb.execSync(`DROP TABLE IF EXISTS activities;`);
 sqliteDb.execSync(`
@@ -305,8 +311,8 @@ sqliteDb.execSync(`
 // ─── Seed dev data (INSERT OR IGNORE so it only runs once) ───────────────────
 
 sqliteDb.execSync(`
-  INSERT OR IGNORE INTO profiles (id, display_name, user_role, diagnosis_confirmed, onboarding_complete, onboarding_step, current_cycle_state)
-  VALUES ('${DEV_USER_ID}', 'Dev User', 'user', 1, 1, 'complete', 'stable');
+  INSERT OR IGNORE INTO profiles (id, display_name, user_role, diagnosis_confirmed, onboarding_complete, onboarding_step, current_cycle_state, track_medication, track_substances)
+  VALUES ('${DEV_USER_ID}', 'Dev User', 'user', 1, 1, 'complete', 'stable', 1, 1);
 
   INSERT OR IGNORE INTO activities (id, title, description, duration_minutes, category, compatible_states, restricted_states, is_workbook_entry, evidence_label) VALUES
     ('act-01', '5-4-3-2-1 Grounding', 'Use your five senses to anchor yourself in the present moment. Name 5 things you see, 4 you can touch, 3 you hear, 2 you smell, 1 you taste.', 5, 'grounding', '["stable","manic","depressive","mixed"]', '[]', 0, 'Evidence-based: anxiety & dissociation'),
@@ -337,7 +343,7 @@ const JSON_COLS = new Set([
   'symptoms', 'blocks', 'categories', 'anchor_detail', 'raw_healthkit',
   'report_json', 'warning_signs', 'compatible_states', 'restricted_states',
 ]);
-const BOOL_COLS = new Set(['alcohol', 'cannabis', 'diagnosis_confirmed', 'onboarding_complete', 'is_active', 'bookmarked', 'is_workbook_entry']);
+const BOOL_COLS = new Set(['alcohol', 'cannabis', 'diagnosis_confirmed', 'onboarding_complete', 'is_active', 'bookmarked', 'is_workbook_entry', 'track_substances', 'track_medication']);
 
 function serializeRow(row: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {};

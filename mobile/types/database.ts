@@ -83,6 +83,10 @@ export interface Profile {
   onboarding_step: OnboardingStep;
   onboarding_completed_at: string | null;
   last_active_at: string | null;
+  // Medication & substance preferences
+  medication_name: string | null;
+  medication_dosage: string | null;
+  track_substances: boolean;
 }
 
 export type OnboardingStep =

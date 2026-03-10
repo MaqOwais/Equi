@@ -134,7 +134,8 @@ export default function YouScreen() {
   const [radarScores, setRadarScores] = useState<RadarScores>({
     mood: 0, activity: 0, journal: 0, mindful: 0, social: 0, sleep: 0,
   });
-  const [trackMed, setTrackMed] = useState(profile?.track_medication ?? false);
+  const [trackMed, setTrackMed] = useState(profile?.track_medication ?? true);
+  const [trackSubs, setTrackSubs] = useState(profile?.track_substances ?? true);
 
   const displayName = profile?.display_name ?? session?.user.email?.split('@')[0] ?? 'You';
   const diagnosisLabel = profile?.diagnosis ? DIAGNOSIS_LABELS[profile.diagnosis] : null;
@@ -148,8 +149,9 @@ export default function YouScreen() {
   }, [userId]);
 
   useEffect(() => {
-    setTrackMed(profile?.track_medication ?? false);
-  }, [profile?.track_medication]);
+    setTrackMed(profile?.track_medication ?? true);
+    setTrackSubs(profile?.track_substances ?? true);
+  }, [profile?.track_medication, profile?.track_substances]);
 
   async function loadStats() {
     if (!userId) return;
@@ -204,7 +206,12 @@ export default function YouScreen() {
 
   async function handleMedToggle(val: boolean) {
     setTrackMed(val);
-    await supabase.from('profiles').update({ track_medication: val }).eq('id', userId);
+    if (userId) await updateProfile(userId, { track_medication: val });
+  }
+
+  async function handleSubsToggle(val: boolean) {
+    setTrackSubs(val);
+    if (userId) await updateProfile(userId, { track_substances: val });
   }
 
   return (
@@ -319,20 +326,6 @@ export default function YouScreen() {
         <Text style={s.sectionLabel}>SETTINGS</Text>
         <View style={s.menuCard}>
           <MenuItem
-            icon="💊"
-            label="Medication tracking"
-            sub={trackMed ? 'Enabled' : 'Disabled'}
-            onPress={() => {}}
-            right={
-              <Switch
-                value={trackMed}
-                onValueChange={handleMedToggle}
-                trackColor={{ true: '#A8C5A0' }}
-              />
-            }
-          />
-          <View style={s.divider} />
-          <MenuItem
             icon="🔒"
             label="Privacy & data"
             sub="Export or delete your data"
@@ -340,6 +333,46 @@ export default function YouScreen() {
           />
           <View style={s.divider} />
           <MenuItem icon="🔔" label="Notifications" onPress={() => router.push('/(tabs)/you/notifications')} />
+        </View>
+
+        {/* Tracking */}
+        <Text style={s.sectionLabel}>TRACKING</Text>
+        <View style={s.menuCard}>
+          {/* Medication row */}
+          <MenuItem
+            icon="💊"
+            label="Medication tracking"
+            sub={trackMed
+              ? (profile?.medication_name
+                  ? `${profile.medication_name}${profile.medication_dosage ? ' · ' + profile.medication_dosage : ''}`
+                  : 'Enabled — set name in Home')
+              : 'Disabled'}
+            onPress={() => {}}
+            right={
+              <Switch
+                value={trackMed}
+                onValueChange={handleMedToggle}
+                trackColor={{ false: '#E0DDD8', true: '#A8C5A0' }}
+                thumbColor="#FFFFFF"
+              />
+            }
+          />
+          <View style={s.divider} />
+          {/* Substance row */}
+          <MenuItem
+            icon="🍷"
+            label="Substance tracking"
+            sub={trackSubs ? 'Tracking alcohol & cannabis' : 'Hidden from check-ins'}
+            onPress={() => {}}
+            right={
+              <Switch
+                value={trackSubs}
+                onValueChange={handleSubsToggle}
+                trackColor={{ false: '#E0DDD8', true: '#A8C5A0' }}
+                thumbColor="#FFFFFF"
+              />
+            }
+          />
         </View>
 
         {/* Wearable */}

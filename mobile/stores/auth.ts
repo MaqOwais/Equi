@@ -15,6 +15,7 @@ interface AuthStore {
   setPendingRole: (role: UserRole) => void;
   setPendingEmail: (email: string) => void;
   loadProfile: (userId: string) => Promise<void>;
+  updateProfile: (userId: string, fields: Partial<Profile>) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -39,6 +40,12 @@ export const useAuthStore = create<AuthStore>((set) => ({
       .select('*')
       .eq('id', userId)
       .single();
+    if (data) set({ profile: data as Profile });
+  },
+
+  updateProfile: async (userId, fields) => {
+    await (supabase as any).from('profiles').update(fields).eq('id', userId);
+    const { data } = await supabase.from('profiles').select('*').eq('id', userId).single();
     if (data) set({ profile: data as Profile });
   },
 
