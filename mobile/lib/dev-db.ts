@@ -93,13 +93,13 @@ const MIGRATIONS: { version: number; statements: string[] }[] = [
   },
 
   // ── Add new migrations here — never edit above ──────────────────────────────
-  // Example future migration:
-  // {
-  //   version: 2,
-  //   statements: [
-  //     `ALTER TABLE profiles ADD COLUMN new_column TEXT`,
-  //   ],
-  // },
+  {
+    version: 2,
+    statements: [
+      // Seed default notification_preferences for dev user (idempotent)
+      `INSERT OR IGNORE INTO notification_preferences (id, user_id, checkin_enabled, checkin_time, checkin_ring, journal_enabled, journal_time, journal_ring, sleep_log_enabled, sleep_log_time, sleep_log_ring, activity_reminder_enabled, activity_reminder_time, activity_reminder_ring, weekly_report_enabled, early_warning_enabled, anchor_nudges_enabled, anchor_nudges_ring, post_crisis_enabled) VALUES ('notif-prefs-dev', '${DEV_USER_ID}', 1, '20:00:00', 0, 0, '21:00:00', 0, 0, '09:00:00', 0, 0, '15:00:00', 0, 1, 1, 0, 0, 0)`,
+    ],
+  },
 ];
 
 // ─── Migration runner ─────────────────────────────────────────────────────────
@@ -213,12 +213,22 @@ class DevQueryBuilder {
   private _limitVal: number | null = null;
   private _rangeFrom: number | null = null;
   private _rangeTo: number | null = null;
+  private _returning = false;
 
   constructor(table: string) {
     this._table = table;
   }
 
-  select(cols = '*') { this._op = 'select'; this._selectCols = cols; return this; }
+  select(cols = '*') {
+    if (this._op === 'insert' || this._op === 'upsert' || this._op === 'update') {
+      // .insert().select() — keep write op, just flag that we return the row
+      this._returning = true;
+    } else {
+      this._op = 'select';
+    }
+    this._selectCols = cols;
+    return this;
+  }
   eq(col: string, val: unknown) { this._wheres.push(`${col} = ?`); this._params.push(val as SqlValue); return this; }
   gte(col: string, val: unknown) { this._wheres.push(`${col} >= ?`); this._params.push(val as SqlValue); return this; }
   lte(col: string, val: unknown) { this._wheres.push(`${col} <= ?`); this._params.push(val as SqlValue); return this; }
@@ -328,7 +338,7 @@ class DevQueryBuilder {
           const fetched = sqliteDb.getFirstSync(`SELECT * FROM ${this._table} WHERE ${whereCol} = ?`, [row[whereCol]]) as Record<string, unknown> | null;
           if (fetched) inserted.push(deserializeRow(fetched));
         }
-        if (this._single || this._maybeSingle) return { data: inserted[0] ?? null, error: null };
+        if (this._returning || this._single || this._maybeSingle) return { data: inserted[0] ?? null, error: null };
         return { data: inserted, error: null };
       }
 

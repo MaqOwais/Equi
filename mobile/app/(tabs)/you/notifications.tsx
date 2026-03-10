@@ -1,5 +1,8 @@
-import { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch, Platform, Alert } from 'react-native';
+import { useEffect, useState, useRef } from 'react';
+import {
+  View, Text, ScrollView, TouchableOpacity, StyleSheet,
+  Switch, Platform, Alert, Animated,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
@@ -9,7 +12,56 @@ import type { NotificationPreferences } from '../../../types/database';
 
 const IS_EXPO_GO = Constants.executionEnvironment === 'storeClient';
 
-// ─── Expo Go banner ───────────────────────────────────────────────────────────
+// ─── In-app notification toast (preview for Expo Go) ─────────────────────────
+
+interface ToastNotif { title: string; body: string; ring: boolean }
+
+function NotifToast({ notif, onDone }: { notif: ToastNotif | null; onDone: () => void }) {
+  const slideY = useRef(new Animated.Value(-120)).current;
+  const prevNotif = useRef<ToastNotif | null>(null);
+
+  useEffect(() => {
+    if (notif) {
+      prevNotif.current = notif;
+      Animated.spring(slideY, { toValue: 0, useNativeDriver: true, tension: 70, friction: 10 }).start();
+      const t = setTimeout(() => {
+        Animated.timing(slideY, { toValue: -120, useNativeDriver: true, duration: 300 }).start(onDone);
+      }, 3500);
+      return () => clearTimeout(t);
+    }
+  }, [notif]);
+
+  const n = notif ?? prevNotif.current;
+  if (!n) return null;
+
+  return (
+    <Animated.View style={[toast.wrap, { transform: [{ translateY: slideY }] }]}>
+      <View style={toast.header}>
+        <Text style={toast.app}>EQUI  ·  now</Text>
+        {n.ring && <Text style={toast.ring}>🔔 Ring</Text>}
+      </View>
+      <Text style={toast.title}>{n.title}</Text>
+      <Text style={toast.body}>{n.body}</Text>
+    </Animated.View>
+  );
+}
+
+const toast = StyleSheet.create({
+  wrap: {
+    position: 'absolute', top: 0, left: 12, right: 12, zIndex: 999,
+    backgroundColor: '#FFFFFF', borderRadius: 16, padding: 14,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.18, shadowRadius: 16, elevation: 12,
+    borderWidth: 1, borderColor: '#E8DCC8',
+  },
+  header: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
+  app: { fontSize: 11, fontWeight: '700', color: '#A8C5A0', letterSpacing: 0.5 },
+  ring: { fontSize: 11, color: '#C9A84C', fontWeight: '600' },
+  title: { fontSize: 14, fontWeight: '700', color: '#3D3935', marginBottom: 2 },
+  body: { fontSize: 13, color: '#3D3935', opacity: 0.6, lineHeight: 18 },
+});
+
+// ─── Expo Go info banner ──────────────────────────────────────────────────────
 
 function ExpoGoBanner() {
   if (!IS_EXPO_GO) return null;
@@ -17,10 +69,9 @@ function ExpoGoBanner() {
     <View style={banner.wrap}>
       <Text style={banner.icon}>📵</Text>
       <View style={{ flex: 1 }}>
-        <Text style={banner.title}>Notifications disabled in Expo Go</Text>
+        <Text style={banner.title}>Preview mode — Expo Go</Text>
         <Text style={banner.body}>
-          Your preferences are saved and will activate in a dev or production build.
-          Expo Go removed push notification support in SDK 53.
+          Real notifications require a dev or production build. Tap "Preview notification" on any row to see what it would look like.
         </Text>
       </View>
     </View>
@@ -91,12 +142,14 @@ const tp = StyleSheet.create({
  * ringKey: if provided, shows a ring sub-toggle when expanded
  */
 function NotifRow({
-  icon, title, sub, enabled, onToggle, timeValue, onTimeChange, ringEnabled, onRingToggle,
+  icon, title, sub, enabled, onToggle, timeValue, onTimeChange,
+  ringEnabled, onRingToggle, previewTitle, previewBody,
 }: {
   icon: string; title: string; sub: string;
   enabled: boolean; onToggle: (v: boolean) => void;
   timeValue?: string; onTimeChange?: (t: string) => void;
   ringEnabled?: boolean; onRingToggle?: (v: boolean) => void;
+  previewTitle?: string; previewBody?: string;
 }) {
   const [expanded, setExpanded] = useState(false);
   const hasTime = !!timeValue && !!onTimeChange;
@@ -145,7 +198,55 @@ function NotifRow({
           )}
         </>
       )}
+
+      {/* Preview button — visible always so user can see what the notification looks like */}
+      {enabled && previewTitle && (
+        <_Preview title={previewTitle} body={previewBody ?? ''} ring={ringEnabled ?? false} />
+      )}
     </View>
+  );
+}
+
+function _Preview({ title, body, ring }: { title: string; body: string; ring: boolean }) {
+  const [toast, setToast] = useState<ToastNotif | null>(null);
+
+  async function fire() {
+    if (IS_EXPO_GO) {
+      // In-app preview toast
+      setToast({ title, body, ring });
+      setTimeout(() => setToast(null), 4000);
+    } else {
+      // Real immediate notification
+      try {
+        const N = require('expo-notifications');
+        await N.scheduleNotificationAsync({
+          content: { title, body, sound: ring },
+          trigger: null,
+        });
+      } catch {
+        Alert.alert('Error', 'Check notification permissions in device Settings.');
+      }
+    }
+  }
+
+  return (
+    <>
+      <TouchableOpacity style={nr.previewBtn} onPress={fire} activeOpacity={0.7}>
+        <Text style={nr.previewTxt}>
+          {IS_EXPO_GO ? '👁 Preview notification' : '▶ Send now'}
+        </Text>
+      </TouchableOpacity>
+      {toast && (
+        <View style={nr.inlineToast}>
+          <View style={nr.inlineToastHeader}>
+            <Text style={nr.inlineToastApp}>EQUI · now</Text>
+            {ring && <Text style={nr.inlineToastRing}>🔔 Ring</Text>}
+          </View>
+          <Text style={nr.inlineToastTitle}>{toast.title}</Text>
+          <Text style={nr.inlineToastBody}>{toast.body}</Text>
+        </View>
+      )}
+    </>
   );
 }
 
@@ -176,6 +277,21 @@ const nr = StyleSheet.create({
   },
   ringLabel: { fontSize: 14, fontWeight: '500', color: '#3D3935' },
   ringSub: { fontSize: 12, color: '#3D3935', opacity: 0.4, marginTop: 2 },
+  previewBtn: {
+    borderTopWidth: 1, borderTopColor: '#F0EDE8',
+    paddingHorizontal: 14, paddingVertical: 10,
+    alignItems: 'center',
+  },
+  previewTxt: { fontSize: 13, color: '#A8C5A0', fontWeight: '600' },
+  inlineToast: {
+    margin: 10, marginTop: 0, backgroundColor: '#F7F3EE', borderRadius: 12,
+    padding: 12, borderWidth: 1, borderColor: '#E8DCC8',
+  },
+  inlineToastHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 3 },
+  inlineToastApp: { fontSize: 10, fontWeight: '700', color: '#A8C5A0', letterSpacing: 0.5 },
+  inlineToastRing: { fontSize: 10, color: '#C9A84C', fontWeight: '700' },
+  inlineToastTitle: { fontSize: 13, fontWeight: '700', color: '#3D3935', marginBottom: 2 },
+  inlineToastBody: { fontSize: 12, color: '#3D3935', opacity: 0.55, lineHeight: 17 },
 });
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
@@ -264,6 +380,8 @@ export default function NotificationsScreen() {
           onTimeChange={(t) => update({ checkin_time: t })}
           ringEnabled={p.checkin_ring ?? false}
           onRingToggle={(v) => update({ checkin_ring: v })}
+          previewTitle="How are you feeling today?"
+          previewBody="Tap to log your mood — it takes 5 seconds."
         />
 
         <NotifRow
@@ -276,6 +394,8 @@ export default function NotificationsScreen() {
           onTimeChange={(t) => update({ journal_time: t })}
           ringEnabled={p.journal_ring ?? false}
           onRingToggle={(v) => update({ journal_ring: v })}
+          previewTitle="Time to journal"
+          previewBody="Take a few minutes to reflect on your day."
         />
 
         <NotifRow
@@ -288,6 +408,8 @@ export default function NotificationsScreen() {
           onTimeChange={(t) => update({ sleep_log_time: t })}
           ringEnabled={p.sleep_log_ring ?? false}
           onRingToggle={(v) => update({ sleep_log_ring: v })}
+          previewTitle="Good morning"
+          previewBody="How did you sleep? Log last night's rest."
         />
 
         <NotifRow
@@ -300,6 +422,8 @@ export default function NotificationsScreen() {
           onTimeChange={(t) => update({ activity_reminder_time: t })}
           ringEnabled={p.activity_reminder_ring ?? false}
           onRingToggle={(v) => update({ activity_reminder_ring: v })}
+          previewTitle="Activity time"
+          previewBody="Try a wellbeing activity matched to how you're feeling today."
         />
 
         {/* Medication reminders — managed per-medication */}
@@ -322,6 +446,8 @@ export default function NotificationsScreen() {
           sub="Sunday 10:00 AM when your report is generated"
           enabled={p.weekly_report_enabled}
           onToggle={(v) => update({ weekly_report_enabled: v })}
+          previewTitle="Your weekly report is ready"
+          previewBody="See how your mood, sleep, and routine shaped your week."
         />
 
         <NotifRow
@@ -330,6 +456,8 @@ export default function NotificationsScreen() {
           sub="When AI detects patterns matching your relapse signatures"
           enabled={p.early_warning_enabled}
           onToggle={(v) => update({ early_warning_enabled: v })}
+          previewTitle="Equi noticed something"
+          previewBody="Your recent patterns match some of your personal early warning signs. Tap to review."
         />
 
         {/* Routine */}
@@ -343,6 +471,8 @@ export default function NotificationsScreen() {
           onToggle={(v) => update({ anchor_nudges_enabled: v })}
           ringEnabled={p.anchor_nudges_ring ?? false}
           onRingToggle={(v) => update({ anchor_nudges_ring: v })}
+          previewTitle="Bedtime in 15 minutes"
+          previewBody="Tap to log when you actually do it."
         />
 
         {/* Safety */}
@@ -354,6 +484,8 @@ export default function NotificationsScreen() {
           sub="Check-in 24 hours after using the SOS button"
           enabled={p.post_crisis_enabled}
           onToggle={(v) => update({ post_crisis_enabled: v })}
+          previewTitle="How are you doing?"
+          previewBody="Yesterday was difficult. We're checking in. Tap to log today."
         />
 
         <View style={s.noteCard}>

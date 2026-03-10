@@ -63,9 +63,11 @@
       "checkAutomatically": "OFF"
     },
     "extra": {
+      "router": {},
       "eas": {
-        "projectId": "YOUR_EAS_PROJECT_ID"
+        "projectId": "433b31ab-8b25-473d-acc5-8261ea1e2f08"
       }
-    }
+    },
+    "owner": "maqowais"
   }
 }
