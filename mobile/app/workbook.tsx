@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, TextInput,
+  StyleSheet, TextInput, Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -14,6 +14,8 @@ import type { WorkbookResponse } from '../types/database';
 const CHAPTERS = [
   {
     title: 'Understanding My Cycles',
+    icon: '🌊',
+    description: 'Learn to recognise the texture of each mood state in your own life — before symptoms escalate.',
     prompts: [
       'What does a stable week feel like for me?',
       'How do I know when I am shifting into a high period?',
@@ -23,6 +25,8 @@ const CHAPTERS = [
   },
   {
     title: 'My Triggers',
+    icon: '🌿',
+    description: 'Map the events, environments, and thought patterns that tend to precede mood shifts.',
     prompts: [
       'What life events have come before episodes in the past?',
       'What environments tend to destabilise me?',
@@ -32,6 +36,8 @@ const CHAPTERS = [
   },
   {
     title: 'My Warning Signs',
+    icon: '🔔',
+    description: 'Build an early-warning system based on what you — and those close to you — have observed.',
     prompts: [
       'What do people close to me notice before I do?',
       'What physical sensations appear early in a shift?',
@@ -41,6 +47,8 @@ const CHAPTERS = [
   },
   {
     title: 'My Strengths',
+    icon: '✨',
+    description: 'Identify the resources, relationships, and hard-won wisdom that have carried you through.',
     prompts: [
       'What has helped me through difficult episodes before?',
       'Who supports me well, and how?',
@@ -49,6 +57,11 @@ const CHAPTERS = [
     ],
   },
 ];
+
+const SAGE = '#A8C5A0';
+const CHARCOAL = '#3D3935';
+const SURFACE = '#F7F3EE';
+const SAND = '#E8DCC8';
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
@@ -60,7 +73,8 @@ export default function WorkbookScreen() {
   const [responses, setResponses] = useState<WorkbookResponse[]>([]);
   const [activeChapter, setActiveChapter] = useState(0);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
-  const [saving, setSaving] = useState<string | null>(null);
+  const [saveState, setSaveState] = useState<Record<string, 'idle' | 'saving' | 'saved'>>({});
+  const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   useEffect(() => {
     if (userId) loadResponses();
@@ -68,37 +82,45 @@ export default function WorkbookScreen() {
 
   async function loadResponses() {
     if (!userId) return;
-    const { data } = await supabase
+    const { data } = await (supabase as any)
       .from('workbook_responses')
       .select('*')
       .eq('user_id', userId);
     if (data) setResponses(data as WorkbookResponse[]);
   }
 
-  function getResponse(chapter: number, promptIndex: number): string {
-    const key = `${chapter}-${promptIndex}`;
-    if (drafts[key] !== undefined) return drafts[key];
-    return responses.find((r) => r.chapter === chapter + 1 && r.prompt_index === promptIndex)?.response ?? '';
+  function getSaved(chapter: number, pi: number): string {
+    return responses.find((r) => r.chapter === chapter + 1 && r.prompt_index === pi)?.response ?? '';
   }
 
-  function handleDraftChange(chapter: number, promptIndex: number, text: string) {
-    const key = `${chapter}-${promptIndex}`;
+  function getValue(chapter: number, pi: number): string {
+    const key = `${chapter}-${pi}`;
+    return drafts[key] !== undefined ? drafts[key] : getSaved(chapter, pi);
+  }
+
+  function handleChange(chapter: number, pi: number, text: string) {
+    const key = `${chapter}-${pi}`;
     setDrafts((d) => ({ ...d, [key]: text }));
+    setSaveState((s) => ({ ...s, [key]: 'idle' }));
+
+    // Debounce autosave — 1.5 s after user stops typing
+    clearTimeout(saveTimers.current[key]);
+    if (text.trim()) {
+      saveTimers.current[key] = setTimeout(() => save(chapter, pi, text), 1500);
+    }
   }
 
-  async function handleSavePrompt(chapter: number, promptIndex: number) {
-    if (!userId) return;
-    const key = `${chapter}-${promptIndex}`;
-    const text = drafts[key];
-    if (!text?.trim()) return;
+  async function save(chapter: number, pi: number, text: string) {
+    if (!userId || !text.trim()) return;
+    const key = `${chapter}-${pi}`;
+    setSaveState((s) => ({ ...s, [key]: 'saving' }));
 
-    setSaving(key);
-    const { data } = await supabase
+    const { data } = await (supabase as any)
       .from('workbook_responses')
       .upsert({
         user_id: userId,
         chapter: chapter + 1,
-        prompt_index: promptIndex,
+        prompt_index: pi,
         response: text.trim(),
         updated_at: new Date().toISOString(),
       })
@@ -108,152 +130,188 @@ export default function WorkbookScreen() {
     if (data) {
       setResponses((prev) => {
         const without = prev.filter(
-          (r) => !(r.chapter === chapter + 1 && r.prompt_index === promptIndex),
+          (r) => !(r.chapter === chapter + 1 && r.prompt_index === pi),
         );
         return [...without, data as WorkbookResponse];
       });
-      setDrafts((d) => {
-        const next = { ...d };
-        delete next[key];
-        return next;
-      });
+      setDrafts((d) => { const n = { ...d }; delete n[key]; return n; });
     }
-    setSaving(null);
+    setSaveState((s) => ({ ...s, [key]: 'saved' }));
   }
 
-  // Chapter lock logic: chapter N unlocks when all 4 prompts in chapter N-1 are answered
-  function chapterAnsweredCount(chapter: number): number {
-    return responses.filter((r) => r.chapter === chapter + 1).length;
+  function chapterCount(ci: number): number {
+    return responses.filter((r) => r.chapter === ci + 1).length;
   }
-  function isChapterUnlocked(chapter: number): boolean {
-    if (chapter === 0) return true;
-    return chapterAnsweredCount(chapter - 1) >= 4;
+  function isUnlocked(ci: number): boolean {
+    return ci === 0 || chapterCount(ci - 1) >= 4;
+  }
+  function isChapterComplete(ci: number): boolean {
+    return chapterCount(ci) >= 4;
   }
 
   const totalAnswered = responses.length;
+  const progressPct = (totalAnswered / 16) * 100;
 
   return (
-    <SafeAreaView style={s.safe}>
+    <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
-        {/* Header */}
+        {/* ── Nav ─────────────────────────────────────────────────────────── */}
         <View style={s.nav}>
-          <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
-            <Text style={s.backText}>←  Back</Text>
+          <TouchableOpacity onPress={() => router.back()} style={s.backBtn} activeOpacity={0.7}>
+            <Text style={s.backText}>← Back</Text>
           </TouchableOpacity>
+          <View style={s.privacyBadge}>
+            <Text style={s.privacyBadgeText}>🔒 Private</Text>
+          </View>
         </View>
 
+        {/* ── Header ──────────────────────────────────────────────────────── */}
         <Text style={s.title}>Bipolar Workbook</Text>
-        <Text style={s.subtitle}>
-          {totalAnswered}/16 prompts answered
-        </Text>
+        <Text style={s.subtitle}>CBT & psychoeducation · 4 chapters · 16 prompts</Text>
 
-        {/* Progress dots */}
-        <View style={s.progressRow}>
-          {CHAPTERS.map((_, ci) => {
-            const count = chapterAnsweredCount(ci);
-            return (
-              <View key={ci} style={s.chapterDots}>
-                {[0, 1, 2, 3].map((pi) => (
-                  <View
-                    key={pi}
-                    style={[
-                      s.dot,
-                      count > pi && s.dotFilled,
-                    ]}
-                  />
-                ))}
-              </View>
-            );
-          })}
+        {/* Progress bar */}
+        <View style={s.progressWrap}>
+          <View style={s.progressTrack}>
+            <View style={[s.progressFill, { width: `${progressPct}%` as any }]} />
+          </View>
+          <Text style={s.progressLabel}>{totalAnswered} / 16</Text>
         </View>
 
-        {/* Chapter tabs */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.chapterTabs}>
+        {/* Chapter progress dots */}
+        <View style={s.chapterDotsRow}>
           {CHAPTERS.map((ch, ci) => {
-            const unlocked = isChapterUnlocked(ci);
+            const count = chapterCount(ci);
+            const complete = count >= 4;
+            const unlocked = isUnlocked(ci);
             return (
               <TouchableOpacity
                 key={ci}
-                style={[
-                  s.chapterTab,
-                  activeChapter === ci && s.chapterTabActive,
-                  !unlocked && s.chapterTabLocked,
-                ]}
+                style={[s.chapterDotBlock, activeChapter === ci && s.chapterDotBlockActive]}
                 onPress={() => unlocked && setActiveChapter(ci)}
                 disabled={!unlocked}
+                activeOpacity={0.7}
               >
-                <Text style={[
-                  s.chapterTabText,
-                  activeChapter === ci && s.chapterTabTextActive,
-                  !unlocked && s.chapterTabTextLocked,
-                ]}>
-                  {!unlocked ? `🔒  Ch. ${ci + 1}` : `Ch. ${ci + 1}`}
+                <Text style={[s.chapterDotIcon, !unlocked && { opacity: 0.3 }]}>
+                  {!unlocked ? '🔒' : complete ? '✓' : ch.icon}
                 </Text>
+                <Text style={[s.chapterDotLabel, activeChapter === ci && { color: SAGE, fontWeight: '700' }, !unlocked && { opacity: 0.3 }]} numberOfLines={1}>
+                  {ch.title.split(' ').slice(0, 2).join(' ')}
+                </Text>
+                <View style={s.chapterMiniDots}>
+                  {[0,1,2,3].map((pi) => (
+                    <View
+                      key={pi}
+                      style={[s.miniDot, count > pi && { backgroundColor: SAGE }]}
+                    />
+                  ))}
+                </View>
               </TouchableOpacity>
             );
           })}
-        </ScrollView>
+        </View>
 
-        {/* Active chapter */}
-        <View style={s.chapterContent}>
-          <Text style={s.chapterTitle}>{CHAPTERS[activeChapter].title}</Text>
-
-          {!isChapterUnlocked(activeChapter) ? (
-            <View style={s.lockedState}>
-              <Text style={s.lockedText}>
-                Answer all {4 - chapterAnsweredCount(activeChapter - 1)} remaining prompts in
-                Chapter {activeChapter} to unlock this chapter.
-              </Text>
+        {/* ── Active chapter ───────────────────────────────────────────────── */}
+        <View style={s.chapterCard}>
+          <View style={s.chapterHeader}>
+            <Text style={s.chapterIcon}>{CHAPTERS[activeChapter].icon}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={s.chapterNum}>Chapter {activeChapter + 1}</Text>
+              <Text style={s.chapterTitle}>{CHAPTERS[activeChapter].title}</Text>
             </View>
-          ) : (
-            CHAPTERS[activeChapter].prompts.map((prompt, pi) => {
+            {isChapterComplete(activeChapter) && (
+              <View style={s.completeBadge}>
+                <Text style={s.completeBadgeText}>Complete ✓</Text>
+              </View>
+            )}
+          </View>
+          <Text style={s.chapterDesc}>{CHAPTERS[activeChapter].description}</Text>
+        </View>
+
+        {/* Locked state */}
+        {!isUnlocked(activeChapter) ? (
+          <View style={s.lockedCard}>
+            <Text style={s.lockedIcon}>🔒</Text>
+            <Text style={s.lockedTitle}>Chapter Locked</Text>
+            <Text style={s.lockedDesc}>
+              Answer all {4 - chapterCount(activeChapter - 1)} remaining prompts in Chapter {activeChapter}{' '}
+              to unlock this chapter.
+            </Text>
+            <TouchableOpacity
+              style={s.lockedBtn}
+              onPress={() => setActiveChapter(activeChapter - 1)}
+              activeOpacity={0.7}
+            >
+              <Text style={s.lockedBtnText}>Go to Chapter {activeChapter} →</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <>
+            {CHAPTERS[activeChapter].prompts.map((prompt, pi) => {
               const key = `${activeChapter}-${pi}`;
-              const value = getResponse(activeChapter, pi);
+              const value = getValue(activeChapter, pi);
+              const state = saveState[key] ?? 'idle';
               const isSaved = responses.some(
                 (r) => r.chapter === activeChapter + 1 && r.prompt_index === pi,
               );
-              const isDirty = drafts[key] !== undefined && drafts[key] !== (
-                responses.find((r) => r.chapter === activeChapter + 1 && r.prompt_index === pi)?.response ?? ''
-              );
+              const isDirty = drafts[key] !== undefined;
+
               return (
-                <View key={pi} style={s.promptBlock}>
-                  <Text style={s.promptNumber}>Prompt {pi + 1}</Text>
-                  <Text style={s.promptText}>{prompt}</Text>
-                  <TextInput
-                    style={s.responseInput}
-                    value={value}
-                    onChangeText={(text) => handleDraftChange(activeChapter, pi, text)}
-                    placeholder="Write your response…"
-                    placeholderTextColor="#3D393540"
-                    multiline
-                    textAlignVertical="top"
-                  />
-                  <View style={s.promptFooter}>
-                    {isSaved && !isDirty ? (
-                      <Text style={s.savedTag}>✓ Saved</Text>
-                    ) : (
-                      <TouchableOpacity
-                        style={[s.savePromptBtn, !value.trim() && s.savePromptBtnDisabled]}
-                        onPress={() => handleSavePrompt(activeChapter, pi)}
-                        disabled={!value.trim() || saving === key}
-                      >
-                        <Text style={s.savePromptBtnText}>
-                          {saving === key ? 'Saving…' : 'Save'}
-                        </Text>
-                      </TouchableOpacity>
-                    )}
+                <View key={pi} style={s.promptCard}>
+                  <View style={[s.promptAccent, isSaved && !isDirty && { backgroundColor: SAGE }]} />
+                  <View style={s.promptBody}>
+                    <View style={s.promptLabelRow}>
+                      <Text style={s.promptLabel}>PROMPT {pi + 1} OF 4</Text>
+                      <SaveIndicator state={state} isSaved={isSaved} isDirty={isDirty} />
+                    </View>
+                    <Text style={s.promptText}>{prompt}</Text>
+                    <TextInput
+                      style={s.input}
+                      value={value}
+                      onChangeText={(t) => handleChange(activeChapter, pi, t)}
+                      placeholder="Write your response…"
+                      placeholderTextColor={CHARCOAL + '30'}
+                      multiline
+                      textAlignVertical="top"
+                    />
                   </View>
                 </View>
               );
-            })
-          )}
-        </View>
+            })}
 
+            {/* Chapter complete card */}
+            {isChapterComplete(activeChapter) && activeChapter < 3 && (
+              <TouchableOpacity
+                style={s.nextChapterCard}
+                onPress={() => setActiveChapter(activeChapter + 1)}
+                activeOpacity={0.8}
+              >
+                <Text style={s.nextChapterLabel}>Chapter {activeChapter + 1} complete ✓</Text>
+                <Text style={s.nextChapterTitle}>
+                  Next: {CHAPTERS[activeChapter + 1].icon} {CHAPTERS[activeChapter + 1].title}
+                </Text>
+                <Text style={s.nextChapterArrow}>Continue →</Text>
+              </TouchableOpacity>
+            )}
+
+            {isChapterComplete(activeChapter) && activeChapter === 3 && (
+              <View style={s.finishedCard}>
+                <Text style={s.finishedEmoji}>🌿</Text>
+                <Text style={s.finishedTitle}>Workbook Complete</Text>
+                <Text style={s.finishedDesc}>
+                  You have answered all 16 prompts. This is valuable self-knowledge — revisit any
+                  chapter any time as your understanding grows.
+                </Text>
+              </View>
+            )}
+          </>
+        )}
+
+        {/* Privacy note */}
         <View style={s.privacyNote}>
           <Text style={s.privacyText}>
-            🔒  Your responses are private. They are never shared with the AI report, companions,
-            or psychiatrists unless you export and share the PDF yourself.
+            Your responses are private and never sent to the AI report, companions, or psychiatrists
+            unless you choose to export and share the PDF yourself.
           </Text>
         </View>
 
@@ -263,64 +321,114 @@ export default function WorkbookScreen() {
   );
 }
 
+// ─── Save indicator ───────────────────────────────────────────────────────────
+
+function SaveIndicator({
+  state, isSaved, isDirty,
+}: { state: 'idle' | 'saving' | 'saved'; isSaved: boolean; isDirty: boolean }) {
+  if (state === 'saving') return <Text style={si.saving}>Saving…</Text>;
+  if (isSaved && !isDirty) return <Text style={si.saved}>✓ Saved</Text>;
+  return null;
+}
+const si = StyleSheet.create({
+  saving: { fontSize: 11, color: CHARCOAL, opacity: 0.35 },
+  saved: { fontSize: 11, color: SAGE, fontWeight: '600' },
+});
+
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#FFFFFF' },
-  scroll: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 20 },
+  scroll: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 24 },
 
-  nav: { paddingVertical: 8, marginBottom: 4 },
-  backBtn: { paddingVertical: 8, paddingRight: 16, alignSelf: 'flex-start' },
-  backText: { fontSize: 15, color: '#A8C5A0', fontWeight: '600' },
+  // Nav
+  nav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8, marginBottom: 8 },
+  backBtn: { paddingVertical: 4, paddingRight: 12 },
+  backText: { fontSize: 15, color: SAGE, fontWeight: '600' },
+  privacyBadge: { backgroundColor: SURFACE, borderRadius: 20, paddingVertical: 4, paddingHorizontal: 10 },
+  privacyBadgeText: { fontSize: 11, color: CHARCOAL, opacity: 0.5, fontWeight: '600' },
 
-  title: { fontSize: 26, fontWeight: '700', color: '#3D3935', letterSpacing: -0.3, marginBottom: 4 },
-  subtitle: { fontSize: 13, color: '#3D3935', opacity: 0.4, marginBottom: 16 },
+  // Header
+  title: { fontSize: 26, fontWeight: '700', color: CHARCOAL, letterSpacing: -0.3, marginBottom: 4 },
+  subtitle: { fontSize: 12, color: CHARCOAL, opacity: 0.4, marginBottom: 20 },
 
-  progressRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
-  chapterDots: { flexDirection: 'row', gap: 4, flex: 1 },
-  dot: { flex: 1, height: 4, borderRadius: 2, backgroundColor: '#E0DDD8' },
-  dotFilled: { backgroundColor: '#A8C5A0' },
+  // Progress
+  progressWrap: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 16 },
+  progressTrack: { flex: 1, height: 6, borderRadius: 3, backgroundColor: SURFACE },
+  progressFill: { height: 6, borderRadius: 3, backgroundColor: SAGE },
+  progressLabel: { fontSize: 12, fontWeight: '700', color: SAGE, minWidth: 36, textAlign: 'right' },
 
-  chapterTabs: { flexGrow: 0, marginBottom: 20 },
-  chapterTab: {
-    paddingVertical: 8, paddingHorizontal: 16, marginRight: 8,
-    borderRadius: 20, borderWidth: 1.5, borderColor: '#E0DDD8',
+  // Chapter dot nav
+  chapterDotsRow: { flexDirection: 'row', gap: 8, marginBottom: 20 },
+  chapterDotBlock: {
+    flex: 1, alignItems: 'center', padding: 10, borderRadius: 14,
+    backgroundColor: SURFACE, borderWidth: 1.5, borderColor: 'transparent',
   },
-  chapterTabActive: { borderColor: '#A8C5A0', backgroundColor: '#A8C5A015' },
-  chapterTabLocked: { borderColor: '#E0DDD8', opacity: 0.5 },
-  chapterTabText: { fontSize: 13, color: '#3D3935', opacity: 0.5, fontWeight: '500' },
-  chapterTabTextActive: { color: '#A8C5A0', opacity: 1, fontWeight: '700' },
-  chapterTabTextLocked: { color: '#3D3935', opacity: 0.3 },
+  chapterDotBlockActive: { borderColor: SAGE, backgroundColor: SAGE + '0F' },
+  chapterDotIcon: { fontSize: 18, marginBottom: 4 },
+  chapterDotLabel: { fontSize: 10, color: CHARCOAL, opacity: 0.5, textAlign: 'center', marginBottom: 6 },
+  chapterMiniDots: { flexDirection: 'row', gap: 3 },
+  miniDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#E0DDD8' },
 
-  chapterContent: { marginBottom: 20 },
-  chapterTitle: { fontSize: 19, fontWeight: '700', color: '#3D3935', marginBottom: 16 },
+  // Chapter card
+  chapterCard: {
+    backgroundColor: SURFACE, borderRadius: 16, padding: 16, marginBottom: 16,
+  },
+  chapterHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 8 },
+  chapterIcon: { fontSize: 24 },
+  chapterNum: { fontSize: 11, fontWeight: '700', color: SAGE, letterSpacing: 0.5, marginBottom: 2 },
+  chapterTitle: { fontSize: 16, fontWeight: '700', color: CHARCOAL },
+  completeBadge: { backgroundColor: SAGE + '22', borderRadius: 20, paddingVertical: 4, paddingHorizontal: 10, alignSelf: 'flex-start' },
+  completeBadgeText: { fontSize: 11, color: SAGE, fontWeight: '700' },
+  chapterDesc: { fontSize: 13, color: CHARCOAL, opacity: 0.55, lineHeight: 19 },
 
-  lockedState: {
-    backgroundColor: '#FFFFFF', borderRadius: 14, padding: 20, alignItems: 'center',
+  // Locked
+  lockedCard: {
+    backgroundColor: SURFACE, borderRadius: 16, padding: 28,
+    alignItems: 'center', marginBottom: 16,
   },
-  lockedText: { fontSize: 14, color: '#3D3935', opacity: 0.4, textAlign: 'center', lineHeight: 20 },
+  lockedIcon: { fontSize: 32, marginBottom: 12 },
+  lockedTitle: { fontSize: 16, fontWeight: '700', color: CHARCOAL, marginBottom: 8 },
+  lockedDesc: { fontSize: 13, color: CHARCOAL, opacity: 0.45, textAlign: 'center', lineHeight: 19, marginBottom: 16 },
+  lockedBtn: { backgroundColor: SAGE, borderRadius: 10, paddingVertical: 10, paddingHorizontal: 20 },
+  lockedBtnText: { fontSize: 13, fontWeight: '700', color: '#FFFFFF' },
 
-  promptBlock: {
-    backgroundColor: '#FFFFFF', borderRadius: 14, padding: 16, marginBottom: 12,
-    shadowColor: '#3D3935', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04, shadowRadius: 3, elevation: 1,
+  // Prompt card
+  promptCard: {
+    flexDirection: 'row', backgroundColor: '#FFFFFF',
+    borderRadius: 14, marginBottom: 12, overflow: 'hidden',
+    shadowColor: CHARCOAL, shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
+    borderWidth: 1, borderColor: '#F0EDE8',
   },
-  promptNumber: { fontSize: 11, fontWeight: '700', color: '#A8C5A0', letterSpacing: 0.5, marginBottom: 6 },
-  promptText: { fontSize: 15, fontWeight: '600', color: '#3D3935', lineHeight: 21, marginBottom: 12 },
-  responseInput: {
-    backgroundColor: '#FFFFFF', borderRadius: 10, padding: 12,
-    minHeight: 80, fontSize: 14, color: '#3D3935', lineHeight: 20,
+  promptAccent: { width: 4, backgroundColor: '#E0DDD8' },
+  promptBody: { flex: 1, padding: 14 },
+  promptLabelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  promptLabel: { fontSize: 10, fontWeight: '700', color: SAGE, letterSpacing: 0.8 },
+  promptText: { fontSize: 15, fontWeight: '600', color: CHARCOAL, lineHeight: 21, marginBottom: 10 },
+  input: {
+    backgroundColor: SURFACE, borderRadius: 10, padding: 12,
+    minHeight: 90, fontSize: 14, color: CHARCOAL, lineHeight: 20,
   },
-  promptFooter: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 10 },
-  savedTag: { fontSize: 12, color: '#A8C5A0', fontWeight: '600' },
-  savePromptBtn: {
-    backgroundColor: '#A8C5A0', borderRadius: 8, paddingVertical: 6, paddingHorizontal: 16,
-  },
-  savePromptBtnDisabled: { opacity: 0.35 },
-  savePromptBtnText: { fontSize: 13, fontWeight: '600', color: '#FFFFFF' },
 
-  privacyNote: {
-    backgroundColor: '#FFFFFF', borderRadius: 12, padding: 14, marginBottom: 8,
+  // Next chapter / finished
+  nextChapterCard: {
+    backgroundColor: SAGE + '15', borderRadius: 14, padding: 18,
+    borderWidth: 1.5, borderColor: SAGE + '44', marginBottom: 12,
   },
-  privacyText: { fontSize: 12, color: '#3D3935', opacity: 0.4, lineHeight: 18 },
+  nextChapterLabel: { fontSize: 11, fontWeight: '700', color: SAGE, marginBottom: 6 },
+  nextChapterTitle: { fontSize: 15, fontWeight: '700', color: CHARCOAL, marginBottom: 8 },
+  nextChapterArrow: { fontSize: 13, color: SAGE, fontWeight: '600' },
+
+  finishedCard: {
+    backgroundColor: SAND + '66', borderRadius: 16, padding: 24,
+    alignItems: 'center', marginBottom: 12,
+  },
+  finishedEmoji: { fontSize: 36, marginBottom: 12 },
+  finishedTitle: { fontSize: 17, fontWeight: '700', color: CHARCOAL, marginBottom: 8 },
+  finishedDesc: { fontSize: 13, color: CHARCOAL, opacity: 0.55, textAlign: 'center', lineHeight: 19 },
+
+  // Privacy
+  privacyNote: { backgroundColor: SURFACE, borderRadius: 12, padding: 14, marginTop: 4 },
+  privacyText: { fontSize: 11, color: CHARCOAL, opacity: 0.38, lineHeight: 17 },
 });

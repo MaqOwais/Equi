@@ -59,9 +59,9 @@ const SLEEP_OPTIONS = [
 
 const EXPLORE_LINKS: { icon: string; label: string; sub: string; route: string }[] = [
   { icon: '🌿', label: 'Activities',    sub: 'Matched to state',    route: '/(tabs)/activities' },
-  { icon: '💬', label: 'Community',     sub: 'Share a win',         route: '/(tabs)/community' },
-  { icon: '🧠', label: 'AI Report',     sub: 'Weekly insights',     route: '/(tabs)/you/reports' },
-  { icon: '📋', label: 'Workbook',      sub: 'Bipolar exercises',   route: '/(tabs)/you/workbook' },
+  { icon: '💬', label: 'Community',     sub: 'Share a win',         route: '/community' },
+  { icon: '🧠', label: 'AI Report',     sub: 'Weekly insights',     route: '/(tabs)/you/ai-report' },
+  { icon: '📋', label: 'Workbook',      sub: 'Bipolar exercises',   route: '/workbook' },
   { icon: '🩺', label: 'Psychiatrists', sub: 'Find & book',         route: '/psychiatrists' },
   { icon: '📊', label: '90-Day Cycle',  sub: 'View patterns',       route: '/(tabs)/tracker' },
 ];
@@ -479,7 +479,7 @@ export default function TodayScreen() {
               <Text style={s.sectionLabel}>AI INSIGHT</Text>
               <TouchableOpacity
                 style={[s.insightCard, { borderColor: cycleColor + '55' }]}
-                onPress={() => router.push('/(tabs)/you/reports')}
+                onPress={() => router.push('/(tabs)/you/ai-report')}
                 activeOpacity={0.8}
               >
                 <Text style={s.insightIcon}>✦</Text>
