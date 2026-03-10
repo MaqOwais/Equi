@@ -9,11 +9,20 @@ import type { NotificationPreferences } from '../types/database';
 const DEFAULTS: Omit<NotificationPreferences, 'id' | 'user_id' | 'push_token' | 'push_token_updated_at' | 'updated_at'> = {
   checkin_enabled: true,
   checkin_time: '20:00:00',
-  medication_enabled: true,
-  medication_time: '08:00:00',
+  checkin_ring: false,
+  journal_enabled: false,
+  journal_time: '21:00:00',
+  journal_ring: false,
+  sleep_log_enabled: false,
+  sleep_log_time: '09:00:00',
+  sleep_log_ring: false,
+  activity_reminder_enabled: false,
+  activity_reminder_time: '15:00:00',
+  activity_reminder_ring: false,
   weekly_report_enabled: true,
   early_warning_enabled: true,
   anchor_nudges_enabled: false,
+  anchor_nudges_ring: false,
   post_crisis_enabled: false,
 };
 
@@ -38,16 +47,28 @@ export const useNotificationsStore = create<NotificationsStore>((set, get) => ({
       .eq('user_id', userId)
       .maybeSingle();
 
-    if (data) {
-      set({ prefs: data as NotificationPreferences, isLoading: false });
-    } else {
-      // Create defaults row on first load
-      const { data: created } = await supabase
-        .from('notification_preferences')
-        .insert({ user_id: userId, ...DEFAULTS })
-        .select()
-        .single();
-      set({ prefs: created as NotificationPreferences | null, isLoading: false });
+    const prefs = data
+      ? (data as NotificationPreferences)
+      : await (async () => {
+          const { data: created } = await supabase
+            .from('notification_preferences')
+            .insert({ user_id: userId, ...DEFAULTS })
+            .select()
+            .single();
+          return created as NotificationPreferences | null;
+        })();
+
+    set({ prefs, isLoading: false });
+
+    // Re-apply all scheduled notifications on every load (handles reinstall / data wipe)
+    if (prefs) {
+      const { data: anchorsData } = await supabase
+        .from('routine_anchors')
+        .select('anchor_name, target_time')
+        .eq('user_id', userId)
+        .not('target_time', 'is', null);
+      const anchors = (anchorsData ?? []) as { anchor_name: string; target_time: string }[];
+      applyNotificationPreferences(prefs, anchors).catch(() => {});
     }
   },
 

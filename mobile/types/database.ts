@@ -303,6 +303,30 @@ export interface ReportShare {
   created_at: string;
 }
 
+// ── Medications & Substances ───────────────────────────────────────────────
+
+export interface Medication {
+  id: string;
+  user_id: string;
+  name: string;
+  dosage: string | null;
+  times: string[];            // ['HH:MM', ...] — one notification per time
+  ring_enabled: boolean;      // alarm-style sound vs silent notification
+  active: boolean;
+  created_at: string;
+}
+
+export type SubstanceCategory = 'alcohol' | 'cannabis' | 'stimulant' | 'opioid' | 'other';
+
+export interface UserSubstance {
+  id: string;
+  user_id: string;
+  name: string;
+  category: SubstanceCategory;
+  active: boolean;
+  created_at: string;
+}
+
 // ── Phase 4C row types ─────────────────────────────────────────────────────
 
 export interface NotificationPreferences {
@@ -312,14 +336,26 @@ export interface NotificationPreferences {
   push_token_updated_at: string | null;
   // Reminders
   checkin_enabled: boolean;
-  checkin_time: string;       // HH:MM:SS
-  medication_enabled: boolean;
-  medication_time: string;    // HH:MM:SS
+  checkin_time: string;             // HH:MM:SS
+  checkin_ring: boolean;
   // Insights
   weekly_report_enabled: boolean;
   early_warning_enabled: boolean;
   // Routine
   anchor_nudges_enabled: boolean;
+  anchor_nudges_ring: boolean;
+  // Journal
+  journal_enabled: boolean;
+  journal_time: string;             // HH:MM:SS
+  journal_ring: boolean;
+  // Sleep log
+  sleep_log_enabled: boolean;
+  sleep_log_time: string;           // HH:MM:SS (morning reminder)
+  sleep_log_ring: boolean;
+  // Activity reminder
+  activity_reminder_enabled: boolean;
+  activity_reminder_time: string;   // HH:MM:SS
+  activity_reminder_ring: boolean;
   // Safety
   post_crisis_enabled: boolean;
   updated_at: string;

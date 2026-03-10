@@ -14,7 +14,7 @@ import { flushQueue } from '../lib/offline-queue';
 import { DEV_MODE } from '../constants/dev';
 
 // expo-notifications was removed from Expo Go in SDK 53 — only load in builds.
-const IS_EXPO_GO = Constants.appOwnership === 'expo';
+const IS_EXPO_GO = Constants.executionEnvironment === 'storeClient';
 
 initialiseSentry();
 

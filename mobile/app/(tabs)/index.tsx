@@ -101,7 +101,20 @@ function localIso(d: Date): string {
 }
 
 function wordCount(text: string) {
-  return text.trim().split(/\s+/).filter(Boolean).length;
+  return journalPlainText(text).trim().split(/\s+/).filter(Boolean).length;
+}
+
+// Journal entries are stored as '__blk__:JSON'. Extract readable plain text.
+const JOURNAL_PREFIX = '__blk__:';
+function journalPlainText(raw: string): string {
+  if (!raw) return '';
+  if (!raw.startsWith(JOURNAL_PREFIX)) return raw;
+  try {
+    const blocks = JSON.parse(raw.slice(JOURNAL_PREFIX.length)) as { text: string }[];
+    return blocks.map((b) => b.text).filter(Boolean).join(' ');
+  } catch {
+    return raw;
+  }
 }
 
 // ─── Dynamic logic ────────────────────────────────────────────────────────────
@@ -520,7 +533,7 @@ export default function TodayScreen() {
                   <Text style={s.journalChevron}>›</Text>
                 </View>
                 {todayJournal?.text ? (
-                  <Text style={s.journalPreview} numberOfLines={2}>{todayJournal.text}</Text>
+                  <Text style={s.journalPreview} numberOfLines={2}>{journalPlainText(todayJournal.text)}</Text>
                 ) : null}
               </>
             ) : (

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch } from 'react-native';
+import { useMedicationsStore } from '../../../stores/medications';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Svg, { Polygon, Line, Circle, Text as SvgText } from 'react-native-svg';
@@ -128,6 +129,7 @@ export default function YouScreen() {
   const router = useRouter();
   const sleep = useSleepStore();
   const rhythm = useSocialRhythmStore();
+  const medsStore = useMedicationsStore();
   const userId = session?.user.id;
 
   const [stats, setStats] = useState({ days: 0, activities: 0, stableDays: 0 });
@@ -145,6 +147,7 @@ export default function YouScreen() {
       loadStats();
       sleep.load(userId);
       rhythm.load(userId);
+      medsStore.load(userId);
     }
   }, [userId]);
 
@@ -338,41 +341,59 @@ export default function YouScreen() {
         {/* Tracking */}
         <Text style={s.sectionLabel}>TRACKING</Text>
         <View style={s.menuCard}>
-          {/* Medication row */}
-          <MenuItem
-            icon="💊"
-            label="Medication tracking"
-            sub={trackMed
-              ? (profile?.medication_name
-                  ? `${profile.medication_name}${profile.medication_dosage ? ' · ' + profile.medication_dosage : ''}`
-                  : 'Enabled — set name in Home')
-              : 'Disabled'}
-            onPress={() => {}}
-            right={
-              <Switch
-                value={trackMed}
-                onValueChange={handleMedToggle}
-                trackColor={{ false: '#E0DDD8', true: '#A8C5A0' }}
-                thumbColor="#FFFFFF"
-              />
-            }
-          />
+          {/* Medication on/off + navigate */}
+          <View style={s.trackRow}>
+            <Text style={s.menuIcon}>💊</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={s.menuLabel}>Medications</Text>
+              <Text style={s.menuSub}>
+                {trackMed
+                  ? (medsStore.medications.length > 0
+                      ? `${medsStore.medications.length} medication${medsStore.medications.length !== 1 ? 's' : ''} · tap to manage`
+                      : 'Enabled — add medications')
+                  : 'Disabled'}
+              </Text>
+            </View>
+            <Switch
+              value={trackMed}
+              onValueChange={handleMedToggle}
+              trackColor={{ false: '#E0DDD8', true: '#A8C5A0' }}
+              thumbColor="#FFFFFF"
+            />
+            {trackMed && (
+              <TouchableOpacity onPress={() => router.push('/(tabs)/you/medications')} style={s.trackChevron}>
+                <Text style={s.menuChevron}>›</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
           <View style={s.divider} />
-          {/* Substance row */}
-          <MenuItem
-            icon="🍷"
-            label="Substance tracking"
-            sub={trackSubs ? 'Tracking alcohol & cannabis' : 'Hidden from check-ins'}
-            onPress={() => {}}
-            right={
-              <Switch
-                value={trackSubs}
-                onValueChange={handleSubsToggle}
-                trackColor={{ false: '#E0DDD8', true: '#A8C5A0' }}
-                thumbColor="#FFFFFF"
-              />
-            }
-          />
+
+          {/* Substance on/off + navigate */}
+          <View style={s.trackRow}>
+            <Text style={s.menuIcon}>🍷</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={s.menuLabel}>Substances</Text>
+              <Text style={s.menuSub}>
+                {trackSubs
+                  ? (medsStore.substances.length > 0
+                      ? `${medsStore.substances.length} substance${medsStore.substances.length !== 1 ? 's' : ''} tracked · tap to manage`
+                      : 'Enabled — add substances to track')
+                  : 'Hidden from check-ins'}
+              </Text>
+            </View>
+            <Switch
+              value={trackSubs}
+              onValueChange={handleSubsToggle}
+              trackColor={{ false: '#E0DDD8', true: '#A8C5A0' }}
+              thumbColor="#FFFFFF"
+            />
+            {trackSubs && (
+              <TouchableOpacity onPress={() => router.push('/(tabs)/you/substances')} style={s.trackChevron}>
+                <Text style={s.menuChevron}>›</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
         {/* Wearable */}
@@ -457,6 +478,10 @@ const s = StyleSheet.create({
   menuItem: {
     flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14,
   },
+  trackRow: {
+    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14,
+  },
+  trackChevron: { paddingLeft: 4 },
   menuIcon: { fontSize: 18, marginRight: 12 },
   menuLabel: { fontSize: 15, fontWeight: '500', color: '#3D3935' },
   menuSub: { fontSize: 12, color: '#3D3935', opacity: 0.4, marginTop: 1 },

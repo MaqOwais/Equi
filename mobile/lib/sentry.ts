@@ -10,7 +10,7 @@
 
 import Constants from 'expo-constants';
 
-const IS_EXPO_GO = Constants.appOwnership === 'expo';
+const IS_EXPO_GO = Constants.executionEnvironment === 'storeClient';
 const IS_PRODUCTION = Constants.expoConfig?.extra?.ENV === 'production';
 
 // Lazy-load Sentry only in non-Expo Go environments to avoid native crash

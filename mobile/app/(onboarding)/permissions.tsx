@@ -8,7 +8,7 @@ import { supabase } from '../../lib/supabase';
 const db = supabase as any;
 import { useAuthStore } from '../../stores/auth';
 
-const IS_EXPO_GO = Constants.appOwnership === 'expo';
+const IS_EXPO_GO = Constants.executionEnvironment === 'storeClient';
 
 async function requestNotificationPermission(): Promise<boolean> {
   if (IS_EXPO_GO) return false;  // expo-notifications unavailable in Expo Go
