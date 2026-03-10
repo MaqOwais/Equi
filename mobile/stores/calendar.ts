@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 import type { CycleState, MedicationStatus } from '../types/database';
 import { getLocal } from '../lib/local-day-store';
+import { blocksToPlainText } from '../lib/journal-blocks';
 
 export interface DayData {
   date: string; // YYYY-MM-DD
@@ -106,7 +107,7 @@ export const useCalendarStore = create<CalendarStore>((set, get) => {
           medicationSkipReason: local?.medicationSkipReason ?? null,
           activityNames: local?.activityCompletions?.map((c) => c.name) ?? [],
           hasJournal: !!(local?.journalText),
-          journalText: local?.journalText ?? null,
+          journalText: local?.journalText ? blocksToPlainText(local.journalText) : null,
           nutritionCategories: local?.nutritionCategories ?? null,
           alcohol: local?.alcohol ?? null,
           cannabis: local?.cannabis ?? null,
@@ -152,8 +153,8 @@ export const useCalendarStore = create<CalendarStore>((set, get) => {
         });
         const journalMap: Record<string, string> = {};
         (journalEntries.data ?? []).forEach((r: any) => {
-          const text = typeof r.blocks === 'string' ? r.blocks : '';
-          if (text.length > 0) journalMap[r.entry_date] = text;
+          const text = blocksToPlainText(r.blocks);
+          if (text.trim().length > 0) journalMap[r.entry_date] = text;
         });
         const socialMap: Record<string, any> = {};
         (socialLogs.data ?? []).forEach((r: any) => { socialMap[r.date] = r; });

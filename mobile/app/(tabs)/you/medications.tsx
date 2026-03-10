@@ -399,6 +399,15 @@ export default function MedicationsScreen() {
           </Text>
         </View>
 
+        <TouchableOpacity style={s.notifLink} onPress={() => router.push('/(tabs)/you/notifications')} activeOpacity={0.7}>
+          <Text style={s.notifLinkIcon}>🔔</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={s.notifLinkTitle}>Notification Settings</Text>
+            <Text style={s.notifLinkSub}>Manage check-in reminders, weekly report, early warnings and more</Text>
+          </View>
+          <Text style={s.notifLinkChevron}>›</Text>
+        </TouchableOpacity>
+
         <View style={{ height: 40 }} />
       </ScrollView>
 
@@ -444,4 +453,16 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: '#E8DCC8',
   },
   noteText: { fontSize: 12, color: '#3D3935', opacity: 0.5, lineHeight: 18 },
+
+  notifLink: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: '#FFFFFF', borderRadius: 14, padding: 14, marginTop: 10,
+    borderWidth: 1, borderColor: '#F0EDE8',
+    shadowColor: '#3D3935', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04, shadowRadius: 3, elevation: 1,
+  },
+  notifLinkIcon: { fontSize: 20 },
+  notifLinkTitle: { fontSize: 14, fontWeight: '600', color: '#3D3935', marginBottom: 2 },
+  notifLinkSub: { fontSize: 12, color: '#3D3935', opacity: 0.4, lineHeight: 16 },
+  notifLinkChevron: { fontSize: 20, color: '#3D3935', opacity: 0.2 },
 });

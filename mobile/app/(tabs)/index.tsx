@@ -14,6 +14,7 @@ import { useJournalStore } from '../../stores/journal';
 import { useAIStore } from '../../stores/ai';
 import { useCycleStore, type CycleLogEntry } from '../../stores/cycle';
 import { useRouter } from 'expo-router';
+import { useMedicationsStore } from '../../stores/medications';
 import type { CycleState, MedicationStatus } from '../../types/database';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -221,6 +222,7 @@ export default function TodayScreen() {
   const journal = useJournalStore();
   const ai = useAIStore();
   const cycle = useCycleStore();
+  const medsStore = useMedicationsStore();
   const router = useRouter();
   const userId = session?.user.id;
 
@@ -248,6 +250,7 @@ export default function TodayScreen() {
       journal.loadEntry(userId, todayDate);
       ai.loadTrackerInsight(userId);
       cycle.load90Days(userId);
+      medsStore.load(userId);
     }
   }, [userId]);
 
@@ -291,15 +294,12 @@ export default function TodayScreen() {
   const cycleColor = CYCLE_COLORS[cycleState];
   const tip = CYCLE_TIPS[cycleState];
   const trackMedication = profile?.track_medication ?? false;
-  const medName = profile?.medication_name ?? null;
-  const medDosage = profile?.medication_dosage ?? null;
   const trackSubstances = profile?.track_substances ?? true;
-  const medLabel = medName ? `${medName}${medDosage ? ` · ${medDosage}` : ''}` : 'Medication';
+  const meds = medsStore.medications;
+  const showMedSection = meds.length > 0 || trackMedication;
 
   function openMedSettings() {
-    setMedNameDraft(profile?.medication_name ?? '');
-    setMedDosageDraft(profile?.medication_dosage ?? '');
-    setMedSettingsVisible(true);
+    router.push('/(tabs)/you/medications');
   }
 
   async function saveMedSettings() {
@@ -331,7 +331,7 @@ export default function TodayScreen() {
   const checks = [
     { label: 'Mood',    done: today.moodScore !== null },
     { label: 'Sleep',   done: sleep.todayLog !== null },
-    { label: 'Meds',    done: today.medicationStatus !== null, hidden: !trackMedication },
+    { label: 'Meds',    done: today.medicationStatus !== null, hidden: !showMedSection },
     { label: 'Cycle',   done: today.cycleState !== null },
     { label: 'Journal', done: journalWordCount > 0 },
     { label: 'Subs',    done: today.alcohol !== null || today.cannabis !== null },
@@ -348,7 +348,7 @@ export default function TodayScreen() {
     cycleLogged: today.cycleState !== null,
     journalDone: journalWordCount > 0,
     medLogged: today.medicationStatus !== null,
-    trackMed: trackMedication,
+    trackMed: showMedSection,
   });
   const pulse = computePatternPulse(cycle.logs);
   const weekMap = buildWeekMap(cycle.logs);
@@ -595,17 +595,28 @@ export default function TodayScreen() {
           {/* ── Check-ins ────────────────────────────────────────────────────── */}
           <Text style={s.sectionLabel}>CHECK-INS</Text>
           <View style={s.card}>
-            {trackMedication && (
+            {showMedSection && (
               <View style={s.checkinBlock}>
                 <View style={s.checkinLabelRow}>
-                  <Text style={s.checkinBlockLabel}>💊  {medLabel}</Text>
+                  <Text style={s.checkinBlockLabel}>💊  Medications</Text>
                   <TouchableOpacity onPress={openMedSettings} hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}>
                     <Text style={s.settingsGear}>⚙</Text>
                   </TouchableOpacity>
                 </View>
-                {!medName && (
+                {meds.length > 0 ? (
+                  <View style={{ gap: 4, marginBottom: 8 }}>
+                    {meds.map((med) => (
+                      <View key={med.id} style={s.medNameRow}>
+                        <Text style={s.medNameText}>
+                          {med.name}{med.dosage ? ` · ${med.dosage}` : ''}
+                        </Text>
+                        {med.ring_enabled && <Text style={s.medRingBadge}>🔔</Text>}
+                      </View>
+                    ))}
+                  </View>
+                ) : (
                   <TouchableOpacity onPress={openMedSettings}>
-                    <Text style={s.addMedHint}>+ Add medication name & dosage</Text>
+                    <Text style={s.addMedHint}>+ Add your medications</Text>
                   </TouchableOpacity>
                 )}
                 <View style={s.medButtons}>
@@ -628,7 +639,7 @@ export default function TodayScreen() {
               </View>
             )}
             {trackSubstances && (
-              <View style={[s.checkinBlock, trackMedication && s.checkinDivider]}>
+              <View style={[s.checkinBlock, showMedSection && s.checkinDivider]}>
                 <View style={s.checkinLabelRow}>
                   <Text style={s.checkinBlockLabel}>🍃  Substances today</Text>
                   <TouchableOpacity onPress={openSubSettings} hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}>
@@ -653,7 +664,7 @@ export default function TodayScreen() {
                 </View>
               </View>
             )}
-            {!trackSubstances && !trackMedication && (
+            {!trackSubstances && !showMedSection && (
               <View style={s.checkinBlock}>
                 <TouchableOpacity onPress={openSubSettings}>
                   <Text style={s.addMedHint}>+ Configure substance tracking</Text>
@@ -759,35 +770,6 @@ export default function TodayScreen() {
           <View style={{ height: 32 }} />
         </View>
       </ScrollView>
-
-      {/* Medication settings sheet */}
-      <Modal visible={medSettingsVisible} transparent animationType="slide">
-        <Pressable style={s.sheetBackdrop} onPress={() => setMedSettingsVisible(false)}>
-          <Pressable style={s.sheet} onPress={() => {}}>
-            <Text style={s.sheetTitle}>Medication</Text>
-            <Text style={s.sheetFieldLabel}>Name</Text>
-            <TextInput
-              style={s.sheetInput}
-              value={medNameDraft}
-              onChangeText={setMedNameDraft}
-              placeholder="e.g. Lithium, Quetiapine…"
-              placeholderTextColor="#3D393540"
-              autoCapitalize="words"
-            />
-            <Text style={s.sheetFieldLabel}>Dosage</Text>
-            <TextInput
-              style={s.sheetInput}
-              value={medDosageDraft}
-              onChangeText={setMedDosageDraft}
-              placeholder="e.g. 400mg, 50mg twice daily…"
-              placeholderTextColor="#3D393540"
-            />
-            <TouchableOpacity style={s.sheetConfirm} onPress={saveMedSettings}>
-              <Text style={s.sheetConfirmText}>Save</Text>
-            </TouchableOpacity>
-          </Pressable>
-        </Pressable>
-      </Modal>
 
       {/* Substance settings sheet */}
       <Modal visible={subSettingsVisible} transparent animationType="slide">
@@ -977,6 +959,9 @@ const s = StyleSheet.create({
   checkinLabelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
   settingsGear: { fontSize: 14, color: '#3D3935', opacity: 0.3 },
   addMedHint: { fontSize: 12, color: '#A8C5A0', fontWeight: '600', marginBottom: 10 },
+  medNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  medNameText: { fontSize: 13, fontWeight: '600', color: '#3D3935', flex: 1 },
+  medRingBadge: { fontSize: 12, opacity: 0.6 },
   medButtons: { flexDirection: 'row', gap: 8 },
   medBtn: { flex: 1, paddingVertical: 9, borderRadius: 10, borderWidth: 1.5, borderColor: '#E0DDD8', alignItems: 'center' },
   medBtnText: { fontSize: 13, color: '#3D3935', opacity: 0.45, fontWeight: '500' },

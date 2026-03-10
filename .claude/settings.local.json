@@ -31,7 +31,9 @@
       "Bash(npx expo-doctor)",
       "Bash(python3 -c \"import sys; t = sys.stdin.read\\(\\); print\\(t[-2000:]\\)\")",
       "Bash(node -e \"console.log\\(''Node OK:'', process.version\\)\")",
-      "Bash(node -e \"require\\(''./node_modules/expo-router/package.json''\\); console.log\\(''expo-router OK''\\)\")"
+      "Bash(node -e \"require\\(''./node_modules/expo-router/package.json''\\); console.log\\(''expo-router OK''\\)\")",
+      "Bash(wc -l /Users/maqowais/Documents/Equi/mobile/app/\\\\\\(tabs\\\\\\)/index.tsx)",
+      "Bash(npm install --save-dev jest jest-expo @types/jest babel-jest)"
     ]
   }
 }

@@ -40,7 +40,7 @@ async function ensureChannels(): Promise<void> {
     importance: N().AndroidImportance.HIGH,
     vibrationPattern: [0, 500, 200, 500],
     lightColor: '#A8C5A0',
-    sound: 'default',
+    sound: null,
   });
   _channelsReady = true;
 }

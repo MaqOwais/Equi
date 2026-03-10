@@ -219,12 +219,17 @@ function _Preview({ title, body, ring }: { title: string; body: string; ring: bo
       // Real immediate notification
       try {
         const N = require('expo-notifications');
+        const { status } = await N.requestPermissionsAsync();
+        if (status !== 'granted') {
+          Alert.alert('Permission required', 'Enable notifications in device Settings to use this feature.');
+          return;
+        }
         await N.scheduleNotificationAsync({
-          content: { title, body, sound: ring },
-          trigger: null,
+          content: { title, body, sound: ring ? 'default' : false },
+          trigger: { type: 'timeInterval', seconds: 1, repeats: false },
         });
-      } catch {
-        Alert.alert('Error', 'Check notification permissions in device Settings.');
+      } catch (e) {
+        Alert.alert('Error', `Could not send notification: ${e}`);
       }
     }
   }
@@ -320,16 +325,21 @@ export default function NotificationsScreen() {
     }
     try {
       const N = require('expo-notifications');
+      const { status } = await N.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission required', 'Enable notifications in device Settings to use this feature.');
+        return;
+      }
       await N.scheduleNotificationAsync({
         content: {
           title: '✅ Notifications are working',
           body: 'Your Equi reminders will fire at the times you set.',
-          sound: true,
+          sound: 'default',
         },
-        trigger: null, // immediate
+        trigger: { type: 'timeInterval', seconds: 1, repeats: false },
       });
-    } catch {
-      Alert.alert('Error', 'Could not send test notification. Check device permissions.');
+    } catch (e) {
+      Alert.alert('Error', `Could not send test notification: ${e}`);
     }
   }
 
