@@ -120,6 +120,9 @@ export default function CalendarScreen() {
                     {data?.medicationStatus === 'taken' && (
                       <View style={[s.dot, { backgroundColor: '#C4A0B0' }]} />
                     )}
+                    {data?.hasWorkbook && (
+                      <View style={[s.dot, { backgroundColor: '#C9A84C' }]} />
+                    )}
                   </View>
                 </TouchableOpacity>
               );

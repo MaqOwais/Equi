@@ -9,7 +9,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useCalendarStore } from '../../stores/calendar';
 import { useAuthStore } from '../../stores/auth';
 import { callGroq } from '../../lib/groq';
+import { supabase } from '../../lib/supabase';
 import type { DayData } from '../../stores/calendar';
+import type { WorkbookResponse } from '../../types/database';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -57,6 +59,7 @@ export default function DayScreen() {
   const { days, isLoading, loadMonth, buildWeekPrompt, year, month, setMonth } = useCalendarStore();
 
   const [journalExpanded, setJournalExpanded] = useState(false);
+  const [workbookEntries, setWorkbookEntries] = useState<WorkbookResponse[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiText, setAiText] = useState<string | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
@@ -72,6 +75,20 @@ export default function DayScreen() {
   useEffect(() => {
     if (user?.id) loadMonth(user.id);
   }, [year, month, user?.id]);
+
+  // Fetch workbook entries written on this date
+  useEffect(() => {
+    if (!date || !user?.id) return;
+    (supabase as any)
+      .from('workbook_responses')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('entry_date', date)
+      .order('created_at', { ascending: true })
+      .then(({ data: rows }: { data: WorkbookResponse[] | null }) => {
+        if (rows) setWorkbookEntries(rows);
+      });
+  }, [date, user?.id]);
 
   const data: DayData | null = date ? (days[date] ?? null) : null;
   const cycleColor = data?.cycleState ? CYCLE_COLORS[data.cycleState] : '#A8C5A0';
@@ -222,6 +239,32 @@ export default function DayScreen() {
                   />
                 </TouchableOpacity>
               )}
+            </SectionCard>
+          )}
+
+          {/* ── Workbook ── */}
+          {workbookEntries.length > 0 && (
+            <SectionCard title="Workbook" icon="book-outline" color="#C9A84C"
+              badge="Private · not shared with AI"
+            >
+              {workbookEntries.map((e) => {
+                const chapterTitles = ['Understanding My Cycles', 'My Triggers', 'My Warning Signs', 'My Strengths'];
+                const prompts = [
+                  ['What does a stable week feel like for me?', 'How do I know when I am shifting into a high period?', 'What does a low period feel like in my body?', 'What tends to trigger shifts for me?'],
+                  ['What life events have come before episodes in the past?', 'What environments tend to destabilise me?', 'What relationships affect my mood most?', 'What thought patterns appear before a shift?'],
+                  ['What do people close to me notice before I do?', 'What physical sensations appear early in a shift?', 'What behaviours change first when I am shifting?', 'What internal experiences signal a shift is coming?'],
+                  ['What has helped me through difficult episodes before?', 'Who supports me well, and how?', 'What am I proud of in how I manage my condition?', 'What would I tell someone newly diagnosed?'],
+                ];
+                const chapterIdx = e.chapter - 1;
+                const prompt = prompts[chapterIdx]?.[e.prompt_index] ?? '';
+                return (
+                  <View key={e.id} style={s.workbookEntry}>
+                    <Text style={s.workbookChapter}>{chapterTitles[chapterIdx] ?? `Chapter ${e.chapter}`}</Text>
+                    <Text style={s.workbookPrompt}>{prompt}</Text>
+                    <Text style={s.workbookResponse}>{e.response}</Text>
+                  </View>
+                );
+              })}
             </SectionCard>
           )}
 
@@ -502,6 +545,15 @@ const s = StyleSheet.create({
     marginTop: 8, alignSelf: 'flex-start',
   },
   expandBtnText: { fontSize: 12, color: '#89B4CC', fontWeight: '600' },
+
+  // Workbook
+  workbookEntry: {
+    borderLeftWidth: 3, borderLeftColor: '#C9A84C',
+    paddingLeft: 10, marginBottom: 12,
+  },
+  workbookChapter: { fontSize: 10, fontWeight: '700', color: '#C9A84C', letterSpacing: 0.5, marginBottom: 2 },
+  workbookPrompt: { fontSize: 12, color: '#3D3935', opacity: 0.5, marginBottom: 4, lineHeight: 17 },
+  workbookResponse: { fontSize: 14, color: '#3D3935', lineHeight: 21 },
 
   // Nutrition
   nutritionRow: {

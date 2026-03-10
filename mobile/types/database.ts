@@ -149,6 +149,7 @@ export interface WorkbookResponse {
   chapter: number;
   prompt_index: number;
   response: string;
+  entry_date: string; // YYYY-MM-DD — for calendar grouping
   created_at: string;
   updated_at: string;
 }

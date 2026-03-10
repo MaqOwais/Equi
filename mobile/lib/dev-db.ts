@@ -100,6 +100,15 @@ const MIGRATIONS: { version: number; statements: string[] }[] = [
       `INSERT OR IGNORE INTO notification_preferences (id, user_id, checkin_enabled, checkin_time, checkin_ring, journal_enabled, journal_time, journal_ring, sleep_log_enabled, sleep_log_time, sleep_log_ring, activity_reminder_enabled, activity_reminder_time, activity_reminder_ring, weekly_report_enabled, early_warning_enabled, anchor_nudges_enabled, anchor_nudges_ring, post_crisis_enabled) VALUES ('notif-prefs-dev', '${DEV_USER_ID}', 1, '20:00:00', 0, 0, '21:00:00', 0, 0, '09:00:00', 0, 0, '15:00:00', 0, 1, 1, 0, 0, 0)`,
     ],
   },
+  {
+    version: 3,
+    statements: [
+      // Rebuild workbook_responses with correct schema (chapter/prompt_index/entry_date)
+      // Old schema used module_id/question_id — safe to drop since it's dev-only data
+      `DROP TABLE IF EXISTS workbook_responses`,
+      `CREATE TABLE IF NOT EXISTS workbook_responses (id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))), user_id TEXT NOT NULL, chapter INTEGER NOT NULL, prompt_index INTEGER NOT NULL, response TEXT NOT NULL, entry_date TEXT NOT NULL DEFAULT (date('now')), created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now')))`,
+    ],
+  },
 ];
 
 // ─── Migration runner ─────────────────────────────────────────────────────────

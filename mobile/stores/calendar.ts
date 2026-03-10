@@ -31,6 +31,10 @@ export interface DayData {
   hasJournal: boolean;
   journalText: string | null; // full text — displayed locally to user, NOT sent to AI
 
+  // Workbook
+  hasWorkbook: boolean;
+  workbookCount: number; // number of entries written on this date
+
   // Nutrition (category key → count)
   nutritionCategories: Record<string, number> | null;
 
@@ -114,6 +118,8 @@ export const useCalendarStore = create<CalendarStore>((set, get) => {
           socialRhythmScore: local?.socialRhythmScore ?? null,
           socialAnchorsHit: local?.socialAnchorsHit ?? null,
           socialAnchorsTotal: local?.socialAnchorsTotal ?? null,
+          hasWorkbook: false,
+          workbookCount: 0,
         };
       }
 
@@ -125,7 +131,7 @@ export const useCalendarStore = create<CalendarStore>((set, get) => {
         const db = supabase as any;
 
         const [cycleLogs, moodLogs, sleepLogs, medLogs, activityLogs,
-               journalEntries, socialLogs, nutritionLogs, checkins] = await Promise.all([
+               journalEntries, socialLogs, nutritionLogs, checkins, workbookLogs] = await Promise.all([
           db.from('cycle_logs').select('logged_at, state, intensity, symptoms, notes').eq('user_id', userId).gte('logged_at', startDate).lte('logged_at', endDate),
           db.from('mood_logs').select('logged_at, score').eq('user_id', userId).gte('logged_at', startDate).lte('logged_at', endDate),
           db.from('sleep_logs').select('date, quality_score, duration_minutes').eq('user_id', userId).gte('date', startDate).lte('date', endDate),
@@ -135,6 +141,7 @@ export const useCalendarStore = create<CalendarStore>((set, get) => {
           db.from('social_rhythm_logs').select('date, score, anchors_hit, anchors_total').eq('user_id', userId).gte('date', startDate).lte('date', endDate),
           db.from('nutrition_logs').select('log_date, categories').eq('user_id', userId).gte('log_date', startDate).lte('log_date', endDate),
           db.from('daily_checkins').select('checkin_date, alcohol, cannabis').eq('user_id', userId).gte('checkin_date', startDate).lte('checkin_date', endDate),
+          db.from('workbook_responses').select('entry_date, created_at').eq('user_id', userId).gte('entry_date', startDate).lte('entry_date', endDate),
         ]);
 
         // Build Supabase maps
@@ -164,6 +171,11 @@ export const useCalendarStore = create<CalendarStore>((set, get) => {
         });
         const checkinMap: Record<string, any> = {};
         (checkins.data ?? []).forEach((r: any) => { checkinMap[r.checkin_date] = r; });
+        const workbookMap: Record<string, number> = {};
+        (workbookLogs.data ?? []).forEach((r: any) => {
+          const d = r.entry_date ?? r.created_at?.split('T')[0];
+          if (d) workbookMap[d] = (workbookMap[d] ?? 0) + 1;
+        });
 
         // Merge: local wins, Supabase fills gaps for days with no local data
         const merged: Record<string, DayData> = {};
@@ -192,6 +204,8 @@ export const useCalendarStore = create<CalendarStore>((set, get) => {
             socialRhythmScore: loc.socialRhythmScore ?? socialMap[date]?.score ?? null,
             socialAnchorsHit: loc.socialAnchorsHit ?? socialMap[date]?.anchors_hit ?? null,
             socialAnchorsTotal: loc.socialAnchorsTotal ?? socialMap[date]?.anchors_total ?? null,
+            hasWorkbook: (workbookMap[date] ?? 0) > 0,
+            workbookCount: workbookMap[date] ?? 0,
           };
         }
 
