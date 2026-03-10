@@ -33,7 +33,8 @@
       "Bash(node -e \"console.log\\(''Node OK:'', process.version\\)\")",
       "Bash(node -e \"require\\(''./node_modules/expo-router/package.json''\\); console.log\\(''expo-router OK''\\)\")",
       "Bash(wc -l /Users/maqowais/Documents/Equi/mobile/app/\\\\\\(tabs\\\\\\)/index.tsx)",
-      "Bash(npm install --save-dev jest jest-expo @types/jest babel-jest)"
+      "Bash(npm install --save-dev jest jest-expo @types/jest babel-jest)",
+      "Bash(grep -E \"\\\\.\\(sql|md\\)$\")"
     ]
   }
 }

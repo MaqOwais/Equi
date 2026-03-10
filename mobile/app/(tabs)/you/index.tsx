@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Switch } from 'react-native';
 import { useMedicationsStore } from '../../../stores/medications';
+import { useActivitiesStore } from '../../../stores/activities';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Svg, { Polygon, Line, Circle, Text as SvgText } from 'react-native-svg';
@@ -130,6 +131,7 @@ export default function YouScreen() {
   const sleep = useSleepStore();
   const rhythm = useSocialRhythmStore();
   const medsStore = useMedicationsStore();
+  const activitiesStore = useActivitiesStore();
   const userId = session?.user.id;
 
   const [stats, setStats] = useState({ days: 0, activities: 0, stableDays: 0 });
@@ -148,6 +150,7 @@ export default function YouScreen() {
       sleep.load(userId);
       rhythm.load(userId);
       medsStore.load(userId);
+      activitiesStore.load(userId);
     }
   }, [userId]);
 
@@ -251,22 +254,87 @@ export default function YouScreen() {
           <Text style={s.radarNote}>Sleep requires wearable sync · Social from rhythm logs</Text>
         </View>
 
-        {/* AI & Insights */}
-        <Text style={s.sectionLabel}>AI & INSIGHTS</Text>
+        {/* Daily tracking — highest priority, used every day */}
+        <Text style={s.sectionLabel}>DAILY TRACKING</Text>
         <View style={s.menuCard}>
-          <MenuItem
-            icon="🧠"
-            label="AI Wellness Report"
-            sub="Weekly analysis of your patterns"
-            onPress={() => router.push('/(tabs)/you/ai-report')}
-          />
+          {/* Medications */}
+          <View style={s.trackRow}>
+            <Text style={s.menuIcon}>💊</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={s.menuLabel}>Medications</Text>
+              <Text style={s.menuSub}>
+                {trackMed
+                  ? (medsStore.medications.length > 0
+                      ? `${medsStore.medications.length} medication${medsStore.medications.length !== 1 ? 's' : ''} · tap to manage`
+                      : 'Enabled — add medications')
+                  : 'Disabled'}
+              </Text>
+            </View>
+            <Switch
+              value={trackMed}
+              onValueChange={handleMedToggle}
+              trackColor={{ false: '#E0DDD8', true: '#A8C5A0' }}
+              thumbColor="#FFFFFF"
+            />
+            {trackMed && (
+              <TouchableOpacity onPress={() => router.push('/(tabs)/you/medications')} style={s.trackChevron}>
+                <Text style={s.menuChevron}>›</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
           <View style={s.divider} />
-          <MenuItem
-            icon="⚡"
-            label="Relapse Signatures"
-            sub="Personal early warning patterns"
-            onPress={() => router.push('/(tabs)/you/relapse-signature')}
-          />
+
+          {/* Activities */}
+          {(() => {
+            const routineCount = activitiesStore.completions.filter(
+              (c) => c.bookmarked && c.completed_at === null,
+            ).length;
+            return (
+              <View style={s.trackRow}>
+                <Text style={s.menuIcon}>🌿</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.menuLabel}>Activities</Text>
+                  <Text style={s.menuSub}>
+                    {routineCount > 0
+                      ? `${routineCount} routine activit${routineCount !== 1 ? 'ies' : 'y'} · tap to manage`
+                      : 'Build your wellbeing routine'}
+                  </Text>
+                </View>
+                <TouchableOpacity onPress={() => router.push('/(tabs)/you/activities')} style={s.trackChevron}>
+                  <Text style={s.menuChevron}>›</Text>
+                </TouchableOpacity>
+              </View>
+            );
+          })()}
+
+          <View style={s.divider} />
+
+          {/* Substances */}
+          <View style={s.trackRow}>
+            <Text style={s.menuIcon}>🍷</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={s.menuLabel}>Substances</Text>
+              <Text style={s.menuSub}>
+                {trackSubs
+                  ? (medsStore.substances.length > 0
+                      ? `${medsStore.substances.length} substance${medsStore.substances.length !== 1 ? 's' : ''} tracked · tap to manage`
+                      : 'Enabled — add substances to track')
+                  : 'Hidden from check-ins'}
+              </Text>
+            </View>
+            <Switch
+              value={trackSubs}
+              onValueChange={handleSubsToggle}
+              trackColor={{ false: '#E0DDD8', true: '#A8C5A0' }}
+              thumbColor="#FFFFFF"
+            />
+            {trackSubs && (
+              <TouchableOpacity onPress={() => router.push('/(tabs)/you/substances')} style={s.trackChevron}>
+                <Text style={s.menuChevron}>›</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
         {/* Wellbeing tools */}
@@ -300,6 +368,24 @@ export default function YouScreen() {
           />
         </View>
 
+        {/* AI & Insights */}
+        <Text style={s.sectionLabel}>AI & INSIGHTS</Text>
+        <View style={s.menuCard}>
+          <MenuItem
+            icon="🧠"
+            label="AI Wellness Report"
+            sub="Weekly analysis of your patterns"
+            onPress={() => router.push('/(tabs)/you/ai-report')}
+          />
+          <View style={s.divider} />
+          <MenuItem
+            icon="⚡"
+            label="Relapse Signatures"
+            sub="Personal early warning patterns"
+            onPress={() => router.push('/(tabs)/you/relapse-signature')}
+          />
+        </View>
+
         {/* Social */}
         <Text style={s.sectionLabel}>SOCIAL</Text>
         <View style={s.menuCard}>
@@ -325,79 +411,8 @@ export default function YouScreen() {
           />
         </View>
 
-        {/* Settings */}
-        <Text style={s.sectionLabel}>SETTINGS</Text>
-        <View style={s.menuCard}>
-          <MenuItem
-            icon="🔒"
-            label="Privacy & data"
-            sub="Export or delete your data"
-            onPress={() => router.push('/(tabs)/you/privacy')}
-          />
-          <View style={s.divider} />
-          <MenuItem icon="🔔" label="Notifications" onPress={() => router.push('/(tabs)/you/notifications')} />
-        </View>
-
-        {/* Tracking */}
-        <Text style={s.sectionLabel}>TRACKING</Text>
-        <View style={s.menuCard}>
-          {/* Medication on/off + navigate */}
-          <View style={s.trackRow}>
-            <Text style={s.menuIcon}>💊</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={s.menuLabel}>Medications</Text>
-              <Text style={s.menuSub}>
-                {trackMed
-                  ? (medsStore.medications.length > 0
-                      ? `${medsStore.medications.length} medication${medsStore.medications.length !== 1 ? 's' : ''} · tap to manage`
-                      : 'Enabled — add medications')
-                  : 'Disabled'}
-              </Text>
-            </View>
-            <Switch
-              value={trackMed}
-              onValueChange={handleMedToggle}
-              trackColor={{ false: '#E0DDD8', true: '#A8C5A0' }}
-              thumbColor="#FFFFFF"
-            />
-            {trackMed && (
-              <TouchableOpacity onPress={() => router.push('/(tabs)/you/medications')} style={s.trackChevron}>
-                <Text style={s.menuChevron}>›</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-
-          <View style={s.divider} />
-
-          {/* Substance on/off + navigate */}
-          <View style={s.trackRow}>
-            <Text style={s.menuIcon}>🍷</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={s.menuLabel}>Substances</Text>
-              <Text style={s.menuSub}>
-                {trackSubs
-                  ? (medsStore.substances.length > 0
-                      ? `${medsStore.substances.length} substance${medsStore.substances.length !== 1 ? 's' : ''} tracked · tap to manage`
-                      : 'Enabled — add substances to track')
-                  : 'Hidden from check-ins'}
-              </Text>
-            </View>
-            <Switch
-              value={trackSubs}
-              onValueChange={handleSubsToggle}
-              trackColor={{ false: '#E0DDD8', true: '#A8C5A0' }}
-              thumbColor="#FFFFFF"
-            />
-            {trackSubs && (
-              <TouchableOpacity onPress={() => router.push('/(tabs)/you/substances')} style={s.trackChevron}>
-                <Text style={s.menuChevron}>›</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-
-        {/* Wearable */}
-        <Text style={s.sectionLabel}>WEARABLE</Text>
+        {/* Data & Device */}
+        <Text style={s.sectionLabel}>DATA & DEVICE</Text>
         <View style={s.menuCard}>
           <MenuItem
             icon="⌚"
@@ -409,10 +424,21 @@ export default function YouScreen() {
           <MenuItem
             icon="🌙"
             label="Sleep"
-            sub={sleep.history.length > 0
-              ? `${sleep.history.length} nights logged`
-              : 'No data yet'}
+            sub={sleep.history.length > 0 ? `${sleep.history.length} nights logged` : 'No data yet'}
             onPress={() => router.push('/(tabs)/you/sleep-detail')}
+          />
+        </View>
+
+        {/* Settings */}
+        <Text style={s.sectionLabel}>SETTINGS</Text>
+        <View style={s.menuCard}>
+          <MenuItem icon="🔔" label="Notifications" sub="Reminders, alerts & ring settings" onPress={() => router.push('/(tabs)/you/notifications')} />
+          <View style={s.divider} />
+          <MenuItem
+            icon="🔒"
+            label="Privacy & data"
+            sub="Export or delete your data"
+            onPress={() => router.push('/(tabs)/you/privacy')}
           />
         </View>
 
