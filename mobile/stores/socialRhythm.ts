@@ -30,7 +30,8 @@ interface SocialRhythmStore {
 }
 
 function todayStr(): string {
-  return new Date().toISOString().split('T')[0];
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 export const useSocialRhythmStore = create<SocialRhythmStore>((set, get) => ({
@@ -46,7 +47,7 @@ export const useSocialRhythmStore = create<SocialRhythmStore>((set, get) => ({
     const today = todayStr();
     const since = new Date();
     since.setDate(since.getDate() - 30);
-    const sinceStr = since.toISOString().split('T')[0];
+    const sinceStr = `${since.getFullYear()}-${String(since.getMonth() + 1).padStart(2, '0')}-${String(since.getDate()).padStart(2, '0')}`;
 
     const [historyRes, todayLogsRes, anchorsRes] = await Promise.all([
       db.from('social_rhythm_logs').select('*').eq('user_id', userId).gte('date', sinceStr).order('date', { ascending: false }),

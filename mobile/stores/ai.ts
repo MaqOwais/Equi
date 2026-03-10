@@ -63,10 +63,8 @@ function periodDates(daysBack = 6): { start: string; end: string } {
   const end = new Date();
   const start = new Date();
   start.setDate(start.getDate() - daysBack);
-  return {
-    start: start.toISOString().split('T')[0],
-    end: end.toISOString().split('T')[0],
-  };
+  const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return { start: fmt(start), end: fmt(end) };
 }
 
 // Supabase typed client only covers profiles + emergency_contacts.

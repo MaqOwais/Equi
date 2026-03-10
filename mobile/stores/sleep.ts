@@ -7,7 +7,8 @@ import type { SleepLog, WearableConnection, WearableProvider } from '../types/da
 const db = supabase as any;
 
 function isoToday() {
-  return new Date().toISOString().split('T')[0];
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 interface SleepStore {
@@ -40,7 +41,7 @@ export const useSleepStore = create<SleepStore>((set, get) => ({
     const today = isoToday();
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const since = thirtyDaysAgo.toISOString().split('T')[0];
+    const since = `${thirtyDaysAgo.getFullYear()}-${String(thirtyDaysAgo.getMonth() + 1).padStart(2, '0')}-${String(thirtyDaysAgo.getDate()).padStart(2, '0')}`;
 
     const [todayRes, historyRes, connectionsRes] = await Promise.all([
       db.from('sleep_logs').select('*').eq('user_id', userId).eq('date', today).maybeSingle(),

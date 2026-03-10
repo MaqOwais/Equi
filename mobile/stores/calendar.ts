@@ -129,7 +129,7 @@ export const useCalendarStore = create<CalendarStore>((set, get) => {
           db.from('mood_logs').select('logged_at, score').eq('user_id', userId).gte('logged_at', startDate).lte('logged_at', endDate),
           db.from('sleep_logs').select('date, quality_score, duration_minutes').eq('user_id', userId).gte('date', startDate).lte('date', endDate),
           db.from('medication_logs').select('log_date, status, skip_reason').eq('user_id', userId).gte('log_date', startDate).lte('log_date', endDate),
-          db.from('activity_completions').select('completed_at, activity:activities(name)').eq('user_id', userId).gte('completed_at', startDate + 'T00:00:00').lte('completed_at', endDate + 'T23:59:59'),
+          db.from('activity_completions').select('completed_at, activity:activities(title)').eq('user_id', userId).gte('completed_at', startDate + 'T00:00:00').lte('completed_at', endDate + 'T23:59:59'),
           db.from('journal_entries').select('entry_date, blocks').eq('user_id', userId).gte('entry_date', startDate).lte('entry_date', endDate),
           db.from('social_rhythm_logs').select('date, score, anchors_hit, anchors_total').eq('user_id', userId).gte('date', startDate).lte('date', endDate),
           db.from('nutrition_logs').select('log_date, categories').eq('user_id', userId).gte('log_date', startDate).lte('log_date', endDate),
@@ -148,7 +148,7 @@ export const useCalendarStore = create<CalendarStore>((set, get) => {
         const activityMap: Record<string, string[]> = {};
         (activityLogs.data ?? []).forEach((r: any) => {
           const d = r.completed_at?.split('T')[0];
-          if (d) { if (!activityMap[d]) activityMap[d] = []; activityMap[d].push(r.activity?.name ?? 'Activity'); }
+          if (d) { if (!activityMap[d]) activityMap[d] = []; activityMap[d].push(r.activity?.title ?? 'Activity'); }
         });
         const journalMap: Record<string, string> = {};
         (journalEntries.data ?? []).forEach((r: any) => {
@@ -205,7 +205,8 @@ export const useCalendarStore = create<CalendarStore>((set, get) => {
       const startMs = new Date(weekStart).getTime();
       const weekDays: DayData[] = [];
       for (let i = 0; i < 7; i++) {
-        const d = new Date(startMs + i * 86400000).toISOString().split('T')[0];
+        const dt = new Date(startMs + i * 86400000);
+        const d = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
         if (days[d]) weekDays.push(days[d]);
       }
 

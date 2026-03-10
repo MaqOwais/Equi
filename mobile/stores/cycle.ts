@@ -21,7 +21,7 @@ export const useCycleStore = create<CycleStore>((set) => ({
   load90Days: async (userId) => {
     const from = new Date();
     from.setDate(from.getDate() - 90);
-    const fromStr = from.toISOString().split('T')[0];
+    const fromStr = `${from.getFullYear()}-${String(from.getMonth() + 1).padStart(2, '0')}-${String(from.getDate()).padStart(2, '0')}`;
 
     const { data } = await supabase
       .from('cycle_logs')
