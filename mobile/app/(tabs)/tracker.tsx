@@ -10,6 +10,7 @@ import { useTodayStore } from '../../stores/today';
 import { useCycleStore } from '../../stores/cycle';
 import { useSleepStore } from '../../stores/sleep';
 import { useAIStore } from '../../stores/ai';
+import { useAmbientTheme } from '../../stores/ambient';
 import type { CycleState } from '../../types/database';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -136,6 +137,7 @@ export default function TrackerScreen() {
   const cycle = useCycleStore();
   const sleep = useSleepStore();
   const ai = useAIStore();
+  const theme = useAmbientTheme();
   const userId = session?.user.id;
 
   const [selectedState, setSelectedState] = useState<CycleState>(
@@ -177,14 +179,14 @@ export default function TrackerScreen() {
   const accentColor = STATE_COLORS[selectedState];
 
   return (
-    <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
+    <SafeAreaView style={s.safe} edges={['left', 'right']}>
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
         {/* Header */}
         <View style={s.headerRow}>
           <View>
-            <Text style={s.title}>Cycle Tracker</Text>
-            <Text style={s.subtitle}>How have you been today?</Text>
+            <Text style={[s.title, { color: theme.textPrimary }]}>Cycle Tracker</Text>
+            <Text style={[s.subtitle, { color: theme.textSecondary, opacity: 1 }]}>How have you been today?</Text>
           </View>
           <View style={[s.stateSummaryPill, { backgroundColor: accentColor + '22', borderColor: accentColor + '66' }]}>
             <View style={[s.stateSummaryDot, { backgroundColor: accentColor }]} />
@@ -193,7 +195,7 @@ export default function TrackerScreen() {
         </View>
 
         {/* State selector */}
-        <View style={s.stateRow}>
+        <View style={[s.stateRow, theme.cardSurface, { borderRadius: 16, padding: 10 }]}>
           {STATES.map((st) => (
             <TouchableOpacity
               key={st}
@@ -203,7 +205,7 @@ export default function TrackerScreen() {
               ]}
               onPress={() => { setSelectedState(st); setSaved(false); }}
             >
-              <Text style={[s.stateBtnText, selectedState === st && s.stateBtnTextActive]}>
+              <Text style={[s.stateBtnText, { color: theme.textSecondary, opacity: 1 }, selectedState === st && s.stateBtnTextActive]}>
                 {STATE_LABELS[st]}
               </Text>
             </TouchableOpacity>
@@ -211,7 +213,7 @@ export default function TrackerScreen() {
         </View>
 
         {/* Intensity */}
-        <Text style={s.sectionLabel}>INTENSITY</Text>
+        <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>INTENSITY</Text>
         {[[1,2,3,4,5],[6,7,8,9,10]].map((row, ri) => (
           <View key={ri} style={[s.intensityRow, ri > 0 && { marginTop: 8 }]}>
             {row.map((n) => (
@@ -219,11 +221,12 @@ export default function TrackerScreen() {
                 key={n}
                 style={[
                   s.intensityChip,
+                  intensity !== n && theme.cardSurface,
                   intensity === n && { backgroundColor: accentColor, borderColor: accentColor },
                 ]}
                 onPress={() => { setIntensity(n); setSaved(false); }}
               >
-                <Text style={[s.intensityText, intensity === n && s.intensityTextActive]}>
+                <Text style={[s.intensityText, { color: theme.textSecondary, opacity: 1 }, intensity === n && s.intensityTextActive]}>
                   {n}
                 </Text>
               </TouchableOpacity>
@@ -231,22 +234,26 @@ export default function TrackerScreen() {
           </View>
         ))}
         <View style={s.intensityLabels}>
-          <Text style={s.intensityLabelText}>Mild</Text>
-          <Text style={s.intensityLabelText}>Intense</Text>
+          <Text style={[s.intensityLabelText, { color: theme.textSecondary, opacity: 1 }]}>Mild</Text>
+          <Text style={[s.intensityLabelText, { color: theme.textSecondary, opacity: 1 }]}>Intense</Text>
         </View>
 
         {/* Symptoms */}
-        <Text style={s.sectionLabel}>SYMPTOMS</Text>
+        <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>SYMPTOMS</Text>
         <View style={s.symptomsGrid}>
           {SYMPTOMS[selectedState].map((sym) => {
             const active = selectedSymptoms.includes(sym);
             return (
               <TouchableOpacity
                 key={sym}
-                style={[s.symptomChip, active && { borderColor: accentColor, backgroundColor: accentColor + '18' }]}
+                style={[
+                  s.symptomChip,
+                  !active && { backgroundColor: 'rgba(255,255,255,0.85)', borderColor: theme.cardBorder },
+                  active && { borderColor: accentColor, backgroundColor: accentColor + '18' },
+                ]}
                 onPress={() => toggleSymptom(sym)}
               >
-                <Text style={[s.symptomText, active && { color: '#3D3935', opacity: 1, fontWeight: '600' }]}>
+                <Text style={[s.symptomText, { color: theme.textSecondary, opacity: 1 }, active && { color: theme.textPrimary, opacity: 1, fontWeight: '600' }]}>
                   {sym}
                 </Text>
               </TouchableOpacity>
@@ -255,9 +262,9 @@ export default function TrackerScreen() {
         </View>
 
         {/* Notes */}
-        <Text style={s.sectionLabel}>NOTES  (optional)</Text>
+        <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>NOTES  (optional)</Text>
         <TextInput
-          style={s.notesInput}
+          style={[s.notesInput, { backgroundColor: '#FFFFFF', color: theme.textPrimary }]}
           value={notes}
           onChangeText={(t) => { setNotes(t); setSaved(false); }}
           placeholder="Anything else on your mind today…"
@@ -267,14 +274,14 @@ export default function TrackerScreen() {
         />
 
         {/* 90-day graph */}
-        <Text style={s.sectionLabel}>LAST 90 DAYS</Text>
-        <View style={s.graphCard}>
+        <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>LAST 90 DAYS</Text>
+        <View style={[s.graphCard, theme.cardSurface, { borderColor: theme.cardBorder }]}>
           <CycleGraph logs={cycle.logs} />
           <View style={s.graphLegend}>
             {STATES.map((st) => (
               <View key={st} style={s.legendItem}>
                 <View style={[s.legendDot, { backgroundColor: STATE_COLORS[st] }]} />
-                <Text style={s.legendText}>{STATE_LABELS[st]}</Text>
+                <Text style={[s.legendText, { color: theme.textSecondary, opacity: 1 }]}>{STATE_LABELS[st]}</Text>
               </View>
             ))}
           </View>
@@ -282,15 +289,15 @@ export default function TrackerScreen() {
 
         {/* AI insight chip — rule-based, offline-safe */}
         {ai.trackerInsight && (
-          <View style={s.insightChip}>
+          <View style={[s.insightChip, theme.cardSurface]}>
             <Text style={s.insightIcon}>💡</Text>
-            <Text style={s.insightText}>{ai.trackerInsight}</Text>
+            <Text style={[s.insightText, { color: theme.textSecondary, opacity: 1 }]}>{ai.trackerInsight}</Text>
           </View>
         )}
 
         {/* Sleep mini-chart */}
-        <Text style={s.sectionLabel}>SLEEP · LAST 30 DAYS</Text>
-        <View style={s.graphCard}>
+        <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>SLEEP · LAST 30 DAYS</Text>
+        <View style={[s.graphCard, theme.cardSurface, { borderColor: theme.cardBorder }]}>
           {sleep.history.length > 0 ? (
             <>
               <SleepMiniChart logs={sleep.history} />
@@ -298,14 +305,14 @@ export default function TrackerScreen() {
                 {(['Great', 'Good', 'OK', 'Poor'] as const).map((label, i) => (
                   <View key={label} style={s.legendItem}>
                     <View style={[s.legendDot, { backgroundColor: ['#89B4CC', '#A8C5A0', '#E8DCC8', '#C4A0B0'][i] }]} />
-                    <Text style={s.legendText}>{label}</Text>
+                    <Text style={[s.legendText, { color: theme.textSecondary, opacity: 1 }]}>{label}</Text>
                   </View>
                 ))}
               </View>
-              <Text style={s.sleepHint}>Dashed line = 7h target</Text>
+              <Text style={[s.sleepHint, { color: theme.textSecondary, opacity: 1 }]}>Dashed line = 7h target</Text>
             </>
           ) : (
-            <Text style={s.sleepEmpty}>
+            <Text style={[s.sleepEmpty, { color: theme.textSecondary, opacity: 1 }]}>
               Log sleep on the Today tab each morning to see your trend here.
             </Text>
           )}
@@ -330,7 +337,7 @@ export default function TrackerScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#FFFFFF' },
+  safe: { flex: 1, backgroundColor: 'transparent' },
   scroll: { paddingHorizontal: 18, paddingTop: 20, paddingBottom: 20 },
 
   headerRow: {
@@ -349,7 +356,7 @@ const s = StyleSheet.create({
   subtitle: { fontSize: 14, color: '#3D3935', opacity: 0.45 },
 
   sectionLabel: {
-    fontSize: 11, fontWeight: '700', color: '#3D3935', opacity: 0.35,
+    fontSize: 11, fontWeight: '700', color: '#3D3935',
     letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10, marginTop: 20,
   },
 
@@ -391,9 +398,9 @@ const s = StyleSheet.create({
 
   // Graph
   graphCard: {
-    backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16,
+    backgroundColor: 'transparent', borderRadius: 20, padding: 16, marginBottom: 14,
     shadowColor: '#3D3935', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.07, shadowRadius: 6, elevation: 2, borderWidth: 1, borderColor: '#F0EDE8',
+    shadowOpacity: 0.07, shadowRadius: 6, elevation: 2, borderWidth: 1.5, borderColor: '#F0EDE8',
   },
   graphLegend: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 12 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
@@ -412,7 +419,7 @@ const s = StyleSheet.create({
 
   insightChip: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 8,
-    backgroundColor: '#FFFFFF', borderRadius: 12, padding: 12,
+    backgroundColor: 'transparent', borderRadius: 12, padding: 12,
     marginTop: 8, marginBottom: 4,
     shadowColor: '#3D3935', shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04, shadowRadius: 3, elevation: 1,

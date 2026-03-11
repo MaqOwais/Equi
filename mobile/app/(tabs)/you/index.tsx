@@ -8,6 +8,7 @@ import Svg, { Polygon, Line, Circle, Text as SvgText } from 'react-native-svg';
 import { useAuthStore } from '../../../stores/auth';
 import { useSleepStore } from '../../../stores/sleep';
 import { useSocialRhythmStore } from '../../../stores/socialRhythm';
+import { useAmbientStore, useAmbientTheme, SCENES } from '../../../stores/ambient';
 import { supabase } from '../../../lib/supabase';
 import type { Diagnosis } from '../../../types/database';
 
@@ -111,14 +112,15 @@ const rdr = StyleSheet.create({
 function MenuItem({
   icon, label, sub, onPress, right,
 }: { icon: string; label: string; sub?: string; onPress: () => void; right?: React.ReactNode }) {
+  const theme = useAmbientTheme();
   return (
     <TouchableOpacity style={s.menuItem} onPress={onPress} activeOpacity={0.7}>
       <Text style={s.menuIcon}>{icon}</Text>
       <View style={{ flex: 1 }}>
-        <Text style={s.menuLabel}>{label}</Text>
-        {sub ? <Text style={s.menuSub}>{sub}</Text> : null}
+        <Text style={[s.menuLabel, { color: theme.textPrimary }]}>{label}</Text>
+        {sub ? <Text style={[s.menuSub, { color: theme.textSecondary }]}>{sub}</Text> : null}
       </View>
-      {right ?? <Text style={s.menuChevron}>›</Text>}
+      {right ?? <Text style={[s.menuChevron, { color: theme.textSecondary }]}>›</Text>}
     </TouchableOpacity>
   );
 }
@@ -132,6 +134,9 @@ export default function YouScreen() {
   const rhythm = useSocialRhythmStore();
   const medsStore = useMedicationsStore();
   const activitiesStore = useActivitiesStore();
+  const { activeSceneId, isPlaying, pause, resume } = useAmbientStore();
+  const activeScene = SCENES.find((sc) => sc.id === activeSceneId);
+  const theme = useAmbientTheme();
   const userId = session?.user.id;
 
   const [stats, setStats] = useState({ days: 0, activities: 0, stableDays: 0 });
@@ -221,7 +226,7 @@ export default function YouScreen() {
   }
 
   return (
-    <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
+    <SafeAreaView style={s.safe} edges={['left', 'right']}>
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
         {/* Avatar + name */}
@@ -229,40 +234,40 @@ export default function YouScreen() {
           <View style={s.avatarCircle}>
             <Text style={s.avatarInitial}>{displayName.charAt(0).toUpperCase()}</Text>
           </View>
-          <Text style={s.name}>{displayName}</Text>
-          {diagnosisLabel && <Text style={s.diagnosis}>{diagnosisLabel}</Text>}
+          <Text style={[s.name, { color: theme.textPrimary }]}>{displayName}</Text>
+          {diagnosisLabel && <Text style={[s.diagnosis, { color: theme.textSecondary }]}>{diagnosisLabel}</Text>}
         </View>
 
         {/* Stats row */}
-        <View style={s.statsRow}>
+        <View style={[s.statsRow, theme.cardSurface]}>
           {[
             { label: 'days tracked', value: stats.days },
             { label: 'activities', value: stats.activities },
             { label: 'stable days', value: stats.stableDays },
           ].map((stat) => (
             <View key={stat.label} style={s.statItem}>
-              <Text style={s.statValue}>{stat.value}</Text>
-              <Text style={s.statLabel}>{stat.label}</Text>
+              <Text style={[s.statValue, { color: theme.textPrimary }]}>{stat.value}</Text>
+              <Text style={[s.statLabel, { color: theme.textSecondary }]}>{stat.label}</Text>
             </View>
           ))}
         </View>
 
         {/* Wellness Radar */}
-        <View style={s.radarCard}>
-          <Text style={s.sectionLabel}>WELLNESS RADAR · 30 DAYS</Text>
+        <View style={[s.radarCard, theme.cardSurface]}>
+          <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>WELLNESS RADAR · 30 DAYS</Text>
           <WellnessRadar scores={radarScores} />
-          <Text style={s.radarNote}>Sleep requires wearable sync · Social from rhythm logs</Text>
+          <Text style={[s.radarNote, { color: theme.textSecondary }]}>Sleep requires wearable sync · Social from rhythm logs</Text>
         </View>
 
         {/* Daily tracking — highest priority, used every day */}
-        <Text style={s.sectionLabel}>DAILY TRACKING</Text>
-        <View style={s.menuCard}>
+        <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>DAILY TRACKING</Text>
+        <View style={[s.menuCard, theme.cardSurface]}>
           {/* Medications */}
           <View style={s.trackRow}>
             <Text style={s.menuIcon}>💊</Text>
             <View style={{ flex: 1 }}>
-              <Text style={s.menuLabel}>Medications</Text>
-              <Text style={s.menuSub}>
+              <Text style={[s.menuLabel, { color: theme.textPrimary }]}>Medications</Text>
+              <Text style={[s.menuSub, { color: theme.textSecondary }]}>
                 {trackMed
                   ? (medsStore.medications.length > 0
                       ? `${medsStore.medications.length} medication${medsStore.medications.length !== 1 ? 's' : ''} · tap to manage`
@@ -278,7 +283,7 @@ export default function YouScreen() {
             />
             {trackMed && (
               <TouchableOpacity onPress={() => router.push('/(tabs)/you/medications')} style={s.trackChevron}>
-                <Text style={s.menuChevron}>›</Text>
+                <Text style={[s.menuChevron, { color: theme.textSecondary }]}>›</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -294,15 +299,15 @@ export default function YouScreen() {
               <View style={s.trackRow}>
                 <Text style={s.menuIcon}>🌿</Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={s.menuLabel}>Activities</Text>
-                  <Text style={s.menuSub}>
+                  <Text style={[s.menuLabel, { color: theme.textPrimary }]}>Activities</Text>
+                  <Text style={[s.menuSub, { color: theme.textSecondary }]}>
                     {routineCount > 0
                       ? `${routineCount} routine activit${routineCount !== 1 ? 'ies' : 'y'} · tap to manage`
                       : 'Build your wellbeing routine'}
                   </Text>
                 </View>
                 <TouchableOpacity onPress={() => router.push('/(tabs)/you/activities')} style={s.trackChevron}>
-                  <Text style={s.menuChevron}>›</Text>
+                  <Text style={[s.menuChevron, { color: theme.textSecondary }]}>›</Text>
                 </TouchableOpacity>
               </View>
             );
@@ -314,8 +319,8 @@ export default function YouScreen() {
           <View style={s.trackRow}>
             <Text style={s.menuIcon}>🍷</Text>
             <View style={{ flex: 1 }}>
-              <Text style={s.menuLabel}>Substances</Text>
-              <Text style={s.menuSub}>
+              <Text style={[s.menuLabel, { color: theme.textPrimary }]}>Substances</Text>
+              <Text style={[s.menuSub, { color: theme.textSecondary }]}>
                 {trackSubs
                   ? (medsStore.substances.length > 0
                       ? `${medsStore.substances.length} substance${medsStore.substances.length !== 1 ? 's' : ''} tracked · tap to manage`
@@ -331,15 +336,15 @@ export default function YouScreen() {
             />
             {trackSubs && (
               <TouchableOpacity onPress={() => router.push('/(tabs)/you/substances')} style={s.trackChevron}>
-                <Text style={s.menuChevron}>›</Text>
+                <Text style={[s.menuChevron, { color: theme.textSecondary }]}>›</Text>
               </TouchableOpacity>
             )}
           </View>
         </View>
 
         {/* Wellbeing tools */}
-        <Text style={s.sectionLabel}>WELLBEING TOOLS</Text>
-        <View style={s.menuCard}>
+        <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>WELLBEING TOOLS</Text>
+        <View style={[s.menuCard, theme.cardSurface]}>
           <MenuItem
             icon="🗓"
             label="Daily Routine"
@@ -366,11 +371,20 @@ export default function YouScreen() {
             sub="Food quality — no calorie tracking"
             onPress={() => router.push('/(tabs)/you/nutrition')}
           />
+          <View style={s.divider} />
+          <MenuItem
+            icon="🎵"
+            label="Ambient Scenes"
+            sub={activeScene
+              ? `${activeScene.icon} ${activeScene.label} · ${isPlaying ? 'Playing' : 'Paused'}`
+              : '6 calming soundscapes — play what feels right'}
+            onPress={() => router.push('/(tabs)/you/ambient')}
+          />
         </View>
 
         {/* AI & Insights */}
-        <Text style={s.sectionLabel}>AI & INSIGHTS</Text>
-        <View style={s.menuCard}>
+        <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>AI & INSIGHTS</Text>
+        <View style={[s.menuCard, theme.cardSurface]}>
           <MenuItem
             icon="🧠"
             label="AI Wellness Report"
@@ -387,8 +401,8 @@ export default function YouScreen() {
         </View>
 
         {/* Social */}
-        <Text style={s.sectionLabel}>SOCIAL</Text>
-        <View style={s.menuCard}>
+        <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>SOCIAL</Text>
+        <View style={[s.menuCard, theme.cardSurface]}>
           <MenuItem
             icon="🤝"
             label="Support Network"
@@ -412,8 +426,8 @@ export default function YouScreen() {
         </View>
 
         {/* Data & Device */}
-        <Text style={s.sectionLabel}>DATA & DEVICE</Text>
-        <View style={s.menuCard}>
+        <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>DATA & DEVICE</Text>
+        <View style={[s.menuCard, theme.cardSurface]}>
           <MenuItem
             icon="⌚"
             label="Wearable sync"
@@ -430,8 +444,8 @@ export default function YouScreen() {
         </View>
 
         {/* Settings */}
-        <Text style={s.sectionLabel}>SETTINGS</Text>
-        <View style={s.menuCard}>
+        <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>SETTINGS</Text>
+        <View style={[s.menuCard, theme.cardSurface]}>
           <MenuItem icon="🔔" label="Notifications" sub="Reminders, alerts & ring settings" onPress={() => router.push('/(tabs)/you/notifications')} />
           <View style={s.divider} />
           <MenuItem
@@ -445,12 +459,12 @@ export default function YouScreen() {
         {/* Support Equi */}
         <TouchableOpacity style={s.donateBtn} onPress={() => router.push('/(tabs)/you/donate')}>
           <Text style={s.donateBtnText}>Support Equi →</Text>
-          <Text style={s.donateBtnSub}>Free forever · No ads · Donate optionally</Text>
+          <Text style={[s.donateBtnSub, { color: theme.textSecondary }]}>Free forever · No ads · Donate optionally</Text>
         </TouchableOpacity>
 
         {/* Sign out */}
         <TouchableOpacity style={s.signOutBtn} onPress={signOut}>
-          <Text style={s.signOutText}>Sign out</Text>
+          <Text style={[s.signOutText, { color: theme.textSecondary }]}>Sign out</Text>
         </TouchableOpacity>
 
         <View style={{ height: 40 }} />
@@ -462,7 +476,7 @@ export default function YouScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#FFFFFF' },
+  safe: { flex: 1, backgroundColor: 'transparent' },
   scroll: { paddingHorizontal: 18, paddingTop: 20 },
 
   avatar: { alignItems: 'center', marginBottom: 16 },
@@ -471,35 +485,35 @@ const s = StyleSheet.create({
     backgroundColor: '#A8C5A030', alignItems: 'center', justifyContent: 'center', marginBottom: 10,
   },
   avatarInitial: { fontSize: 28, fontWeight: '700', color: '#A8C5A0' },
-  name: { fontSize: 20, fontWeight: '700', color: '#3D3935', marginBottom: 4 },
-  diagnosis: { fontSize: 13, color: '#3D3935', opacity: 0.4 },
+  name: { fontSize: 20, fontWeight: '700', marginBottom: 4 },
+  diagnosis: { fontSize: 13 },
 
   statsRow: {
     flexDirection: 'row', justifyContent: 'space-around',
-    backgroundColor: '#FFFFFF', borderRadius: 14, paddingVertical: 14, marginBottom: 12,
+    borderRadius: 14, paddingVertical: 14, marginBottom: 12,
     shadowColor: '#3D3935', shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04, shadowRadius: 3, elevation: 1,
   },
   statItem: { alignItems: 'center' },
-  statValue: { fontSize: 22, fontWeight: '700', color: '#3D3935' },
-  statLabel: { fontSize: 11, color: '#3D3935', opacity: 0.35, marginTop: 2 },
+  statValue: { fontSize: 22, fontWeight: '700' },
+  statLabel: { fontSize: 11, marginTop: 2 },
 
   radarCard: {
-    backgroundColor: '#FFFFFF', borderRadius: 14, padding: 14, marginBottom: 16,
+    borderRadius: 14, padding: 14, marginBottom: 16,
     shadowColor: '#3D3935', shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04, shadowRadius: 3, elevation: 1,
   },
-  radarNote: { fontSize: 11, color: '#3D3935', opacity: 0.25, textAlign: 'center', marginTop: 4 },
+  radarNote: { fontSize: 11, textAlign: 'center', marginTop: 4 },
 
   sectionLabel: {
-    fontSize: 11, fontWeight: '700', color: '#3D3935', opacity: 0.35,
+    fontSize: 11, fontWeight: '700',
     letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8, marginTop: 4,
   },
 
   menuCard: {
-    backgroundColor: '#FFFFFF', borderRadius: 16, marginBottom: 16,
+    borderRadius: 20, marginBottom: 14,
     shadowColor: '#3D3935', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.07, shadowRadius: 6, elevation: 2, borderWidth: 1, borderColor: '#F0EDE8',
+    shadowOpacity: 0.07, shadowRadius: 6, elevation: 2, borderWidth: 1.5,
   },
   menuItem: {
     flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14,
@@ -509,9 +523,9 @@ const s = StyleSheet.create({
   },
   trackChevron: { paddingLeft: 4 },
   menuIcon: { fontSize: 18, marginRight: 12 },
-  menuLabel: { fontSize: 15, fontWeight: '500', color: '#3D3935' },
-  menuSub: { fontSize: 12, color: '#3D3935', opacity: 0.4, marginTop: 1 },
-  menuChevron: { fontSize: 20, color: '#3D3935', opacity: 0.2 },
+  menuLabel: { fontSize: 15, fontWeight: '500' },
+  menuSub: { fontSize: 12, marginTop: 1 },
+  menuChevron: { fontSize: 20 },
   divider: { height: 1, backgroundColor: '#F0EDE8', marginLeft: 48 },
 
   donateBtn: {
@@ -519,8 +533,8 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: '#C9A84C25',
   },
   donateBtnText: { fontSize: 15, fontWeight: '700', color: '#C9A84C', marginBottom: 2 },
-  donateBtnSub: { fontSize: 12, color: '#3D3935', opacity: 0.4 },
+  donateBtnSub: { fontSize: 12 },
 
   signOutBtn: { paddingVertical: 14, alignItems: 'center', marginTop: 8 },
-  signOutText: { fontSize: 14, color: '#3D3935', opacity: 0.35, fontWeight: '500' },
+  signOutText: { fontSize: 14, fontWeight: '500' },
 });

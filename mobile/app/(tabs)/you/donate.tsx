@@ -54,7 +54,7 @@ export default function DonateScreen() {
     (customAmount.length > 0 && parseFloat(customAmount) >= 1);
 
   return (
-    <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
+    <SafeAreaView style={s.safe} edges={['left', 'right']}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
           {/* Nav */}
@@ -157,7 +157,7 @@ export default function DonateScreen() {
 }
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#FFFFFF' },
+  safe: { flex: 1, backgroundColor: 'transparent' },
   scroll: { paddingHorizontal: 24, paddingBottom: 40 },
   nav: { paddingTop: 12, paddingBottom: 4 },
   backText: { fontSize: 15, color: '#A8C5A0', fontWeight: '600' },

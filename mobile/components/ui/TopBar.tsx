@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../stores/auth';
 import { useTodayStore } from '../../stores/today';
 import { useNotificationsStore } from '../../stores/notifications';
+import { useAmbientStore } from '../../stores/ambient';
 import type { CycleState } from '../../types/database';
 
 const CYCLE_COLORS: Record<CycleState, string> = {
@@ -15,6 +16,7 @@ export function TopBar() {
   const { profile } = useAuthStore();
   const today = useTodayStore();
   const notifs = useNotificationsStore();
+  const { activeSceneId } = useAmbientStore();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -27,7 +29,7 @@ export function TopBar() {
   const hasUnread = notifs.prefs?.post_crisis_enabled && today.moodScore === null;
 
   return (
-    <View style={[s.container, { paddingTop: insets.top + 4 }]}>
+    <View style={[s.container, { paddingTop: insets.top + 4 }, activeSceneId && s.containerAmbient]}>
 
       {/* ── Left: App logo ─────────────────────────────────── */}
       <View style={s.logoWrap}>
@@ -74,6 +76,10 @@ const s = StyleSheet.create({
     paddingBottom: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#EBEBEB',
+  },
+  containerAmbient: {
+    backgroundColor: 'rgba(255,255,255,0.72)',
+    borderBottomColor: 'rgba(255,255,255,0.4)',
   },
 
   // Logo

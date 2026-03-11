@@ -345,7 +345,7 @@ export default function NotificationsScreen() {
 
   if (!p) {
     return (
-      <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
+      <SafeAreaView style={s.safe} edges={['left', 'right']}>
         <View style={s.loadingWrap}>
           <Text style={s.loadingText}>Loading preferences…</Text>
         </View>
@@ -354,7 +354,7 @@ export default function NotificationsScreen() {
   }
 
   return (
-    <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
+    <SafeAreaView style={s.safe} edges={['left', 'right']}>
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
         <View style={s.nav}>
@@ -514,7 +514,7 @@ export default function NotificationsScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#FFFFFF' },
+  safe: { flex: 1, backgroundColor: 'transparent' },
   scroll: { paddingHorizontal: 18, paddingTop: 8 },
 
   nav: { paddingVertical: 8 },

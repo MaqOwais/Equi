@@ -16,6 +16,7 @@ import { useCycleStore, type CycleLogEntry } from '../../stores/cycle';
 import { useRouter } from 'expo-router';
 import { useMedicationsStore } from '../../stores/medications';
 import type { CycleState, MedicationStatus } from '../../types/database';
+import { useAmbientTheme } from '../../stores/ambient';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -289,6 +290,7 @@ export default function TodayScreen() {
     today.logCheckin(userId, alcohol, cannabis);
   }
 
+  const theme = useAmbientTheme();
   const { updateProfile } = useAuthStore();
   const cycleState: CycleState = today.cycleState ?? profile?.current_cycle_state ?? 'stable';
   const cycleColor = CYCLE_COLORS[cycleState];
@@ -362,15 +364,15 @@ export default function TodayScreen() {
   }
 
   return (
-    <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={s.safe} edges={['left', 'right']}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
 
-        {/* ── State Header ─────────────────────────────────────────────────── */}
-        <View style={[s.header, { backgroundColor: cycleColor + '28' }]}>
+        {/* ── State Header — transparent so the cartoon scene shows behind it ── */}
+        <View style={[s.header, { backgroundColor: 'transparent' }]}>
           <View style={s.headerTop}>
             <View style={{ flex: 1 }}>
-              <Text style={s.headerGreeting}>{greeting()}</Text>
-              <Text style={s.headerDate}>{formatDate()}</Text>
+              <Text style={[s.headerGreeting, { color: theme.textPrimary }]}>{greeting()}</Text>
+              <Text style={[s.headerDate, { color: theme.textSecondary, opacity: 1 }]}>{formatDate()}</Text>
             </View>
             <View style={[s.stateBadge, { backgroundColor: cycleColor + '33', borderColor: cycleColor + '88' }]}>
               <View style={[s.stateDot, { backgroundColor: cycleColor }]} />
@@ -390,26 +392,30 @@ export default function TodayScreen() {
             <Text style={s.sparkLabel}>7-day history</Text>
           </View>
 
-          {/* Completion chips */}
+          {/* Completion chips — frosted glass when scene active so they're readable */}
           <View style={s.completionRow}>
             {checks.map((c) => (
               <View
                 key={c.label}
-                style={[s.checkChip, c.done && { backgroundColor: cycleColor + '33', borderColor: cycleColor + '66' }]}
+                style={[
+                  s.checkChip,
+                  theme.isActive && { backgroundColor: 'rgba(255,255,255,0.32)', borderColor: 'rgba(255,255,255,0.6)' },
+                  c.done && { backgroundColor: cycleColor + '44', borderColor: cycleColor + '88' },
+                ]}
               >
-                <View style={[s.checkDot, { backgroundColor: c.done ? cycleColor : '#3D393530' }]} />
-                <Text style={[s.checkLabel, c.done && { color: cycleColor, opacity: 1 }]}>{c.label}</Text>
+                <View style={[s.checkDot, { backgroundColor: c.done ? cycleColor : 'rgba(255,255,255,0.5)' }]} />
+                <Text style={[s.checkLabel, { color: c.done ? cycleColor : (theme.isActive ? '#3D3935' : '#3D3935'), opacity: 1 }]}>{c.label}</Text>
               </View>
             ))}
-            <Text style={s.checkCount}>{doneCount}/{checks.length}</Text>
+            <Text style={[s.checkCount, theme.isActive && { color: '#3D3935', opacity: 0.7 }]}>{doneCount}/{checks.length}</Text>
           </View>
         </View>
 
         <View style={s.content}>
 
-          {/* ── Smart Hero Card ───────────────────────────────────────────────── */}
+          {/* ── Smart Hero Card — always readable on scene background ─────────── */}
           <TouchableOpacity
-            style={[s.heroCard, { borderLeftColor: hero.color, backgroundColor: hero.color + (allDone ? '18' : '10') }]}
+            style={[s.heroCard, theme.cardSurface, { borderLeftColor: hero.color, borderLeftWidth: 4 }]}
             onPress={handleHeroPress}
             activeOpacity={hero.route ? 0.75 : 1}
           >
@@ -418,14 +424,14 @@ export default function TodayScreen() {
               <Text style={[s.heroTitle, { color: hero.color === '#E8DCC8' ? '#A09060' : hero.color }]}>
                 {hero.title}
               </Text>
-              <Text style={s.heroSub}>{hero.sub}</Text>
+              <Text style={[s.heroSub, { color: theme.textSecondary, opacity: 1 }]}>{hero.sub}</Text>
             </View>
             {hero.route && <Text style={[s.heroArrow, { color: hero.color }]}>›</Text>}
           </TouchableOpacity>
 
           {/* ── Pattern Pulse ─────────────────────────────────────────────────── */}
           {pulse && (
-            <View style={[s.pulseCard, { borderColor: pulse.color + '44', backgroundColor: pulse.color + '0C' }]}>
+            <View style={[s.pulseCard, theme.cardSurface, { borderLeftColor: pulse.color, borderLeftWidth: 3 }]}>
               <Text style={s.pulseIcon}>{pulse.icon}</Text>
               <Text style={[s.pulseText, { color: pulse.color === '#E8DCC8' ? '#A09060' : pulse.color }]}>
                 {pulse.text}
@@ -434,14 +440,14 @@ export default function TodayScreen() {
           )}
 
           {/* ── Mood ─────────────────────────────────────────────────────────── */}
-          <Text style={s.sectionLabel}>MOOD</Text>
-          <View style={s.card}>
+          <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>MOOD</Text>
+          <View style={[s.card, theme.cardSurface]}>
             {today.moodScore !== null ? (
               <View style={s.moodLogged}>
                 <Text style={s.moodLoggedEmoji}>{MOOD_EMOJIS[today.moodScore - 1]}</Text>
                 <View>
-                  <Text style={s.moodLoggedTitle}>Mood logged</Text>
-                  <Text style={s.moodLoggedSub}>{today.moodScore} / 10 · Tap tomorrow to update</Text>
+                  <Text style={[s.moodLoggedTitle, { color: theme.textPrimary }]}>Mood logged</Text>
+                  <Text style={[s.moodLoggedSub, { color: theme.textSecondary, opacity: 1 }]}>{today.moodScore} / 10 · Tap tomorrow to update</Text>
                 </View>
               </View>
             ) : (
@@ -481,14 +487,14 @@ export default function TodayScreen() {
           )}
 
           {/* ── Cycle State ───────────────────────────────────────────────────── */}
-          <Text style={s.sectionLabel}>CYCLE STATE</Text>
-          <View style={s.card}>
+          <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>CYCLE STATE</Text>
+          <View style={[s.card, theme.cardSurface]}>
             {today.cycleState !== null ? (
               <View style={s.cycleLogged}>
                 <View style={[s.cycleLoggedDot, { backgroundColor: CYCLE_COLORS[today.cycleState] }]} />
                 <View style={{ flex: 1 }}>
-                  <Text style={s.cycleLoggedTitle}>{CYCLE_LABELS[today.cycleState]} today</Text>
-                  <Text style={s.cycleLoggedSub}>Tap a state to update</Text>
+                  <Text style={[s.cycleLoggedTitle, { color: theme.textPrimary }]}>{CYCLE_LABELS[today.cycleState]} today</Text>
+                  <Text style={[s.cycleLoggedSub, { color: theme.textSecondary, opacity: 1 }]}>Tap a state to update</Text>
                 </View>
               </View>
             ) : (
@@ -516,9 +522,9 @@ export default function TodayScreen() {
           </View>
 
           {/* ── Journal ───────────────────────────────────────────────────────── */}
-          <Text style={s.sectionLabel}>JOURNAL</Text>
+          <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>JOURNAL</Text>
           <TouchableOpacity
-            style={[s.card, s.journalCard]}
+            style={[s.card, s.journalCard, theme.cardSurface]}
             onPress={() => router.push('/(tabs)/journal')}
             activeOpacity={0.8}
           >
@@ -527,8 +533,8 @@ export default function TodayScreen() {
                 <View style={s.journalLogged}>
                   <Text style={s.journalLoggedIcon}>📖</Text>
                   <View style={{ flex: 1 }}>
-                    <Text style={s.journalLoggedTitle}>Entry written</Text>
-                    <Text style={s.journalLoggedSub}>{journalWordCount} words · Tap to read or edit</Text>
+                    <Text style={[s.journalLoggedTitle, { color: theme.textPrimary }]}>Entry written</Text>
+                    <Text style={[s.journalLoggedSub, { color: theme.textSecondary, opacity: 1 }]}>{journalWordCount} words · Tap to read or edit</Text>
                   </View>
                   <Text style={s.journalChevron}>›</Text>
                 </View>
@@ -540,8 +546,8 @@ export default function TodayScreen() {
               <View style={s.journalEmpty}>
                 <Text style={s.journalEmptyIcon}>✏️</Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={s.journalEmptyTitle}>Write today's entry</Text>
-                  <Text style={s.journalEmptySub}>Private · Locked after 48h · Never shared</Text>
+                  <Text style={[s.journalEmptyTitle, { color: theme.textPrimary }]}>Write today's entry</Text>
+                  <Text style={[s.journalEmptySub, { color: theme.textSecondary, opacity: 1 }]}>Private · Locked after 48h · Never shared</Text>
                 </View>
                 <Text style={s.journalChevron}>›</Text>
               </View>
@@ -550,10 +556,10 @@ export default function TodayScreen() {
 
           {/* ── Sleep ────────────────────────────────────────────────────────── */}
           {(showSleepPrompt || sleep.todayLog !== null) && (
-            <Text style={s.sectionLabel}>SLEEP</Text>
+            <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>SLEEP</Text>
           )}
           {showSleepPrompt && (
-            <View style={s.card}>
+            <View style={[s.card, theme.cardSurface]}>
               <Text style={s.cardPrompt}>🌙  How did you sleep last night?</Text>
               <View style={s.sleepRow}>
                 {SLEEP_OPTIONS.map((opt) => {
@@ -574,14 +580,14 @@ export default function TodayScreen() {
             </View>
           )}
           {sleep.todayLog !== null && (
-            <View style={[s.card, s.sleepLoggedCard]}>
+            <View style={[s.card, s.sleepLoggedCard, theme.cardSurface]}>
               <Text style={s.sleepLoggedIcon}>🌙</Text>
               <View>
-                <Text style={s.sleepLoggedLabel}>
+                <Text style={[s.sleepLoggedLabel, { color: theme.textPrimary }]}>
                   {['', 'Poor', 'Light', 'OK', 'Good', 'Great'][sleep.todayLog.quality_score ?? 0]} sleep
                 </Text>
                 {sleep.todayLog.duration_minutes ? (
-                  <Text style={s.sleepLoggedSub}>
+                  <Text style={[s.sleepLoggedSub, { color: theme.textSecondary, opacity: 1 }]}>
                     {Math.floor(sleep.todayLog.duration_minutes / 60)}h {sleep.todayLog.duration_minutes % 60}m
                   </Text>
                 ) : null}
@@ -593,8 +599,8 @@ export default function TodayScreen() {
           )}
 
           {/* ── Check-ins ────────────────────────────────────────────────────── */}
-          <Text style={s.sectionLabel}>CHECK-INS</Text>
-          <View style={s.card}>
+          <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>CHECK-INS</Text>
+          <View style={[s.card, theme.cardSurface]}>
             {showMedSection && (
               <View style={s.checkinBlock}>
                 <View style={s.checkinLabelRow}>
@@ -695,27 +701,27 @@ export default function TodayScreen() {
           </View>
 
           {/* ── Today's Focus ─────────────────────────────────────────────────── */}
-          <Text style={s.sectionLabel}>TODAY'S FOCUS</Text>
+          <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>TODAY'S FOCUS</Text>
           <View style={[s.tipCard, { borderLeftColor: cycleColor, backgroundColor: cycleColor + '12' }]}>
             <Text style={s.tipIcon}>{tip.icon}</Text>
             <View style={{ flex: 1 }}>
               <Text style={[s.tipTitle, { color: cycleColor === '#E8DCC8' ? '#A09060' : cycleColor }]}>{tip.title}</Text>
-              <Text style={s.tipBody}>{tip.body}</Text>
+              <Text style={[s.tipBody, { color: theme.textSecondary, opacity: 1 }]}>{tip.body}</Text>
             </View>
           </View>
 
           {/* ── Quick Activities ──────────────────────────────────────────────── */}
-          <Text style={s.sectionLabel}>SUGGESTED FOR YOU</Text>
+          <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>SUGGESTED FOR YOU</Text>
           <View style={s.quickActsRow}>
             {quickActs.map((act) => (
               <TouchableOpacity
                 key={act.title}
-                style={[s.quickActCard, { borderColor: cycleColor + '55' }]}
+                style={[s.quickActCard, theme.cardSurface, { borderColor: cycleColor }]}
                 onPress={() => router.push('/(tabs)/activities')}
                 activeOpacity={0.75}
               >
                 <Text style={s.quickActIcon}>{act.icon}</Text>
-                <Text style={s.quickActTitle} numberOfLines={2}>{act.title}</Text>
+                <Text style={[s.quickActTitle, { color: theme.textPrimary }]} numberOfLines={2}>{act.title}</Text>
                 <View style={[s.quickActBadge, { backgroundColor: cycleColor + '22' }]}>
                   <Text style={[s.quickActDur, { color: cycleColor === '#E8DCC8' ? '#A09060' : cycleColor }]}>{act.dur}</Text>
                 </View>
@@ -726,15 +732,15 @@ export default function TodayScreen() {
           {/* ── AI Insight ───────────────────────────────────────────────────── */}
           {ai.trackerInsight && (
             <>
-              <Text style={s.sectionLabel}>AI INSIGHT</Text>
+              <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>AI INSIGHT</Text>
               <TouchableOpacity
-                style={[s.insightCard, { borderColor: cycleColor + '55' }]}
+                style={[s.insightCard, theme.cardSurface]}
                 onPress={() => router.push('/(tabs)/you/ai-report')}
                 activeOpacity={0.8}
               >
                 <Text style={s.insightIcon}>✦</Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={s.insightText}>{ai.trackerInsight}</Text>
+                  <Text style={[s.insightText, { color: theme.textSecondary, opacity: 1 }]}>{ai.trackerInsight}</Text>
                   <Text style={s.insightLink}>See full report →</Text>
                 </View>
               </TouchableOpacity>
@@ -742,18 +748,18 @@ export default function TodayScreen() {
           )}
 
           {/* ── Explore ──────────────────────────────────────────────────────── */}
-          <Text style={s.sectionLabel}>EXPLORE</Text>
+          <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>EXPLORE</Text>
           <View style={s.exploreGrid}>
             {EXPLORE_LINKS.map((link) => (
               <TouchableOpacity
                 key={link.route}
-                style={s.exploreCard}
+                style={[s.exploreCard, theme.cardSurface]}
                 onPress={() => router.push(link.route as never)}
                 activeOpacity={0.75}
               >
                 <Text style={s.exploreIcon}>{link.icon}</Text>
-                <Text style={s.exploreLabel}>{link.label}</Text>
-                <Text style={s.exploreSub}>{link.sub}</Text>
+                <Text style={[s.exploreLabel, { color: theme.textPrimary }]}>{link.label}</Text>
+                <Text style={[s.exploreSub, { color: theme.textSecondary, opacity: 1 }]}>{link.sub}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -826,7 +832,7 @@ export default function TodayScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#FFFFFF' },
+  safe: { flex: 1, backgroundColor: 'transparent' },
 
   // Header
   header: { paddingHorizontal: 18, paddingTop: 20, paddingBottom: 16 },
@@ -858,18 +864,18 @@ const s = StyleSheet.create({
   checkLabel: { fontSize: 11, fontWeight: '500', color: '#3D3935', opacity: 0.4 },
   checkCount: { fontSize: 12, fontWeight: '700', color: '#3D3935', opacity: 0.35, marginLeft: 4 },
 
-  content: { paddingHorizontal: 18, paddingTop: 8 },
+  content: { paddingHorizontal: 18, paddingTop: 16 },
 
   sectionLabel: {
-    fontSize: 11, fontWeight: '700', color: '#3D3935', opacity: 0.35,
-    letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8, marginTop: 4,
+    fontSize: 11, fontWeight: '700', color: '#3D3935',
+    letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 8, marginTop: 6,
   },
 
   card: {
-    backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 12,
-    shadowColor: '#3D3935', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06, shadowRadius: 6, elevation: 2,
-    borderWidth: 1, borderColor: '#F0EDE8',
+    backgroundColor: '#FFFFFF', borderRadius: 20, padding: 16, marginBottom: 14,
+    shadowColor: '#3D3935', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08, shadowRadius: 8, elevation: 3,
+    borderWidth: 1.5, borderColor: '#F0EDE8',
   },
   cardPrompt: { fontSize: 14, color: '#3D3935', fontWeight: '500', marginBottom: 14, opacity: 0.75 },
 

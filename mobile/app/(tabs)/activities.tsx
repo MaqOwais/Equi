@@ -9,6 +9,7 @@ import { useAuthStore } from '../../stores/auth';
 import { useTodayStore } from '../../stores/today';
 import { useActivitiesStore } from '../../stores/activities';
 import { useAIStore } from '../../stores/ai';
+import { useAmbientTheme } from '../../stores/ambient';
 import { supabase } from '../../lib/supabase';
 import type { Activity, ActivityCompletion, CycleState } from '../../types/database';
 
@@ -64,18 +65,18 @@ const sd = StyleSheet.create({
 // ─── Horizontal "For You" card ────────────────────────────────────────────────
 
 function ForYouCard({
-  activity, accentColor, completionCount, onPress,
-}: { activity: Activity; accentColor: string; completionCount: number; onPress: () => void }) {
+  activity, accentColor, completionCount, onPress, theme,
+}: { activity: Activity; accentColor: string; completionCount: number; onPress: () => void; theme: ReturnType<typeof useAmbientTheme> }) {
   const meta = CATEGORY_META[activity.category ?? 'other'] ?? CATEGORY_META.other;
   return (
     <TouchableOpacity
-      style={[fy.card, { borderColor: accentColor + '55' }]}
+      style={[fy.card, theme.cardSurface, { borderColor: accentColor + '55' }]}
       onPress={onPress}
       activeOpacity={0.75}
     >
       <Text style={fy.icon}>{meta.icon}</Text>
-      <Text style={fy.title} numberOfLines={2}>{activity.title}</Text>
-      <Text style={fy.meta}>
+      <Text style={[fy.title, { color: theme.textPrimary }]} numberOfLines={2}>{activity.title}</Text>
+      <Text style={[fy.meta, { color: theme.textSecondary }]}>
         {activity.duration_minutes ? `${activity.duration_minutes} min` : '—'}
         {activity.evidence_label ? `  ·  ${activity.evidence_label}` : ''}
       </Text>
@@ -91,14 +92,14 @@ const CARD_W = Math.floor(SCREEN_W * 0.44);
 const fy = StyleSheet.create({
   card: {
     width: CARD_W, borderRadius: 18, padding: 16,
-    backgroundColor: '#FFFFFF', borderWidth: 1.5,
+    borderWidth: 1.5,
     shadowColor: '#3D3935', shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
     marginRight: 12,
   },
   icon: { fontSize: 28, marginBottom: 10 },
-  title: { fontSize: 14, fontWeight: '700', color: '#3D3935', lineHeight: 20, marginBottom: 6 },
-  meta: { fontSize: 11, color: '#3D3935', opacity: 0.4, marginBottom: 8 },
+  title: { fontSize: 14, fontWeight: '700', lineHeight: 20, marginBottom: 6 },
+  meta: { fontSize: 11, marginBottom: 8 },
   countBadge: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
   countText: { fontSize: 11, fontWeight: '600' },
 });
@@ -106,41 +107,42 @@ const fy = StyleSheet.create({
 // ─── Main activity card ───────────────────────────────────────────────────────
 
 function ActivityCard({
-  activity, completionCount, isBookmarked, lastNote, accentColor, onPress,
+  activity, completionCount, isBookmarked, lastNote, accentColor, onPress, theme,
 }: {
   activity: Activity; completionCount: number; isBookmarked: boolean;
   lastNote: string | null; accentColor: string; onPress: () => void;
+  theme: ReturnType<typeof useAmbientTheme>;
 }) {
   const meta = CATEGORY_META[activity.category ?? 'other'] ?? CATEGORY_META.other;
   return (
-    <TouchableOpacity style={s.card} onPress={onPress} activeOpacity={0.78}>
+    <TouchableOpacity style={[s.card, theme.cardSurface]} onPress={onPress} activeOpacity={0.78}>
       <View style={[s.cardAccent, { backgroundColor: accentColor }]} />
       <View style={s.cardBody}>
         <View style={s.cardTop}>
           <Text style={s.cardIcon}>{meta.icon}</Text>
           <View style={{ flex: 1 }}>
-            <Text style={s.cardTitle}>{activity.title}</Text>
+            <Text style={[s.cardTitle, { color: theme.textPrimary }]}>{activity.title}</Text>
             {activity.description ? (
-              <Text style={s.cardDesc} numberOfLines={2}>{activity.description}</Text>
+              <Text style={[s.cardDesc, { color: theme.textSecondary }]} numberOfLines={2}>{activity.description}</Text>
             ) : null}
           </View>
           <View style={s.cardRight}>
             {isBookmarked && <Text style={s.bookmarkIcon}>🔖</Text>}
             {completionCount > 0 && (
-              <Text style={s.completionCount}>{completionCount}×</Text>
+              <Text style={[s.completionCount, { color: theme.textSecondary }]}>{completionCount}×</Text>
             )}
           </View>
         </View>
 
         {lastNote ? (
-          <Text style={s.lastNote} numberOfLines={1}>"{lastNote}"</Text>
+          <Text style={[s.lastNote, { color: theme.textSecondary }]} numberOfLines={1}>"{lastNote}"</Text>
         ) : null}
 
         <View style={s.cardFooter}>
           <View style={s.cardFooterLeft}>
             {activity.duration_minutes ? (
               <View style={s.durationPill}>
-                <Text style={s.durationText}>{activity.duration_minutes} min</Text>
+                <Text style={[s.durationText, { color: theme.textSecondary }]}>{activity.duration_minutes} min</Text>
               </View>
             ) : null}
             {activity.evidence_label ? (
@@ -160,9 +162,10 @@ function ActivityCard({
 // ─── Create Activity Sheet ────────────────────────────────────────────────────
 
 function CreateActivitySheet({
-  visible, accentColor, onClose, onCreated,
+  visible, accentColor, onClose, onCreated, theme,
 }: {
   visible: boolean; accentColor: string; onClose: () => void; onCreated: () => void;
+  theme: ReturnType<typeof useAmbientTheme>;
 }) {
   const [title, setTitle] = useState('');
   const [desc, setDesc] = useState('');
@@ -205,14 +208,14 @@ function CreateActivitySheet({
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <Pressable style={cs.backdrop} onPress={onClose}>
-        <Pressable style={cs.sheet} onPress={() => {}}>
+        <Pressable style={[cs.sheet, { backgroundColor: theme.cardBgStrong }]} onPress={() => {}}>
           <View style={cs.handle} />
-          <Text style={cs.title}>Add Your Activity</Text>
-          <Text style={cs.subtitle}>Create a personal activity tailored to your needs</Text>
+          <Text style={[cs.title, { color: theme.textPrimary }]}>Add Your Activity</Text>
+          <Text style={[cs.subtitle, { color: theme.textSecondary }]}>Create a personal activity tailored to your needs</Text>
 
-          <Text style={cs.label}>Activity name *</Text>
+          <Text style={[cs.label, { color: theme.textSecondary }]}>Activity name *</Text>
           <TextInput
-            style={cs.input}
+            style={[cs.input, { color: theme.textPrimary }]}
             value={title}
             onChangeText={setTitle}
             placeholder="e.g. Morning stretch, Breathing walk…"
@@ -220,9 +223,9 @@ function CreateActivitySheet({
             maxLength={80}
           />
 
-          <Text style={cs.label}>Description (optional)</Text>
+          <Text style={[cs.label, { color: theme.textSecondary }]}>Description (optional)</Text>
           <TextInput
-            style={[cs.input, { minHeight: 60 }]}
+            style={[cs.input, { minHeight: 60, color: theme.textPrimary }]}
             value={desc}
             onChangeText={setDesc}
             placeholder="What does this activity involve?"
@@ -231,7 +234,7 @@ function CreateActivitySheet({
             textAlignVertical="top"
           />
 
-          <Text style={cs.label}>Duration</Text>
+          <Text style={[cs.label, { color: theme.textSecondary }]}>Duration</Text>
           <View style={cs.durationRow}>
             {DURATION_PRESETS.map((d) => (
               <TouchableOpacity
@@ -239,7 +242,7 @@ function CreateActivitySheet({
                 style={[cs.durationChip, duration === d && { backgroundColor: accentColor, borderColor: accentColor }]}
                 onPress={() => setDuration(duration === d ? null : d)}
               >
-                <Text style={[cs.durationChipText, duration === d && { color: '#FFFFFF', opacity: 1, fontWeight: '700' }]}>
+                <Text style={[cs.durationChipText, { color: theme.textSecondary }, duration === d && { color: '#FFFFFF', opacity: 1, fontWeight: '700' }]}>
                   {d} min
                 </Text>
               </TouchableOpacity>
@@ -247,9 +250,9 @@ function CreateActivitySheet({
           </View>
 
           <View style={cs.statesHeader}>
-            <Text style={cs.label}>Works best for</Text>
+            <Text style={[cs.label, { color: theme.textSecondary }]}>Works best for</Text>
             <TouchableOpacity onPress={selectAll}>
-              <Text style={[cs.allBtn, allSelected && { color: accentColor }]}>All moods</Text>
+              <Text style={[cs.allBtn, { color: theme.textSecondary }, allSelected && { color: accentColor }]}>All moods</Text>
             </TouchableOpacity>
           </View>
           <View style={cs.statesRow}>
@@ -287,25 +290,25 @@ function CreateActivitySheet({
 const cs = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: '#00000040', justifyContent: 'flex-end' },
   sheet: {
-    backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    borderTopLeftRadius: 24, borderTopRightRadius: 24,
     padding: 24, paddingBottom: 40,
   },
   handle: { width: 36, height: 4, borderRadius: 2, backgroundColor: '#E0DDD8', alignSelf: 'center', marginBottom: 20 },
-  title: { fontSize: 20, fontWeight: '700', color: '#3D3935', marginBottom: 4 },
-  subtitle: { fontSize: 13, color: '#3D3935', opacity: 0.45, marginBottom: 20 },
-  label: { fontSize: 11, fontWeight: '700', color: '#3D3935', opacity: 0.35, letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 8 },
+  title: { fontSize: 20, fontWeight: '700', marginBottom: 4 },
+  subtitle: { fontSize: 13, marginBottom: 20 },
+  label: { fontSize: 11, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase', marginBottom: 8 },
   input: {
     borderWidth: 1.5, borderColor: '#E0DDD8', borderRadius: 12,
-    padding: 12, fontSize: 15, color: '#3D3935', marginBottom: 16,
+    padding: 12, fontSize: 15, marginBottom: 16,
   },
   durationRow: { flexDirection: 'row', gap: 8, marginBottom: 20 },
   durationChip: {
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10,
     borderWidth: 1.5, borderColor: '#E0DDD8',
   },
-  durationChipText: { fontSize: 13, color: '#3D3935', opacity: 0.5, fontWeight: '500' },
+  durationChipText: { fontSize: 13, opacity: 0.5, fontWeight: '500' },
   statesHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-  allBtn: { fontSize: 13, fontWeight: '600', color: '#3D3935', opacity: 0.4 },
+  allBtn: { fontSize: 13, fontWeight: '600', opacity: 0.4 },
   statesRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 24 },
   stateChip: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
@@ -326,6 +329,7 @@ export default function ActivitiesScreen() {
   const today = useTodayStore();
   const store = useActivitiesStore();
   const aiStore = useAIStore();
+  const theme = useAmbientTheme();
   const router = useRouter();
   const userId = session?.user.id;
 
@@ -393,13 +397,13 @@ export default function ActivitiesScreen() {
     .filter((a): a is Activity => !!a);
 
   return (
-    <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
+    <SafeAreaView style={s.safe} edges={['left', 'right']}>
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <View style={s.header}>
+      <View style={[s.header, { backgroundColor: theme.cardBg }]}>
         <View>
-          <Text style={s.title}>Activities</Text>
-          <Text style={s.subtitle}>Matched to your wellbeing</Text>
+          <Text style={[s.title, { color: theme.textPrimary }]}>Activities</Text>
+          <Text style={[s.subtitle, { color: theme.textSecondary }]}>Matched to your wellbeing</Text>
         </View>
         <View style={s.headerRight}>
           <View style={[s.statePill, { backgroundColor: accentColor + '28', borderColor: accentColor + '66' }]}>
@@ -428,7 +432,7 @@ export default function ActivitiesScreen() {
             style={[s.tab, tab === t.id && { borderBottomWidth: 2, borderBottomColor: accentColor }]}
             onPress={() => setTab(t.id)}
           >
-            <Text style={[s.tabText, tab === t.id && { opacity: 1, fontWeight: '700', color: '#3D3935' }]}>
+            <Text style={[s.tabText, { color: theme.textSecondary }, tab === t.id && { opacity: 1, fontWeight: '700', color: theme.textPrimary }]}>
               {t.label}
             </Text>
           </TouchableOpacity>
@@ -447,8 +451,8 @@ export default function ActivitiesScreen() {
               {forYou.length > 0 && (
                 <View style={s.section}>
                   <View style={s.sectionHeader}>
-                    <Text style={s.sectionLabel}>FOR YOU</Text>
-                    <Text style={s.sectionSub}>Based on your {CYCLE_LABELS[cycleState].toLowerCase()} phase</Text>
+                    <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>FOR YOU</Text>
+                    <Text style={[s.sectionSub, { color: theme.textSecondary }]}>Based on your {CYCLE_LABELS[cycleState].toLowerCase()} phase</Text>
                   </View>
                   <ScrollView
                     horizontal
@@ -462,6 +466,7 @@ export default function ActivitiesScreen() {
                         accentColor={accentColor}
                         completionCount={completionCountMap[a.id] ?? 0}
                         onPress={() => navToActivity(a)}
+                        theme={theme}
                       />
                     ))}
                   </ScrollView>
@@ -472,18 +477,18 @@ export default function ActivitiesScreen() {
               {aiSuggestions.length > 0 && (
                 <View style={s.section}>
                   <View style={s.sectionHeader}>
-                    <Text style={s.sectionLabel}>✦ AI SUGGESTED</Text>
-                    <Text style={s.sectionSub}>From your weekly report</Text>
+                    <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>✦ AI SUGGESTED</Text>
+                    <Text style={[s.sectionSub, { color: theme.textSecondary }]}>From your weekly report</Text>
                   </View>
                   {aiSuggestions.map((a) => (
                     <TouchableOpacity
                       key={a.id}
-                      style={[s.suggestCard, { borderLeftColor: accentColor }]}
+                      style={[s.suggestCard, theme.cardSurface, { borderLeftColor: accentColor }]}
                       onPress={() => navToActivity(a)}
                       activeOpacity={0.75}
                     >
-                      <Text style={s.suggestTitle}>{a.title}</Text>
-                      <Text style={s.suggestMeta}>
+                      <Text style={[s.suggestTitle, { color: theme.textPrimary }]}>{a.title}</Text>
+                      <Text style={[s.suggestMeta, { color: theme.textSecondary }]}>
                         {a.duration_minutes ? `${a.duration_minutes} min` : ''}
                         {a.category ? ` · ${CATEGORY_META[a.category]?.label ?? a.category}` : ''}
                       </Text>
@@ -500,10 +505,10 @@ export default function ActivitiesScreen() {
                 style={{ marginBottom: 4 }}
               >
                 <TouchableOpacity
-                  style={[s.filterChip, filterState === 'all' && { backgroundColor: '#3D393518', borderColor: '#3D393540' }]}
+                  style={[s.filterChip, { backgroundColor: theme.cardBg }, filterState === 'all' && { backgroundColor: theme.accentBg, borderColor: theme.cardBorder }]}
                   onPress={() => setFilterState('all')}
                 >
-                  <Text style={[s.filterChipText, filterState === 'all' && { opacity: 1, fontWeight: '700', color: '#3D3935' }]}>
+                  <Text style={[s.filterChipText, { color: theme.textSecondary }, filterState === 'all' && { opacity: 1, fontWeight: '700', color: theme.textPrimary }]}>
                     All
                   </Text>
                 </TouchableOpacity>
@@ -513,11 +518,11 @@ export default function ActivitiesScreen() {
                   return (
                     <TouchableOpacity
                       key={st}
-                      style={[s.filterChip, active && { backgroundColor: col + '22', borderColor: col }]}
+                      style={[s.filterChip, { backgroundColor: theme.cardBg }, active && { backgroundColor: col + '22', borderColor: col }]}
                       onPress={() => setFilterState(st)}
                     >
                       <View style={[s.filterDot, { backgroundColor: col }]} />
-                      <Text style={[s.filterChipText, active && { color: col, opacity: 1, fontWeight: '700' }]}>
+                      <Text style={[s.filterChipText, { color: theme.textSecondary }, active && { color: col, opacity: 1, fontWeight: '700' }]}>
                         {CYCLE_LABELS[st]}
                       </Text>
                     </TouchableOpacity>
@@ -532,7 +537,7 @@ export default function ActivitiesScreen() {
                   <View key={cat} style={s.section}>
                     <View style={s.categoryHeader}>
                       <Text style={s.categoryIcon}>{meta.icon}</Text>
-                      <Text style={s.categoryLabel}>{meta.label.toUpperCase()}</Text>
+                      <Text style={[s.categoryLabel, theme.sectionLabelStyle]}>{meta.label.toUpperCase()}</Text>
                     </View>
                     {items.map((a) => (
                       <ActivityCard
@@ -543,6 +548,7 @@ export default function ActivitiesScreen() {
                         lastNote={lastNoteMap[a.id] ?? null}
                         accentColor={CYCLE_COLORS[a.compatible_states?.[0] ?? cycleState] ?? accentColor}
                         onPress={() => navToActivity(a)}
+                        theme={theme}
                       />
                     ))}
                   </View>
@@ -552,7 +558,7 @@ export default function ActivitiesScreen() {
               {filtered.length === 0 && (
                 <View style={s.emptyState}>
                   <Text style={s.emptyIcon}>🌱</Text>
-                  <Text style={s.emptyTitle}>No activities for this filter</Text>
+                  <Text style={[s.emptyTitle, { color: theme.textSecondary }]}>No activities for this filter</Text>
                   <TouchableOpacity onPress={() => setFilterState('all')}>
                     <Text style={[s.emptyLink, { color: accentColor }]}>Show all activities</Text>
                   </TouchableOpacity>
@@ -566,8 +572,8 @@ export default function ActivitiesScreen() {
             store.prescribed.length === 0 ? (
               <View style={s.emptyState}>
                 <Text style={s.emptyIcon}>🩺</Text>
-                <Text style={s.emptyTitle}>No prescribed activities yet</Text>
-                <Text style={s.emptyBody}>Connect with a psychiatrist to receive personalised activity prescriptions.</Text>
+                <Text style={[s.emptyTitle, { color: theme.textSecondary }]}>No prescribed activities yet</Text>
+                <Text style={[s.emptyBody, { color: theme.textSecondary }]}>Connect with a psychiatrist to receive personalised activity prescriptions.</Text>
               </View>
             ) : (
               store.prescribed.map((p) => p.activity && (
@@ -579,11 +585,12 @@ export default function ActivitiesScreen() {
                     lastNote={lastNoteMap[p.activity_id] ?? null}
                     accentColor={accentColor}
                     onPress={() => navToActivity(p.activity!)}
+                    theme={theme}
                   />
-                  <View style={s.prescribedMeta}>
-                    {p.goal ? <Text style={s.prescribedGoal}>Goal: {p.goal}</Text> : null}
+                  <View style={[s.prescribedMeta, theme.cardSurface]}>
+                    {p.goal ? <Text style={[s.prescribedGoal, { color: theme.textSecondary }]}>Goal: {p.goal}</Text> : null}
                     <View style={s.compRow}>
-                      <Text style={s.compText}>{p.completions_this_week ?? 0}/{p.dosage_per_week ?? '?'}× this week</Text>
+                      <Text style={[s.compText, { color: theme.textSecondary }]}>{p.completions_this_week ?? 0}/{p.dosage_per_week ?? '?'}× this week</Text>
                       <View style={s.compBar}>
                         <View style={[s.compFill, {
                           backgroundColor: accentColor,
@@ -602,8 +609,8 @@ export default function ActivitiesScreen() {
             savedActivities.length === 0 ? (
               <View style={s.emptyState}>
                 <Text style={s.emptyIcon}>🔖</Text>
-                <Text style={s.emptyTitle}>Nothing saved yet</Text>
-                <Text style={s.emptyBody}>Bookmark activities that work for you — they'll appear here.</Text>
+                <Text style={[s.emptyTitle, { color: theme.textSecondary }]}>Nothing saved yet</Text>
+                <Text style={[s.emptyBody, { color: theme.textSecondary }]}>Bookmark activities that work for you — they'll appear here.</Text>
               </View>
             ) : (
               savedActivities.map(({ completion, activity }) => (
@@ -615,6 +622,7 @@ export default function ActivitiesScreen() {
                   lastNote={lastNoteMap[activity.id] ?? null}
                   accentColor={accentColor}
                   onPress={() => navToActivity(activity)}
+                  theme={theme}
                 />
               ))
             )
@@ -630,6 +638,7 @@ export default function ActivitiesScreen() {
         accentColor={accentColor}
         onClose={() => setShowCreate(false)}
         onCreated={() => { setShowCreate(false); if (userId) store.load(userId); }}
+        theme={theme}
       />
     </SafeAreaView>
   );
@@ -638,15 +647,14 @@ export default function ActivitiesScreen() {
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#FDFAF7' },
+  safe: { flex: 1, backgroundColor: 'transparent' },
 
   header: {
     flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between',
     paddingHorizontal: 18, paddingTop: 18, paddingBottom: 12,
-    backgroundColor: '#FFFFFF',
   },
-  title: { fontSize: 26, fontWeight: '700', color: '#3D3935', letterSpacing: -0.4 },
-  subtitle: { fontSize: 13, color: '#3D3935', opacity: 0.4, marginTop: 2 },
+  title: { fontSize: 26, fontWeight: '700', letterSpacing: -0.4 },
+  subtitle: { fontSize: 13, marginTop: 2 },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 },
   statePill: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
@@ -659,88 +667,87 @@ const s = StyleSheet.create({
 
   tabs: {
     flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#F0EDE8',
-    paddingHorizontal: 18, backgroundColor: '#FFFFFF',
+    paddingHorizontal: 18,
   },
   tab: { paddingVertical: 10, marginRight: 20 },
-  tabText: { fontSize: 13, color: '#3D3935', opacity: 0.4, fontWeight: '500' },
+  tabText: { fontSize: 13, opacity: 0.4, fontWeight: '500' },
 
   scroll: { paddingTop: 8 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 
   section: { marginBottom: 4 },
   sectionHeader: { flexDirection: 'row', alignItems: 'baseline', gap: 8, paddingHorizontal: 18, marginBottom: 10, marginTop: 16 },
-  sectionLabel: { fontSize: 11, fontWeight: '700', color: '#3D3935', opacity: 0.35, letterSpacing: 1 },
-  sectionSub: { fontSize: 11, color: '#3D3935', opacity: 0.3 },
+  sectionLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 1 },
+  sectionSub: { fontSize: 11, opacity: 0.85 },
 
   categoryHeader: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     paddingHorizontal: 18, marginTop: 20, marginBottom: 10,
   },
   categoryIcon: { fontSize: 18 },
-  categoryLabel: { fontSize: 12, fontWeight: '700', color: '#3D3935', opacity: 0.4, letterSpacing: 0.8 },
+  categoryLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.8 },
 
   filterStrip: { paddingHorizontal: 18, paddingVertical: 4, gap: 8 },
   filterChip: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 14, paddingVertical: 8,
     borderRadius: 20, borderWidth: 1.5, borderColor: '#E0DDD8',
-    backgroundColor: '#FFFFFF',
   },
   filterDot: { width: 7, height: 7, borderRadius: 3.5 },
-  filterChipText: { fontSize: 13, color: '#3D3935', opacity: 0.45, fontWeight: '500' },
+  filterChipText: { fontSize: 13, opacity: 0.45, fontWeight: '500' },
 
   // Activity card
   card: {
-    flexDirection: 'row', backgroundColor: '#FFFFFF', borderRadius: 16,
-    marginHorizontal: 18, marginBottom: 10,
+    flexDirection: 'row', borderRadius: 20,
+    marginHorizontal: 18, marginBottom: 14,
     shadowColor: '#3D3935', shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06, shadowRadius: 6, elevation: 2,
-    borderWidth: 1, borderColor: '#F0EDE8', overflow: 'hidden',
+    borderWidth: 1.5, borderColor: '#F0EDE8', overflow: 'hidden',
   },
   cardAccent: { width: 4 },
   cardBody: { flex: 1, padding: 14 },
   cardTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
   cardIcon: { fontSize: 20, marginTop: 1 },
-  cardTitle: { fontSize: 15, fontWeight: '700', color: '#3D3935', marginBottom: 3 },
-  cardDesc: { fontSize: 13, color: '#3D3935', opacity: 0.5, lineHeight: 18 },
+  cardTitle: { fontSize: 15, fontWeight: '700', marginBottom: 3 },
+  cardDesc: { fontSize: 13, lineHeight: 18 },
   cardRight: { alignItems: 'flex-end', gap: 3, marginLeft: 4 },
   bookmarkIcon: { fontSize: 14 },
-  completionCount: { fontSize: 11, color: '#3D3935', opacity: 0.3, fontWeight: '600' },
-  lastNote: { fontSize: 12, color: '#3D3935', opacity: 0.35, fontStyle: 'italic', marginTop: 8 },
+  completionCount: { fontSize: 11, fontWeight: '600' },
+  lastNote: { fontSize: 12, fontStyle: 'italic', marginTop: 8 },
   cardFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 },
   cardFooterLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   durationPill: { backgroundColor: '#F0EDE8', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
-  durationText: { fontSize: 11, color: '#3D3935', opacity: 0.5, fontWeight: '500' },
+  durationText: { fontSize: 11, fontWeight: '500' },
   evidenceTag: { fontSize: 11, color: '#A8C5A0', fontWeight: '500' },
 
   // AI suggested
   suggestCard: {
-    backgroundColor: '#FFFFFF', borderRadius: 14, padding: 14,
+    borderRadius: 14, padding: 14,
     marginHorizontal: 18, marginBottom: 8,
     borderLeftWidth: 3,
     shadowColor: '#3D3935', shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05, shadowRadius: 4, elevation: 1,
     borderWidth: 1, borderColor: '#F0EDE8',
   },
-  suggestTitle: { fontSize: 14, fontWeight: '600', color: '#3D3935' },
-  suggestMeta: { fontSize: 12, color: '#3D3935', opacity: 0.4, marginTop: 2 },
+  suggestTitle: { fontSize: 14, fontWeight: '600' },
+  suggestMeta: { fontSize: 12, marginTop: 2 },
 
   // Prescribed
   prescribedWrap: { marginBottom: 4 },
   prescribedMeta: {
-    marginHorizontal: 18, backgroundColor: '#FDFAF7', borderRadius: 12, padding: 12,
+    marginHorizontal: 18, borderRadius: 12, padding: 12,
     marginTop: -4, borderWidth: 1, borderColor: '#F0EDE8',
   },
-  prescribedGoal: { fontSize: 12, color: '#3D3935', opacity: 0.5, marginBottom: 8 },
+  prescribedGoal: { fontSize: 12, marginBottom: 8 },
   compRow: { gap: 6 },
-  compText: { fontSize: 11, color: '#3D3935', opacity: 0.4 },
+  compText: { fontSize: 11 },
   compBar: { height: 4, backgroundColor: '#F0EDE8', borderRadius: 2, overflow: 'hidden' },
   compFill: { height: 4, borderRadius: 2 },
 
   // Empty state
   emptyState: { alignItems: 'center', paddingTop: 60, paddingBottom: 40, paddingHorizontal: 32 },
   emptyIcon: { fontSize: 40, marginBottom: 16 },
-  emptyTitle: { fontSize: 16, fontWeight: '600', color: '#3D3935', opacity: 0.5, marginBottom: 8 },
-  emptyBody: { fontSize: 13, color: '#3D3935', opacity: 0.35, textAlign: 'center', lineHeight: 20 },
+  emptyTitle: { fontSize: 16, fontWeight: '600', marginBottom: 8 },
+  emptyBody: { fontSize: 13, textAlign: 'center', lineHeight: 20 },
   emptyLink: { fontSize: 13, fontWeight: '600', marginTop: 8 },
 });

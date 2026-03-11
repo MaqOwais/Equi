@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../stores/auth';
 import { useTodayStore } from '../../stores/today';
 import { useJournalStore } from '../../stores/journal';
+import { useAmbientTheme } from '../../stores/ambient';
 import type { CycleState } from '../../types/database';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -98,6 +99,8 @@ function formatSubDate(d: Date) {
 interface BlockProps {
   block: Block;
   accentColor: string;
+  textPrimary: string;
+  textSecondary: string;
   focused: boolean;
   onChangeText: (text: string) => void;
   onEnter: () => void;
@@ -108,7 +111,7 @@ interface BlockProps {
   locked: boolean;
 }
 
-function BlockView({ block, accentColor, focused, onChangeText, onEnter, onBackspaceEmpty, onFocus, onToggleCheck, refSetter, locked }: BlockProps) {
+function BlockView({ block, accentColor, textPrimary, textSecondary, focused, onChangeText, onEnter, onBackspaceEmpty, onFocus, onToggleCheck, refSetter, locked }: BlockProps) {
   function handleChange(text: string) {
     const nl = text.indexOf('\n');
     if (nl !== -1) {
@@ -146,11 +149,11 @@ function BlockView({ block, accentColor, focused, onChangeText, onEnter, onBacks
       <View style={bs.row}>
         <View style={[bs.bulletDot, { backgroundColor: accentColor, marginTop: 11 }]} />
         {locked
-          ? <Text style={bs.bodyText}>{block.text || ' '}</Text>
+          ? <Text style={[bs.bodyText, { color: textPrimary }]}>{block.text || ' '}</Text>
           : <TextInput
-              ref={refSetter} style={[bs.input, bs.bodyInput]}
+              ref={refSetter} style={[bs.input, bs.bodyInput, { color: textPrimary }]}
               value={block.text} onChangeText={handleChange} onKeyPress={handleKey} onFocus={onFocus}
-              placeholder="List item" placeholderTextColor="#3D393530"
+              placeholder="List item" placeholderTextColor={textSecondary}
               multiline scrollEnabled={false}
             />
         }
@@ -162,11 +165,11 @@ function BlockView({ block, accentColor, focused, onChangeText, onEnter, onBacks
     return (
       <View style={[bs.quoteWrap, { borderLeftColor: accentColor }]}>
         {locked
-          ? <Text style={bs.quoteText}>{block.text || ' '}</Text>
+          ? <Text style={[bs.quoteText, { color: textSecondary, opacity: 1 }]}>{block.text || ' '}</Text>
           : <TextInput
-              ref={refSetter} style={[bs.input, bs.quoteInput]}
+              ref={refSetter} style={[bs.input, bs.quoteInput, { color: textSecondary, opacity: 1 }]}
               value={block.text} onChangeText={handleChange} onKeyPress={handleKey} onFocus={onFocus}
-              placeholder="Quote…" placeholderTextColor="#3D393530"
+              placeholder="Quote…" placeholderTextColor={textSecondary}
               multiline scrollEnabled={false}
             />
         }
@@ -185,11 +188,11 @@ function BlockView({ block, accentColor, focused, onChangeText, onEnter, onBacks
           {block.checked && <Text style={bs.checkMark}>✓</Text>}
         </TouchableOpacity>
         {locked
-          ? <Text style={[bs.bodyText, block.checked && bs.checkedText]}>{block.text || ' '}</Text>
+          ? <Text style={[bs.bodyText, { color: textPrimary }, block.checked && bs.checkedText]}>{block.text || ' '}</Text>
           : <TextInput
-              ref={refSetter} style={[bs.input, bs.bodyInput, block.checked && bs.checkedInput]}
+              ref={refSetter} style={[bs.input, bs.bodyInput, { color: textPrimary }, block.checked && bs.checkedInput]}
               value={block.text} onChangeText={handleChange} onKeyPress={handleKey} onFocus={onFocus}
-              placeholder="To-do" placeholderTextColor="#3D393530"
+              placeholder="To-do" placeholderTextColor={textSecondary}
               multiline scrollEnabled={false}
             />
         }
@@ -201,11 +204,11 @@ function BlockView({ block, accentColor, focused, onChangeText, onEnter, onBacks
   return (
     <View style={bs.row}>
       {locked
-        ? <Text style={bs.bodyText}>{block.text || ' '}</Text>
+        ? <Text style={[bs.bodyText, { color: textPrimary }]}>{block.text || ' '}</Text>
         : <TextInput
-            ref={refSetter} style={[bs.input, bs.bodyInput]}
+            ref={refSetter} style={[bs.input, bs.bodyInput, { color: textPrimary }]}
             value={block.text} onChangeText={handleChange} onKeyPress={handleKey} onFocus={onFocus}
-            placeholder="Write something…" placeholderTextColor="#3D393530"
+            placeholder="Write something…" placeholderTextColor={textSecondary}
             multiline scrollEnabled={false}
           />
       }
@@ -219,6 +222,7 @@ export default function JournalScreen() {
   const { session } = useAuthStore();
   const today = useTodayStore();
   const journal = useJournalStore();
+  const theme = useAmbientTheme();
   const userId = session?.user.id;
 
   const [activeDate, setActiveDate] = useState(new Date());
@@ -338,25 +342,34 @@ export default function JournalScreen() {
   const focusedBlock = blocks.find((b) => b.id === focusedId);
 
   return (
-    <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
+    <SafeAreaView style={s.safe} edges={['left', 'right']}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
 
         {/* ── Date navigation ─────────────────────────────────────────────── */}
-        <View style={s.nav}>
-          <TouchableOpacity onPress={() => navigateDate(-1)} style={s.navArrow} activeOpacity={0.6}>
-            <Text style={s.navArrowText}>←</Text>
+        <View style={[s.nav, theme.cardSurface, { marginHorizontal: 14, marginTop: 12, marginBottom: 4 }]}>
+          <TouchableOpacity
+            onPress={() => navigateDate(-1)}
+            style={[s.navArrow, { backgroundColor: accentColor + '22' }]}
+            activeOpacity={0.6}
+          >
+            <Text style={[s.navArrowText, { color: accentColor }]}>‹</Text>
           </TouchableOpacity>
           <View style={s.navCenter}>
-            <Text style={s.navTitle}>{formatBigDate(activeDate)}</Text>
-            <Text style={s.navSub}>{formatSubDate(activeDate)}</Text>
+            <Text style={[s.navTitle, { color: theme.textPrimary }]}>{formatBigDate(activeDate)}</Text>
+            <Text style={[s.navSub, { color: theme.textSecondary, opacity: 1 }]}>{formatSubDate(activeDate)}</Text>
           </View>
-          <TouchableOpacity onPress={() => navigateDate(1)} style={s.navArrow} disabled={isToday} activeOpacity={0.6}>
-            <Text style={[s.navArrowText, isToday && s.navArrowDisabled]}>→</Text>
+          <TouchableOpacity
+            onPress={() => navigateDate(1)}
+            style={[s.navArrow, { backgroundColor: isToday ? '#0000000A' : accentColor + '22' }]}
+            disabled={isToday}
+            activeOpacity={0.6}
+          >
+            <Text style={[s.navArrowText, { color: isToday ? '#3D393530' : accentColor }]}>›</Text>
           </TouchableOpacity>
         </View>
 
         {/* ── 7-day strip ─────────────────────────────────────────────────── */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.dayStrip} style={{ maxHeight: 76 }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.dayStrip} style={{ maxHeight: 80 }}>
           {recentDays.map((d) => {
             const key = toIso(d);
             const isActive = key === activeDateKey;
@@ -367,41 +380,45 @@ export default function JournalScreen() {
             return (
               <TouchableOpacity
                 key={key}
-                style={[s.dayChip, isActive && { backgroundColor: accentColor, borderColor: accentColor }]}
+                style={[
+                  s.dayChip,
+                  theme.cardSurface,
+                  isActive && { backgroundColor: accentColor, borderColor: accentColor, shadowColor: accentColor, shadowOpacity: 0.35, elevation: 6 },
+                ]}
                 onPress={() => setActiveDate(d)}
                 activeOpacity={0.7}
               >
-                <Text style={[s.dayChipLetter, isActive && { color: '#FFFFFF', opacity: 1 }]}>{dayLetter}</Text>
-                <Text style={[s.dayChipNum, isActive && { color: '#FFFFFF', opacity: 1 }]}>{dayNum}</Text>
-                {hasEntry && <View style={[s.dayDot, { backgroundColor: isActive ? '#FFFFFF88' : accentColor }]} />}
+                <Text style={[s.dayChipLetter, { color: theme.textSecondary }, isActive && { color: 'rgba(255,255,255,0.75)', opacity: 1 }]}>{dayLetter}</Text>
+                <Text style={[s.dayChipNum, { color: theme.textPrimary }, isActive && { color: '#FFFFFF', opacity: 1 }]}>{dayNum}</Text>
+                {hasEntry && <View style={[s.dayDot, { backgroundColor: isActive ? 'rgba(255,255,255,0.7)' : accentColor }]} />}
               </TouchableOpacity>
             );
           })}
         </ScrollView>
 
         {/* ── Context strip ────────────────────────────────────────────────── */}
-        <View style={s.contextStrip}>
+        <View style={[s.contextStrip, { borderColor: accentColor + '30' }]}>
           <View style={[s.statePill, { backgroundColor: accentColor + '22', borderColor: accentColor + '55' }]}>
             <View style={[s.stateDot, { backgroundColor: accentColor }]} />
             <Text style={[s.stateText, { color: accentColor }]}>{CYCLE_LABELS[cycleState]}</Text>
           </View>
           {today.moodScore !== null && (
-            <Text style={s.moodText}>{MOOD_EMOJIS[today.moodScore - 1]} {today.moodScore}/10</Text>
+            <Text style={[s.moodText, { color: theme.textSecondary, opacity: 1 }]}>{MOOD_EMOJIS[today.moodScore - 1]} {today.moodScore}/10</Text>
           )}
           <View style={{ flex: 1 }} />
-          {wc > 0 && <Text style={s.metaText}>{wc} words</Text>}
+          {wc > 0 && <Text style={[s.metaText, { color: theme.textSecondary, opacity: 1 }]}>{wc} words</Text>}
           {isSaving
-            ? <Text style={s.metaText}>Saving…</Text>
+            ? <Text style={[s.metaText, { color: theme.textSecondary, opacity: 1 }]}>Saving…</Text>
             : entry?.updatedAt ? <Text style={[s.metaText, { color: '#A8C5A0' }]}>Saved ✓</Text>
             : null}
           {isLocked && (
-            <View style={s.lockBadge}><Text style={s.lockText}>🔒 Locked</Text></View>
+            <View style={s.lockBadge}><Text style={[s.lockText, { color: theme.textSecondary, opacity: 1 }]}>🔒 Locked</Text></View>
           )}
         </View>
 
         {/* ── Editor ───────────────────────────────────────────────────────── */}
         {isFuture ? (
-          <View style={s.emptyState}><Text style={s.emptyText}>No entries for future dates.</Text></View>
+          <View style={s.emptyState}><Text style={[s.emptyText, { color: theme.textSecondary, opacity: 1 }]}>No entries for future dates.</Text></View>
         ) : (
           <ScrollView
             style={{ flex: 1 }}
@@ -411,70 +428,77 @@ export default function JournalScreen() {
           >
             {/* Prompt card */}
             {showPrompt && (
-              <View style={[s.promptCard, { borderColor: accentColor + '44', backgroundColor: accentColor + '0D' }]}>
+              <View style={[s.promptCard, theme.cardSurface, { borderColor: accentColor + '44', backgroundColor: accentColor + '0D' }]}>
                 <View style={s.promptHeader}>
                   <Text style={[s.promptTitle, { color: accentColor === '#E8DCC8' ? '#A09060' : accentColor }]}>
                     {CYCLE_PROMPTS[cycleState].title}
                   </Text>
                   <TouchableOpacity onPress={() => setPromptDismissed(true)} hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}>
-                    <Text style={s.promptDismiss}>✕</Text>
+                    <Text style={[s.promptDismiss, { color: theme.textSecondary, opacity: 1 }]}>✕</Text>
                   </TouchableOpacity>
                 </View>
                 {CYCLE_PROMPTS[cycleState].lines.map((line, i) => (
                   <TouchableOpacity key={i} style={s.promptLine} onPress={() => insertPromptLine(line)} activeOpacity={0.65}>
                     <Text style={[s.promptArrow, { color: accentColor }]}>›</Text>
-                    <Text style={s.promptLineText}>{line}</Text>
+                    <Text style={[s.promptLineText, { color: theme.textSecondary, opacity: 1 }]}>{line}</Text>
                   </TouchableOpacity>
                 ))}
-                <Text style={s.promptHint}>Tap a prompt to start · or just write below</Text>
+                <Text style={[s.promptHint, { color: theme.textSecondary, opacity: 1 }]}>Tap a prompt to start · or just write below</Text>
               </View>
             )}
 
-            {/* Blocks */}
-            {blocks.map((block) => (
-              <BlockView
-                key={block.id}
-                block={block}
-                accentColor={accentColor}
-                focused={focusedId === block.id}
-                locked={isLocked}
-                onChangeText={(text) => updateBlockText(block.id, text)}
-                onEnter={() => addBlockAfter(block.id)}
-                onBackspaceEmpty={() => deleteBlock(block.id)}
-                onFocus={() => setFocusedId(block.id)}
-                onToggleCheck={() => toggleCheck(block.id)}
-                refSetter={(ref) => { inputRefs.current[block.id] = ref; }}
-              />
-            ))}
+            {/* Blocks — opaque white card so text is always readable */}
+            <View style={[s.blocksCard, { backgroundColor: '#FFFFFF', borderWidth: 1.5, borderColor: accentColor + '30' }]}>
+              {blocks.map((block) => (
+                <BlockView
+                  key={block.id}
+                  block={block}
+                  accentColor={accentColor}
+                  textPrimary={theme.textPrimary}
+                  textSecondary={theme.textSecondary}
+                  focused={focusedId === block.id}
+                  locked={isLocked}
+                  onChangeText={(text) => updateBlockText(block.id, text)}
+                  onEnter={() => addBlockAfter(block.id)}
+                  onBackspaceEmpty={() => deleteBlock(block.id)}
+                  onFocus={() => setFocusedId(block.id)}
+                  onToggleCheck={() => toggleCheck(block.id)}
+                  refSetter={(ref) => { inputRefs.current[block.id] = ref; }}
+                />
+              ))}
+            </View>
             <View style={{ height: 60 }} />
           </ScrollView>
         )}
 
         {/* ── Block toolbar ─────────────────────────────────────────────────── */}
         {!isLocked && !isFuture && (
-          <View style={s.toolbar}>
+          <View style={[s.toolbar, theme.cardSurface, { borderTopColor: accentColor + '30' }]}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.toolbarInner}>
               {BLOCK_TOOLS.map((tool) => {
                 const isActive = focusedBlock?.type === tool.type;
                 return (
                   <TouchableOpacity
                     key={tool.type}
-                    style={[s.toolBtn, isActive && { backgroundColor: accentColor + '22', borderColor: accentColor }]}
+                    style={[
+                      s.toolBtn,
+                      { borderColor: isActive ? accentColor : accentColor + '30', backgroundColor: isActive ? accentColor + '18' : 'transparent' },
+                    ]}
                     onPress={() => changeBlockType(tool.type)}
                     activeOpacity={0.7}
                   >
-                    <Text style={[s.toolIcon, isActive && { color: accentColor }]}>{tool.icon}</Text>
-                    <Text style={[s.toolLabel, isActive && { color: accentColor }]}>{tool.label}</Text>
+                    <Text style={[s.toolIcon, { color: isActive ? accentColor : theme.textSecondary }]}>{tool.icon}</Text>
+                    <Text style={[s.toolLabel, { color: isActive ? accentColor : theme.textSecondary }]}>{tool.label}</Text>
                   </TouchableOpacity>
                 );
               })}
-              <View style={s.toolSep} />
+              <View style={[s.toolSep, { backgroundColor: accentColor + '30' }]} />
               <TouchableOpacity
-                style={s.toolAddBtn}
+                style={[s.toolAddBtn, { backgroundColor: accentColor + '18', borderRadius: 10, borderWidth: 1.5, borderColor: accentColor + '40' }]}
                 onPress={() => { const nb = makeBlock('p'); updateBlocks([...blocks, nb]); setTimeout(() => inputRefs.current[nb.id]?.focus(), 60); }}
                 activeOpacity={0.7}
               >
-                <Text style={[s.toolAddText, { color: accentColor }]}>+ New block</Text>
+                <Text style={[s.toolAddText, { color: accentColor }]}>+ Block</Text>
               </TouchableOpacity>
             </ScrollView>
           </View>
@@ -510,23 +534,26 @@ const bs = StyleSheet.create({
 // ─── Screen styles ────────────────────────────────────────────────────────────
 
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#FFFFFF' },
+  safe: { flex: 1, backgroundColor: 'transparent' },
 
-  nav: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingTop: 14, paddingBottom: 6 },
-  navArrow: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  navArrowText: { fontSize: 22, color: '#A8C5A0', fontWeight: '600' },
+  nav: {
+    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 10,
+    borderRadius: 20, borderWidth: 1.5,
+  },
+  navArrow: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center', borderRadius: 12 },
+  navArrowText: { fontSize: 26, fontWeight: '600' },
   navArrowDisabled: { color: '#3D393525' },
   navCenter: { flex: 1, alignItems: 'center' },
-  navTitle: { fontSize: 20, fontWeight: '700', color: '#3D3935', letterSpacing: -0.3 },
-  navSub: { fontSize: 12, color: '#3D3935', opacity: 0.35, marginTop: 2 },
+  navTitle: { fontSize: 19, fontWeight: '700', color: '#3D3935', letterSpacing: -0.3 },
+  navSub: { fontSize: 11, color: '#3D3935', opacity: 0.35, marginTop: 1 },
 
-  dayStrip: { paddingHorizontal: 16, paddingVertical: 8, gap: 8 },
+  dayStrip: { paddingHorizontal: 14, paddingVertical: 10, gap: 7 },
   dayChip: {
-    width: 40, height: 60, paddingVertical: 7, alignItems: 'center', gap: 2,
-    borderRadius: 12, borderWidth: 1.5, borderColor: '#E0DDD8',
+    width: 42, height: 62, paddingVertical: 8, alignItems: 'center', gap: 2,
+    borderRadius: 14, borderWidth: 1.5,
   },
-  dayChipLetter: { fontSize: 10, fontWeight: '700', color: '#3D3935', opacity: 0.3, textTransform: 'uppercase' },
-  dayChipNum: { fontSize: 15, fontWeight: '700', color: '#3D3935', opacity: 0.65 },
+  dayChipLetter: { fontSize: 10, fontWeight: '700', textTransform: 'uppercase' },
+  dayChipNum: { fontSize: 15, fontWeight: '700' },
   dayDot: { width: 5, height: 5, borderRadius: 2.5, marginTop: 1 },
 
   contextStrip: {
@@ -562,20 +589,26 @@ const s = StyleSheet.create({
 
   toolbar: {
     borderTopWidth: 1, borderTopColor: '#F0EDE8',
-    backgroundColor: '#FDFAF7', paddingVertical: 8,
+    backgroundColor: '#FFFFFF', paddingVertical: 8,
   },
   toolbarInner: { paddingHorizontal: 12, gap: 8, alignItems: 'center' },
   toolBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 14, paddingVertical: 8,
     borderRadius: 10, borderWidth: 1.5, borderColor: '#E0DDD8',
-    backgroundColor: '#FFFFFF',
   },
   toolIcon: { fontSize: 15, color: '#3D3935', opacity: 0.5, fontWeight: '600' },
   toolLabel: { fontSize: 12, color: '#3D3935', opacity: 0.4, fontWeight: '500' },
   toolSep: { width: 1, height: 24, backgroundColor: '#E0DDD8', marginHorizontal: 4 },
   toolAddBtn: { paddingHorizontal: 14, paddingVertical: 8 },
   toolAddText: { fontSize: 13, fontWeight: '600' },
+
+  blocksCard: {
+    marginHorizontal: 16, marginBottom: 8,
+    borderRadius: 16, paddingVertical: 8,
+    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
 
   emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   emptyText: { fontSize: 14, color: '#3D3935', opacity: 0.3 },
