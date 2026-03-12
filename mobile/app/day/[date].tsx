@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useCalendarStore } from '../../stores/calendar';
 import { useAuthStore } from '../../stores/auth';
 import { useTasksStore, type EnergyLevel } from '../../stores/tasks';
+import { useCycleStore } from '../../stores/cycle';
 import { callGroq } from '../../lib/groq';
 import { supabase } from '../../lib/supabase';
 import type { DayData } from '../../stores/calendar';
@@ -37,6 +38,10 @@ const NUTRITION_LABELS: Record<string, { label: string; icon: string }> = {
   lithium_interaction: { label: 'Lithium-Watch',     icon: '⚠️' },
 };
 
+function fmtTime(iso: string) {
+  return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+}
+
 function formatFullDate(date: string) {
   return new Date(date + 'T00:00:00').toLocaleDateString('en-GB', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
@@ -60,6 +65,7 @@ export default function DayScreen() {
   const { days, isLoading, loadMonth, buildWeekPrompt, year, month, setMonth } = useCalendarStore();
 
   const tasksStore = useTasksStore();
+  const cycleStore = useCycleStore();
   const [taskInput, setTaskInput] = useState('');
   const [taskEnergy, setTaskEnergy] = useState<EnergyLevel>('medium');
   const [taskInputVisible, setTaskInputVisible] = useState(false);
@@ -83,7 +89,10 @@ export default function DayScreen() {
   }, [year, month, user?.id]);
 
   useEffect(() => {
-    if (date && user?.id) tasksStore.loadDate(user.id, date);
+    if (date && user?.id) {
+      tasksStore.loadDate(user.id, date);
+      cycleStore.loadDay(user.id, date);
+    }
   }, [date, user?.id]);
 
   async function addTask() {
@@ -176,12 +185,35 @@ export default function DayScreen() {
 
       <ScrollView style={s.scroll} showsVerticalScrollIndicator={false}>
 
-          {/* ── Cycle & Mood ── */}
-          {(data.cycleState || data.moodScore !== null) && (
-            <SectionCard title="Mental State" icon="pulse-outline" color={cycleColor}>
-              {data.cycleState && (
+          {/* ── Cycle (multi-entry timeline) ── */}
+          {(cycleStore.dayEntries.length > 0 || data.cycleState) && (
+            <SectionCard title="Cycle State" icon="pulse-outline" color={cycleColor}>
+              {cycleStore.dayEntries.length > 0 ? (
+                // Full timestamped timeline from Supabase
+                cycleStore.dayEntries.map((entry, i) => (
+                  <View key={entry.id}>
+                    {i > 0 && <View style={s.entryDivider} />}
+                    <View style={s.entryRow}>
+                      <Text style={s.entryTime}>{fmtTime(entry.timestamp)}</Text>
+                      <View style={[s.entryDot, { backgroundColor: CYCLE_COLORS[entry.state] }]} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={[s.entryState, { color: CYCLE_COLORS[entry.state] }]}>
+                          {entry.state.charAt(0).toUpperCase() + entry.state.slice(1)} · {entry.intensity}/10
+                        </Text>
+                        {entry.symptoms.length > 0 && (
+                          <Text style={s.entrySub}>{entry.symptoms.join(', ')}</Text>
+                        )}
+                        {entry.notes && (
+                          <Text style={s.entryNotes}>{entry.notes}</Text>
+                        )}
+                      </View>
+                    </View>
+                  </View>
+                ))
+              ) : (
+                // Fallback to calendar store data (offline / before Supabase loads)
                 <>
-                  <DataRow label="Cycle state" value={data.cycleState} capitalize />
+                  <DataRow label="Cycle state" value={data.cycleState!} capitalize />
                   <DataRow label="Intensity" value={`${data.cycleIntensity ?? '—'} / 10`} />
                   {data.cycleSymptoms.length > 0 && (
                     <DataRow label="Symptoms" value={data.cycleSymptoms.join(', ')} />
@@ -191,9 +223,12 @@ export default function DayScreen() {
                   )}
                 </>
               )}
-              {data.moodScore !== null && (
-                <DataRow label="Mood score" value={`${data.moodScore} / 10`} accent="#C9A84C" />
-              )}
+            </SectionCard>
+          )}
+          {/* ── Mood score (optional, only if logged) ── */}
+          {data.moodScore !== null && (
+            <SectionCard title="Mood" icon="happy-outline" color="#C9A84C">
+              <DataRow label="Mood score" value={`${data.moodScore} / 10`} accent="#C9A84C" />
             </SectionCard>
           )}
 
@@ -434,7 +469,12 @@ export default function DayScreen() {
                             <View style={[s.taskCheck, done ? { backgroundColor: ec, borderColor: ec } : { borderColor: ec + '88' }]}>
                               {done && <Text style={s.taskCheckMark}>✓</Text>}
                             </View>
-                            <Text style={[s.taskTitle, done && s.taskTitleDone]} numberOfLines={2}>{task.title}</Text>
+                            <View style={{ flex: 1 }}>
+                              <Text style={[s.taskTitle, done && s.taskTitleDone]} numberOfLines={2}>{task.title}</Text>
+                              {done && task.completed_at && (
+                                <Text style={s.taskCompletedAt}>Done at {fmtTime(task.completed_at)}</Text>
+                              )}
+                            </View>
                             <View style={[s.taskEnergyPip, { backgroundColor: ec + '22', borderColor: ec + '55' }]}>
                               <Text style={[s.taskEnergyPipText, { color: ec }]}>{task.energy_level}</Text>
                             </View>
@@ -731,13 +771,23 @@ const s = StyleSheet.create({
   taskDivider: { height: 1, backgroundColor: '#F0EDE8', marginLeft: 48 },
   taskCheck: { width: 22, height: 22, borderRadius: 6, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   taskCheckMark: { fontSize: 12, color: '#FFFFFF', fontWeight: '800' },
-  taskTitle: { flex: 1, fontSize: 15, fontWeight: '500', color: '#3D3935' },
+  taskTitle: { fontSize: 15, fontWeight: '500', color: '#3D3935' },
   taskTitleDone: { textDecorationLine: 'line-through', opacity: 0.4 },
+  taskCompletedAt: { fontSize: 10, color: '#3D393550', marginTop: 2 },
   taskEnergyPip: { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8, borderWidth: 1 },
   taskEnergyPipText: { fontSize: 10, fontWeight: '700', textTransform: 'capitalize' },
   taskDelete: { fontSize: 13, color: '#3D393550' },
   taskEmpty: { backgroundColor: '#F7F3EE', borderRadius: 14, padding: 16, alignItems: 'center' },
   taskEmptyText: { fontSize: 13, color: '#3D393560', fontStyle: 'italic' },
+
+  // Cycle entry timeline
+  entryRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 6 },
+  entryTime: { fontSize: 11, color: '#3D393555', width: 64, marginTop: 2, fontVariant: ['tabular-nums'] },
+  entryDot: { width: 8, height: 8, borderRadius: 4, marginTop: 5, flexShrink: 0 },
+  entryState: { fontSize: 14, fontWeight: '600' },
+  entrySub: { fontSize: 12, color: '#3D393560', marginTop: 2 },
+  entryNotes: { fontSize: 12, color: '#3D393555', marginTop: 2, fontStyle: 'italic' },
+  entryDivider: { height: 1, backgroundColor: '#F0EDE8', marginVertical: 4 },
 
   // AI section
   aiSection: { marginHorizontal: 16, marginTop: 8, gap: 8 },

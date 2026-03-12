@@ -39,16 +39,17 @@ export const SECTION_META: Record<SectionId, { label: string; icon: string; desc
 };
 
 // Sections shown by default on the home screen
+// 'mood' removed — cycle tracker covers state + intensity (mood is redundant)
 export const DEFAULT_ORDER: SectionId[] = [
-  'hero', 'mood', 'cycle', 'journal', 'tasks', 'sleep', 'checkins', 'focus', 'suggested', 'ai_insight', 'explore',
+  'hero', 'cycle', 'journal', 'tasks', 'sleep', 'checkins', 'focus', 'suggested', 'ai_insight', 'explore',
 ];
 
 // All sections ever available (including those hidden by default)
 export const ALL_SECTIONS: SectionId[] = [
-  ...DEFAULT_ORDER, 'nutrition', 'activities', 'social', 'wearable',
+  ...DEFAULT_ORDER, 'mood', 'nutrition', 'activities', 'social', 'wearable',
 ];
 
-const STORAGE_KEY = 'equi_home_layout_v2';
+const STORAGE_KEY = 'equi_home_layout_v3';
 
 // ─── Store ────────────────────────────────────────────────────────────────────
 

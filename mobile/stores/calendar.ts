@@ -132,7 +132,7 @@ export const useCalendarStore = create<CalendarStore>((set, get) => {
 
         const [cycleLogs, moodLogs, sleepLogs, medLogs, activityLogs,
                journalEntries, socialLogs, nutritionLogs, checkins, workbookLogs] = await Promise.all([
-          db.from('cycle_logs').select('logged_at, state, intensity, symptoms, notes').eq('user_id', userId).gte('logged_at', startDate).lte('logged_at', endDate),
+          db.from('cycle_logs').select('logged_at, state, intensity, symptoms, notes').eq('user_id', userId).gte('logged_at', startDate + 'T00:00:00').lte('logged_at', endDate + 'T23:59:59').order('logged_at', { ascending: true }),
           db.from('mood_logs').select('logged_at, score').eq('user_id', userId).gte('logged_at', startDate).lte('logged_at', endDate),
           db.from('sleep_logs').select('date, quality_score, duration_minutes').eq('user_id', userId).gte('date', startDate).lte('date', endDate),
           db.from('medication_logs').select('log_date, status, skip_reason').eq('user_id', userId).gte('log_date', startDate).lte('log_date', endDate),
@@ -145,8 +145,12 @@ export const useCalendarStore = create<CalendarStore>((set, get) => {
         ]);
 
         // Build Supabase maps
+        // cycle_logs may have multiple entries per day — take the last one (highest timestamp)
         const cycleMap: Record<string, any> = {};
-        (cycleLogs.data ?? []).forEach((r: any) => { cycleMap[r.logged_at] = r; });
+        (cycleLogs.data ?? []).forEach((r: any) => {
+          const date = (r.logged_at as string).substring(0, 10);
+          cycleMap[date] = r; // oldest-first → last write = most recent entry
+        });
         const moodMap: Record<string, number> = {};
         (moodLogs.data ?? []).forEach((r: any) => { moodMap[r.logged_at] = r.score; });
         const sleepMap: Record<string, any> = {};
@@ -187,9 +191,9 @@ export const useCalendarStore = create<CalendarStore>((set, get) => {
           merged[date] = {
             date,
             cycleState: loc.cycleState ?? (cycleMap[date]?.state as CycleState) ?? null,
-            cycleIntensity: loc.cycleIntensity ?? cycleMap[date]?.intensity ?? null,
+            cycleIntensity: loc.cycleIntensity ?? (cycleMap[date]?.intensity ?? null),
             cycleSymptoms: loc.cycleSymptoms.length > 0 ? loc.cycleSymptoms : (cycleMap[date]?.symptoms ?? []),
-            cycleNotes: loc.cycleNotes ?? cycleMap[date]?.notes ?? null,
+            cycleNotes: loc.cycleNotes ?? (cycleMap[date]?.notes ?? null),
             moodScore: loc.moodScore ?? moodMap[date] ?? null,
             sleepQuality: loc.sleepQuality ?? sleepMap[date]?.quality_score ?? null,
             sleepDuration: loc.sleepDuration ?? sleepMap[date]?.duration_minutes ?? null,
