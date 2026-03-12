@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, Modal, Pressable, TextInput, Switch,
+  StyleSheet, Modal, Pressable, TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../stores/auth';
@@ -19,6 +19,7 @@ import { useTasksStore, type EnergyLevel } from '../../stores/tasks';
 import { useHomeLayoutStore, SECTION_META, ALL_SECTIONS, type SectionId } from '../../stores/homeLayout';
 import type { CycleState, MedicationStatus } from '../../types/database';
 import { useAmbientTheme } from '../../stores/ambient';
+import { useSubstanceLogsStore } from '../../stores/substanceLogs';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -51,6 +52,10 @@ const CYCLE_TIPS: Record<CycleState, { icon: string; title: string; body: string
     title: 'Be extra gentle today',
     body: "Mixed states can feel unpredictable. Prioritise safety and reach out to someone you trust if needed.",
   },
+};
+
+const SUB_ICONS: Record<string, string> = {
+  alcohol: '🍷', cannabis: '🌿', stimulant: '⚡', opioid: '💊', other: '🫙',
 };
 
 // State-matched quick activities (hardcoded shortcuts — no store needed)
@@ -228,6 +233,7 @@ export default function TodayScreen() {
   const medsStore = useMedicationsStore();
   const tasksStore = useTasksStore();
   const layout = useHomeLayoutStore();
+  const subLogs = useSubstanceLogsStore();
   const router = useRouter();
   const userId = session?.user.id;
 
@@ -245,10 +251,6 @@ export default function TodayScreen() {
   const [medNameDraft, setMedNameDraft] = useState('');
   const [medDosageDraft, setMedDosageDraft] = useState('');
 
-  // Substance settings sheet
-  const [subSettingsVisible, setSubSettingsVisible] = useState(false);
-  const [trackSubsDraft, setTrackSubsDraft] = useState(true);
-
   const todayDate = isoToday();
 
   useEffect(() => {
@@ -262,6 +264,7 @@ export default function TodayScreen() {
       cycle.load90Days(userId);
       medsStore.load(userId);
       tasksStore.loadDate(userId, todayDate);
+      subLogs.load(userId, todayDate);
     }
   }, [userId]);
 
@@ -301,11 +304,9 @@ export default function TodayScreen() {
     setSelectedSkipReason(null);
   }
 
-  function toggleSubstance(type: 'alcohol' | 'cannabis') {
+  function toggleUserSubstance(substanceId: string) {
     if (!userId) return;
-    const alcohol = type === 'alcohol' ? !(today.alcohol ?? false) : (today.alcohol ?? false);
-    const cannabis = type === 'cannabis' ? !(today.cannabis ?? false) : (today.cannabis ?? false);
-    today.logCheckin(userId, alcohol, cannabis);
+    subLogs.toggle(userId, todayDate, substanceId);
   }
 
   const theme = useAmbientTheme();
@@ -314,9 +315,10 @@ export default function TodayScreen() {
   const cycleColor = CYCLE_COLORS[cycleState];
   const tip = CYCLE_TIPS[cycleState];
   const trackMedication = profile?.track_medication ?? false;
-  const trackSubstances = profile?.track_substances ?? true;
   const meds = medsStore.medications;
   const showMedSection = meds.length > 0 || trackMedication;
+  const userSubstances = medsStore.substances;
+  const showSubSection = userSubstances.length > 0;
 
   function openMedSettings() {
     router.push('/(tabs)/you/medications');
@@ -331,17 +333,7 @@ export default function TodayScreen() {
     setMedSettingsVisible(false);
   }
 
-  function openSubSettings() {
-    setTrackSubsDraft(profile?.track_substances ?? true);
-    setSubSettingsVisible(true);
-  }
-
-  async function saveSubSettings() {
-    if (!userId) return;
-    await updateProfile(userId, { track_substances: trackSubsDraft });
-    setSubSettingsVisible(false);
-  }
-  const showRuminationPrompt = today.moodScore !== null && today.moodScore <= 3;
+const showRuminationPrompt = today.moodScore !== null && today.moodScore <= 3;
   const showSleepPrompt = sleep.todayLog === null && new Date().getHours() < 14;
 
   const todayJournal = journal.entries[todayDate];
@@ -354,7 +346,7 @@ export default function TodayScreen() {
     { label: 'Meds',    done: today.medicationStatus !== null, hidden: !showMedSection },
     { label: 'Cycle',   done: today.cycleState !== null },
     { label: 'Journal', done: journalWordCount > 0 },
-    { label: 'Subs',    done: today.alcohol !== null || today.cannabis !== null },
+    { label: 'Subs',    done: Object.values(subLogs.logs).some(Boolean), hidden: !showSubSection },
   ].filter((c) => !c.hidden);
 
   const doneCount = checks.filter((c) => c.done).length;
@@ -715,25 +707,25 @@ export default function TodayScreen() {
                   </View>
                 </View>
               )}
-              {trackSubstances && (
+              {showSubSection && (
                 <View style={[s.checkinBlock, showMedSection && s.checkinDivider]}>
                   <View style={s.checkinLabelRow}>
                     <Text style={s.checkinBlockLabel}>🍃  Substances today</Text>
-                    <TouchableOpacity onPress={openSubSettings} hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+                    <TouchableOpacity onPress={() => router.push('/(tabs)/you/substances')} hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}>
                       <Text style={s.settingsGear}>⚙</Text>
                     </TouchableOpacity>
                   </View>
                   <View style={s.substanceRow}>
-                    {(['alcohol', 'cannabis'] as const).map((sub) => {
-                      const active = today[sub] === true;
+                    {userSubstances.map((sub) => {
+                      const active = subLogs.logs[sub.id] === true;
                       return (
                         <TouchableOpacity
-                          key={sub}
+                          key={sub.id}
                           style={[s.subBtn, active && { borderColor: '#C4A0B0', backgroundColor: '#C4A0B015' }]}
-                          onPress={() => toggleSubstance(sub)}
+                          onPress={() => toggleUserSubstance(sub.id)}
                         >
                           <Text style={[s.subBtnText, active && { color: '#C4A0B0', opacity: 1, fontWeight: '600' }]}>
-                            {sub === 'alcohol' ? '🍷' : '🌿'} {sub.charAt(0).toUpperCase() + sub.slice(1)}
+                            {SUB_ICONS[sub.category] ?? '🫙'} {sub.name}
                           </Text>
                         </TouchableOpacity>
                       );
@@ -741,9 +733,9 @@ export default function TodayScreen() {
                   </View>
                 </View>
               )}
-              {!trackSubstances && !showMedSection && (
+              {!showSubSection && !showMedSection && (
                 <View style={s.checkinBlock}>
-                  <TouchableOpacity onPress={openSubSettings}>
+                  <TouchableOpacity onPress={() => router.push('/(tabs)/you/substances')}>
                     <Text style={s.addMedHint}>+ Configure substance tracking</Text>
                   </TouchableOpacity>
                 </View>
@@ -1027,29 +1019,6 @@ export default function TodayScreen() {
 
       </ScrollView>
 
-      {/* Substance settings sheet */}
-      <Modal visible={subSettingsVisible} transparent animationType="slide">
-        <Pressable style={s.sheetBackdrop} onPress={() => setSubSettingsVisible(false)}>
-          <Pressable style={s.sheet} onPress={() => {}}>
-            <Text style={s.sheetTitle}>Substance Tracking</Text>
-            <View style={s.subToggleRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={s.subToggleLabel}>Track substances</Text>
-                <Text style={s.subToggleSub}>Shows alcohol & cannabis check-ins on your home screen</Text>
-              </View>
-              <Switch
-                value={trackSubsDraft}
-                onValueChange={setTrackSubsDraft}
-                trackColor={{ true: '#A8C5A0', false: '#E0DDD8' }}
-                thumbColor="#FFFFFF"
-              />
-            </View>
-            <TouchableOpacity style={s.sheetConfirm} onPress={saveSubSettings}>
-              <Text style={s.sheetConfirmText}>Save</Text>
-            </TouchableOpacity>
-          </Pressable>
-        </Pressable>
-      </Modal>
 
       {/* Medication skip sheet */}
       <Modal visible={skipSheetVisible} transparent animationType="slide">
@@ -1411,9 +1380,6 @@ const s = StyleSheet.create({
     backgroundColor: '#F7F3EE', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14,
     fontSize: 15, color: '#3D3935', marginBottom: 14,
   },
-  subToggleRow: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingVertical: 8, marginBottom: 16 },
-  subToggleLabel: { fontSize: 15, fontWeight: '600', color: '#3D3935', marginBottom: 3 },
-  subToggleSub: { fontSize: 12, color: '#3D3935', opacity: 0.45, lineHeight: 17 },
   sheetOption: { paddingVertical: 13, paddingHorizontal: 14, borderRadius: 12, borderWidth: 1.5, borderColor: '#E0DDD8', marginBottom: 8 },
   sheetOptionActive: { borderColor: '#A8C5A0', backgroundColor: '#A8C5A015' },
   sheetOptionText: { fontSize: 15, color: '#3D3935', opacity: 0.5 },
