@@ -9,6 +9,7 @@ import { useRouter } from 'expo-router';
 import { useCalendarStore } from '../../stores/calendar';
 import { useAuthStore } from '../../stores/auth';
 import { useAmbientTheme } from '../../stores/ambient';
+import { useTasksStore } from '../../stores/tasks';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const DAY_SIZE = Math.floor((SCREEN_W - 32) / 7);
@@ -36,9 +37,16 @@ export default function CalendarScreen() {
   const { session } = useAuthStore();
   const user = session?.user;
   const { year, month, days, isLoading, setMonth, loadMonth } = useCalendarStore();
+  const tasksStore = useTasksStore();
 
   useEffect(() => {
-    if (user?.id) loadMonth(user.id);
+    if (!user?.id) return;
+    loadMonth(user.id);
+    // Load tasks for the visible month range
+    const from = `${year}-${String(month).padStart(2, '0')}-01`;
+    const lastDay = new Date(year, month, 0).getDate();
+    const to   = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+    tasksStore.loadRange(user.id, from, to);
   }, [year, month, user?.id]);
 
   function prevMonth() {
@@ -98,6 +106,9 @@ export default function CalendarScreen() {
               const isToday = date === today;
               const hasData = !!(data?.cycleState || data?.moodScore !== undefined ||
                 data?.hasJournal || data?.activityNames?.length);
+              const dayTasks = tasksStore.byDate[date] ?? [];
+              const tasksDone = dayTasks.filter((t) => t.completed_at !== null).length;
+              const tasksTotal = dayTasks.length;
 
               return (
                 <TouchableOpacity
@@ -112,6 +123,13 @@ export default function CalendarScreen() {
                   activeOpacity={0.65}
                 >
                   <Text style={[s.dayNum, isToday && s.dayNumToday, { color: theme.textPrimary }]}>{day}</Text>
+                  {tasksTotal > 0 && (
+                    <View style={[s.taskBadge, { backgroundColor: tasksDone === tasksTotal ? '#A8C5A030' : '#C9A84C22' }]}>
+                      <Text style={[s.taskBadgeText, { color: tasksDone === tasksTotal ? '#A8C5A0' : '#C9A84C' }]}>
+                        {tasksDone}/{tasksTotal}
+                      </Text>
+                    </View>
+                  )}
                   <View style={s.dotRow}>
                     {data?.moodScore !== null && data?.moodScore !== undefined && (
                       <View style={[s.dot, { backgroundColor: '#C9A84C' }]} />
@@ -217,6 +235,9 @@ const s = StyleSheet.create({
   dayNumToday: { fontWeight: '900' },
   dotRow: { flexDirection: 'row', gap: 2, marginTop: 2 },
   dot: { width: 4, height: 4, borderRadius: 2 },
+
+  taskBadge: { borderRadius: 4, paddingHorizontal: 3, paddingVertical: 1, marginTop: 1 },
+  taskBadgeText: { fontSize: 8, fontWeight: '800' },
 
   tapHint: {
     textAlign: 'center', fontSize: 11, color: '#3D393555',

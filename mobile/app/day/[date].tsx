@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, ActivityIndicator, Modal,
+  StyleSheet, ActivityIndicator, Modal, TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useCalendarStore } from '../../stores/calendar';
 import { useAuthStore } from '../../stores/auth';
+import { useTasksStore, type EnergyLevel } from '../../stores/tasks';
 import { callGroq } from '../../lib/groq';
 import { supabase } from '../../lib/supabase';
 import type { DayData } from '../../stores/calendar';
@@ -58,6 +59,11 @@ export default function DayScreen() {
   const user = session?.user;
   const { days, isLoading, loadMonth, buildWeekPrompt, year, month, setMonth } = useCalendarStore();
 
+  const tasksStore = useTasksStore();
+  const [taskInput, setTaskInput] = useState('');
+  const [taskEnergy, setTaskEnergy] = useState<EnergyLevel>('medium');
+  const [taskInputVisible, setTaskInputVisible] = useState(false);
+
   const [journalExpanded, setJournalExpanded] = useState(false);
   const [workbookEntries, setWorkbookEntries] = useState<WorkbookResponse[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
@@ -75,6 +81,18 @@ export default function DayScreen() {
   useEffect(() => {
     if (user?.id) loadMonth(user.id);
   }, [year, month, user?.id]);
+
+  useEffect(() => {
+    if (date && user?.id) tasksStore.loadDate(user.id, date);
+  }, [date, user?.id]);
+
+  async function addTask() {
+    if (!date || !user?.id || !taskInput.trim()) return;
+    await tasksStore.addTask(user.id, taskInput.trim(), date, taskEnergy);
+    setTaskInput('');
+    setTaskInputVisible(false);
+    setTaskEnergy('medium');
+  }
 
   // Fetch workbook entries written on this date
   useEffect(() => {
@@ -336,6 +354,117 @@ export default function DayScreen() {
             </View>
           )}
 
+          {/* ── Tasks ── */}
+          {(() => {
+            const dayTasks = tasksStore.byDate[date ?? ''] ?? [];
+            const ENERGY_COLORS: Record<EnergyLevel, string> = {
+              low: '#A8C5A0', medium: '#89B4CC', high: '#C4A0B0',
+            };
+            return (
+              <View style={s.taskSection}>
+                <View style={s.taskSectionHeader}>
+                  <View style={s.taskSectionTitle}>
+                    <Ionicons name="checkbox-outline" size={16} color={cycleColor} style={{ marginRight: 6 }} />
+                    <Text style={[s.taskHeading, { color: cycleColor }]}>TASKS</Text>
+                    {dayTasks.length > 0 && (
+                      <Text style={s.taskHeadingCount}>
+                        {dayTasks.filter((t) => t.completed_at !== null).length}/{dayTasks.length}
+                      </Text>
+                    )}
+                  </View>
+                  <TouchableOpacity
+                    style={[s.taskAddBtn, { backgroundColor: cycleColor + '22', borderColor: cycleColor + '55' }]}
+                    onPress={() => setTaskInputVisible((v) => !v)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[s.taskAddBtnText, { color: cycleColor }]}>{taskInputVisible ? '✕ Cancel' : '+ Add task'}</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {taskInputVisible && (
+                  <View style={[s.taskInputCard, { borderColor: cycleColor + '40' }]}>
+                    <TextInput
+                      style={s.taskInputField}
+                      placeholder="Task name…"
+                      placeholderTextColor="#3D393560"
+                      value={taskInput}
+                      onChangeText={setTaskInput}
+                      onSubmitEditing={addTask}
+                      returnKeyType="done"
+                      autoFocus
+                    />
+                    <View style={s.taskEnergyRow}>
+                      {(['low', 'medium', 'high'] as EnergyLevel[]).map((lvl) => (
+                        <TouchableOpacity
+                          key={lvl}
+                          style={[s.taskEnergyBtn,
+                            taskEnergy === lvl && { backgroundColor: ENERGY_COLORS[lvl] + '22', borderColor: ENERGY_COLORS[lvl] }
+                          ]}
+                          onPress={() => setTaskEnergy(lvl)}
+                          activeOpacity={0.7}
+                        >
+                          <View style={[s.taskEnergyDot, { backgroundColor: ENERGY_COLORS[lvl] }]} />
+                          <Text style={[s.taskEnergyLabel, { color: taskEnergy === lvl ? ENERGY_COLORS[lvl] : '#3D393566' }]}>{lvl}</Text>
+                        </TouchableOpacity>
+                      ))}
+                      <TouchableOpacity
+                        style={[s.taskSaveBtn, { backgroundColor: cycleColor }]}
+                        onPress={addTask}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={s.taskSaveBtnText}>Add</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+
+                {dayTasks.length > 0 ? (
+                  <View style={s.taskList}>
+                    {dayTasks.map((task, idx) => {
+                      const done = task.completed_at !== null;
+                      const ec = ENERGY_COLORS[task.energy_level];
+                      return (
+                        <View key={task.id}>
+                          {idx > 0 && <View style={s.taskDivider} />}
+                          <TouchableOpacity
+                            style={s.taskRow}
+                            onPress={() => date && tasksStore.toggleDone(task.id, date)}
+                            activeOpacity={0.7}
+                          >
+                            <View style={[s.taskCheck, done ? { backgroundColor: ec, borderColor: ec } : { borderColor: ec + '88' }]}>
+                              {done && <Text style={s.taskCheckMark}>✓</Text>}
+                            </View>
+                            <Text style={[s.taskTitle, done && s.taskTitleDone]} numberOfLines={2}>{task.title}</Text>
+                            <View style={[s.taskEnergyPip, { backgroundColor: ec + '22', borderColor: ec + '55' }]}>
+                              <Text style={[s.taskEnergyPipText, { color: ec }]}>{task.energy_level}</Text>
+                            </View>
+                            <TouchableOpacity
+                              onPress={() => date && tasksStore.deleteTask(task.id, date)}
+                              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                              style={{ paddingLeft: 8 }}
+                            >
+                              <Text style={s.taskDelete}>✕</Text>
+                            </TouchableOpacity>
+                          </TouchableOpacity>
+                        </View>
+                      );
+                    })}
+                  </View>
+                ) : (
+                  !taskInputVisible && (
+                    <TouchableOpacity
+                      style={s.taskEmpty}
+                      onPress={() => setTaskInputVisible(true)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={s.taskEmptyText}>No tasks planned — tap to add one</Text>
+                    </TouchableOpacity>
+                  )
+                )}
+              </View>
+            );
+          })()}
+
           {/* ── AI Week Summary ── */}
           <View style={s.aiSection}>
             <TouchableOpacity style={s.aiBtn} onPress={handleAiSummary}>
@@ -578,6 +707,37 @@ const s = StyleSheet.create({
   emptySubtitle: {
     fontSize: 13, color: '#3D393566', textAlign: 'center', lineHeight: 19,
   },
+
+  // Task section
+  taskSection: { marginHorizontal: 16, marginBottom: 10, marginTop: 4 },
+  taskSectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+  taskSectionTitle: { flexDirection: 'row', alignItems: 'center' },
+  taskHeading: { fontSize: 11, fontWeight: '800', letterSpacing: 1 },
+  taskHeadingCount: { fontSize: 11, fontWeight: '600', color: '#3D393555', marginLeft: 8 },
+  taskAddBtn: { borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5, borderWidth: 1.5 },
+  taskAddBtnText: { fontSize: 12, fontWeight: '700' },
+
+  taskInputCard: { backgroundColor: '#FFFFFF', borderRadius: 14, borderWidth: 1.5, padding: 14, marginBottom: 10 },
+  taskInputField: { fontSize: 16, color: '#3D3935', paddingVertical: 4, marginBottom: 10 },
+  taskEnergyRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  taskEnergyBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 10, borderWidth: 1.5, borderColor: '#E0DDD8' },
+  taskEnergyDot: { width: 7, height: 7, borderRadius: 4 },
+  taskEnergyLabel: { fontSize: 11, fontWeight: '600', textTransform: 'capitalize' },
+  taskSaveBtn: { marginLeft: 'auto' as unknown as number, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 10 },
+  taskSaveBtnText: { fontSize: 13, fontWeight: '700', color: '#FFFFFF' },
+
+  taskList: { backgroundColor: '#FFFFFF', borderRadius: 16, borderWidth: 1.5, borderColor: '#F0EDE8', overflow: 'hidden' },
+  taskRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12, gap: 10 },
+  taskDivider: { height: 1, backgroundColor: '#F0EDE8', marginLeft: 48 },
+  taskCheck: { width: 22, height: 22, borderRadius: 6, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  taskCheckMark: { fontSize: 12, color: '#FFFFFF', fontWeight: '800' },
+  taskTitle: { flex: 1, fontSize: 15, fontWeight: '500', color: '#3D3935' },
+  taskTitleDone: { textDecorationLine: 'line-through', opacity: 0.4 },
+  taskEnergyPip: { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8, borderWidth: 1 },
+  taskEnergyPipText: { fontSize: 10, fontWeight: '700', textTransform: 'capitalize' },
+  taskDelete: { fontSize: 13, color: '#3D393550' },
+  taskEmpty: { backgroundColor: '#F7F3EE', borderRadius: 14, padding: 16, alignItems: 'center' },
+  taskEmptyText: { fontSize: 13, color: '#3D393560', fontStyle: 'italic' },
 
   // AI section
   aiSection: { marginHorizontal: 16, marginTop: 8, gap: 8 },

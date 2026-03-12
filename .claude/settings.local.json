@@ -50,7 +50,8 @@
       "Bash(node -e \"const r = require\\(''@react-navigation/native''\\); console.log\\(Object.keys\\(r\\).filter\\(k => k.includes\\(''Theme''\\) || k.includes\\(''theme''\\)\\)\\)\")",
       "Bash(find node_modules/@react-navigation/bottom-tabs -name BottomTabView*)",
       "Bash(find node_modules/@react-navigation/bottom-tabs -name *.js)",
-      "Bash(find node_modules/@react-navigation/elements -name SafeAreaProviderCompat*)"
+      "Bash(find node_modules/@react-navigation/elements -name SafeAreaProviderCompat*)",
+      "Bash(grep -n \"case ''nutrition''\\\\|case ''activities''\\\\|case ''social''\\\\|case ''wearable''\\\\|customizeSectionHead\\\\|customizeHideBtn\\\\|customizeShowBtn\\\\|layout\\\\.show\\\\|layout\\\\.hide\\\\|ALL_SECTIONS\" \"/Users/maqowais/Documents/Equi/mobile/app/\\(tabs\\)/index.tsx\")"
     ]
   }
 }

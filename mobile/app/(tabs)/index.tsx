@@ -15,6 +15,8 @@ import { useAIStore } from '../../stores/ai';
 import { useCycleStore, type CycleLogEntry } from '../../stores/cycle';
 import { useRouter } from 'expo-router';
 import { useMedicationsStore } from '../../stores/medications';
+import { useTasksStore, type EnergyLevel } from '../../stores/tasks';
+import { useHomeLayoutStore, SECTION_META, ALL_SECTIONS, type SectionId } from '../../stores/homeLayout';
 import type { CycleState, MedicationStatus } from '../../types/database';
 import { useAmbientTheme } from '../../stores/ambient';
 
@@ -224,13 +226,19 @@ export default function TodayScreen() {
   const ai = useAIStore();
   const cycle = useCycleStore();
   const medsStore = useMedicationsStore();
+  const tasksStore = useTasksStore();
+  const layout = useHomeLayoutStore();
   const router = useRouter();
   const userId = session?.user.id;
+
+  const [taskInput, setTaskInput] = useState('');
+  const [taskEnergy, setTaskEnergy] = useState<EnergyLevel>('medium');
+  const [taskInputVisible, setTaskInputVisible] = useState(false);
+  const [customizeVisible, setCustomizeVisible] = useState(false);
 
   const [skipSheetVisible, setSkipSheetVisible] = useState(false);
   const [pendingMedStatus, setPendingMedStatus] = useState<MedicationStatus | null>(null);
   const [selectedSkipReason, setSelectedSkipReason] = useState<string | null>(null);
-  const [heroScrollRef, setHeroScrollRef] = useState<string | null>(null);
 
   // Medication settings sheet
   const [medSettingsVisible, setMedSettingsVisible] = useState(false);
@@ -244,6 +252,7 @@ export default function TodayScreen() {
   const todayDate = isoToday();
 
   useEffect(() => {
+    layout.load();
     if (userId) {
       today.load(userId);
       sleep.load(userId);
@@ -252,8 +261,17 @@ export default function TodayScreen() {
       ai.loadTrackerInsight(userId);
       cycle.load90Days(userId);
       medsStore.load(userId);
+      tasksStore.loadDate(userId, todayDate);
     }
   }, [userId]);
+
+  async function addTask() {
+    if (!userId || !taskInput.trim()) return;
+    await tasksStore.addTask(userId, taskInput.trim(), todayDate, taskEnergy);
+    setTaskInput('');
+    setTaskInputVisible(false);
+    setTaskEnergy('medium');
+  }
 
   function handleMoodTap(score: number) {
     if (today.moodScore !== null || !userId) return;
@@ -359,8 +377,587 @@ export default function TodayScreen() {
 
   function handleHeroPress() {
     if (hero.route) { router.push(hero.route as never); return; }
-    // inline actions handled by the existing sections — hero scrolls down to them
-    // (no-op for inline actions, user scrolls naturally)
+  }
+
+  // ─── Section renderer ────────────────────────────────────────────────────────
+  const todayTasks = tasksStore.byDate[todayDate] ?? [];
+  const ENERGY_COLORS: Record<EnergyLevel, string> = { low: '#A8C5A0', medium: '#89B4CC', high: '#C4A0B0' };
+
+  function renderSection(id: SectionId): React.ReactNode {
+    switch (id) {
+
+      case 'hero':
+        return (
+          <View key="hero">
+            <TouchableOpacity
+              style={[s.heroCard, theme.cardSurface, { borderLeftColor: hero.color, borderLeftWidth: 4 }]}
+              onPress={handleHeroPress}
+              activeOpacity={hero.route ? 0.75 : 1}
+            >
+              <Text style={s.heroIcon}>{hero.icon}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={[s.heroTitle, { color: hero.color === '#E8DCC8' ? '#A09060' : hero.color }]}>{hero.title}</Text>
+                <Text style={[s.heroSub, { color: theme.textSecondary, opacity: 1 }]}>{hero.sub}</Text>
+              </View>
+              {hero.route && <Text style={[s.heroArrow, { color: hero.color }]}>›</Text>}
+            </TouchableOpacity>
+            {pulse && (
+              <View style={[s.pulseCard, theme.cardSurface, { borderLeftColor: pulse.color, borderLeftWidth: 3 }]}>
+                <Text style={s.pulseIcon}>{pulse.icon}</Text>
+                <Text style={[s.pulseText, { color: pulse.color === '#E8DCC8' ? '#A09060' : pulse.color }]}>{pulse.text}</Text>
+              </View>
+            )}
+          </View>
+        );
+
+      case 'mood':
+        return (
+          <View key="mood">
+            <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>MOOD</Text>
+            <View style={[s.card, theme.cardSurface]}>
+              {today.moodScore !== null ? (
+                <View style={s.moodLogged}>
+                  <Text style={s.moodLoggedEmoji}>{MOOD_EMOJIS[today.moodScore - 1]}</Text>
+                  <View>
+                    <Text style={[s.moodLoggedTitle, { color: theme.textPrimary }]}>Mood logged</Text>
+                    <Text style={[s.moodLoggedSub, { color: theme.textSecondary, opacity: 1 }]}>{today.moodScore} / 10 · Tap tomorrow to update</Text>
+                  </View>
+                </View>
+              ) : (
+                <>
+                  <Text style={s.cardPrompt}>How are you feeling right now?</Text>
+                  <View style={s.moodRow}>
+                    {MOOD_EMOJIS.map((emoji, i) => {
+                      const score = i + 1;
+                      return (
+                        <TouchableOpacity key={score} onPress={() => handleMoodTap(score)} style={s.moodItem} activeOpacity={0.6}>
+                          <Text style={s.moodEmoji}>{emoji}</Text>
+                          {(score === 1 || score === 5 || score === 10) && <Text style={s.moodTick}>{score}</Text>}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                  <Text style={s.tapHint}>Tap once — saved instantly</Text>
+                </>
+              )}
+            </View>
+            {showRuminationPrompt && (
+              <TouchableOpacity style={[s.card, s.ruminationCard]} onPress={() => router.push('/(tabs)/activities')} activeOpacity={0.8}>
+                <Text style={s.ruminationIcon}>🫂</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.ruminationTitle}>Difficult stretch?</Text>
+                  <Text style={s.ruminationBody}>Some grounding activities are ready for you →</Text>
+                </View>
+              </TouchableOpacity>
+            )}
+          </View>
+        );
+
+      case 'cycle':
+        return (
+          <View key="cycle">
+            <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>CYCLE STATE</Text>
+            <View style={[s.card, theme.cardSurface]}>
+              {today.cycleState !== null ? (
+                <View style={s.cycleLogged}>
+                  <View style={[s.cycleLoggedDot, { backgroundColor: CYCLE_COLORS[today.cycleState] }]} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[s.cycleLoggedTitle, { color: theme.textPrimary }]}>{CYCLE_LABELS[today.cycleState]} today</Text>
+                    <Text style={[s.cycleLoggedSub, { color: theme.textSecondary, opacity: 1 }]}>Tap a state to update</Text>
+                  </View>
+                </View>
+              ) : (
+                <Text style={s.cardPrompt}>How is your mood episode today?</Text>
+              )}
+              <View style={s.cycleRow}>
+                {(['stable', 'manic', 'depressive', 'mixed'] as CycleState[]).map((state) => {
+                  const active = today.cycleState === state;
+                  const col = CYCLE_COLORS[state];
+                  return (
+                    <TouchableOpacity
+                      key={state}
+                      style={[s.cycleBtn, { borderColor: active ? col : col + '55', backgroundColor: active ? col + '22' : col + '0A' }]}
+                      onPress={() => handleCycleTap(state)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={[s.cycleBtnDot, { backgroundColor: col }]} />
+                      <Text style={[s.cycleBtnText, { color: active ? col : '#3D3935', opacity: active ? 1 : 0.6, fontWeight: active ? '700' : '500' }]}>
+                        {CYCLE_LABELS[state]}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          </View>
+        );
+
+      case 'journal':
+        return (
+          <View key="journal">
+            <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>JOURNAL</Text>
+            <TouchableOpacity
+              style={[s.card, s.journalCard, theme.cardSurface]}
+              onPress={() => router.push('/(tabs)/journal')}
+              activeOpacity={0.8}
+            >
+              {journalWordCount > 0 ? (
+                <>
+                  <View style={s.journalLogged}>
+                    <Text style={s.journalLoggedIcon}>📖</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[s.journalLoggedTitle, { color: theme.textPrimary }]}>Entry written</Text>
+                      <Text style={[s.journalLoggedSub, { color: theme.textSecondary, opacity: 1 }]}>{journalWordCount} words · Tap to read or edit</Text>
+                    </View>
+                    <Text style={s.journalChevron}>›</Text>
+                  </View>
+                  {todayJournal?.text ? (
+                    <Text style={s.journalPreview} numberOfLines={2}>{journalPlainText(todayJournal.text)}</Text>
+                  ) : null}
+                </>
+              ) : (
+                <View style={s.journalEmpty}>
+                  <Text style={s.journalEmptyIcon}>✏️</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[s.journalEmptyTitle, { color: theme.textPrimary }]}>Write today's entry</Text>
+                    <Text style={[s.journalEmptySub, { color: theme.textSecondary, opacity: 1 }]}>Private · Locked after 48h · Never shared</Text>
+                  </View>
+                  <Text style={s.journalChevron}>›</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+        );
+
+      case 'tasks': {
+        const visibleTasks = cycleState === 'depressive' ? todayTasks.slice(0, 3) : todayTasks;
+        const doneTasks = visibleTasks.filter((t) => t.completed_at !== null).length;
+        return (
+          <View key="tasks">
+            <View style={s.taskSectionHeader}>
+              <Text style={[s.sectionLabel, theme.sectionLabelStyle, { marginBottom: 0 }]}>TASKS</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                {todayTasks.length > 0 && <Text style={[s.taskCount, { color: theme.textSecondary }]}>{doneTasks}/{visibleTasks.length}</Text>}
+                <TouchableOpacity
+                  style={[s.taskAddBtn, { backgroundColor: cycleColor + '22', borderColor: cycleColor + '55' }]}
+                  onPress={() => setTaskInputVisible((v) => !v)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[s.taskAddBtnText, { color: cycleColor }]}>{taskInputVisible ? '✕' : '+ Add'}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+            {cycleState === 'depressive' && todayTasks.length > 3 && (
+              <Text style={[s.taskGentleNote, { color: theme.textSecondary }]}>Showing 3 tasks — taking it easy today is enough.</Text>
+            )}
+            {cycleState === 'manic' && todayTasks.length > 8 && (
+              <Text style={[s.taskGentleNote, { color: '#C9A84C' }]}>{todayTasks.length} tasks — you're in an elevated phase. Consider focusing on just a few.</Text>
+            )}
+            {taskInputVisible && (
+              <View style={[s.taskInputCard, theme.cardSurface]}>
+                <TextInput
+                  style={[s.taskInputField, { color: theme.textPrimary }]}
+                  placeholder="What do you want to do today?"
+                  placeholderTextColor={theme.textSecondary}
+                  value={taskInput}
+                  onChangeText={setTaskInput}
+                  onSubmitEditing={addTask}
+                  returnKeyType="done"
+                  autoFocus
+                />
+                <View style={s.taskEnergyRow}>
+                  {(['low', 'medium', 'high'] as EnergyLevel[]).map((lvl) => (
+                    <TouchableOpacity
+                      key={lvl}
+                      style={[s.taskEnergyBtn, taskEnergy === lvl && { backgroundColor: ENERGY_COLORS[lvl] + '22', borderColor: ENERGY_COLORS[lvl] }]}
+                      onPress={() => setTaskEnergy(lvl)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={[s.taskEnergyDot, { backgroundColor: ENERGY_COLORS[lvl] }]} />
+                      <Text style={[s.taskEnergyLabel, { color: taskEnergy === lvl ? ENERGY_COLORS[lvl] : theme.textSecondary }]}>{lvl}</Text>
+                    </TouchableOpacity>
+                  ))}
+                  <TouchableOpacity style={[s.taskSaveBtn, { backgroundColor: cycleColor }]} onPress={addTask} activeOpacity={0.8}>
+                    <Text style={s.taskSaveBtnText}>Add</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+            {visibleTasks.length > 0 ? (
+              <View style={[s.taskList, theme.cardSurface]}>
+                {visibleTasks.map((task, idx) => {
+                  const done = task.completed_at !== null;
+                  const eColor = ENERGY_COLORS[task.energy_level];
+                  return (
+                    <View key={task.id}>
+                      {idx > 0 && <View style={s.taskDivider} />}
+                      <TouchableOpacity style={s.taskRow} onPress={() => tasksStore.toggleDone(task.id, todayDate)} activeOpacity={0.7}>
+                        <View style={[s.taskCheck, done ? { backgroundColor: eColor, borderColor: eColor } : { borderColor: eColor + '88' }]}>
+                          {done && <Text style={s.taskCheckMark}>✓</Text>}
+                        </View>
+                        <Text style={[s.taskTitle, { color: theme.textPrimary }, done && s.taskTitleDone]} numberOfLines={2}>{task.title}</Text>
+                        <View style={[s.taskEnergyPip, { backgroundColor: eColor + '33', borderColor: eColor + '66' }]}>
+                          <Text style={[s.taskEnergyPipText, { color: eColor }]}>{task.energy_level}</Text>
+                        </View>
+                        <TouchableOpacity onPress={() => tasksStore.deleteTask(task.id, todayDate)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={{ paddingLeft: 8 }}>
+                          <Text style={[s.taskDelete, { color: theme.textSecondary }]}>✕</Text>
+                        </TouchableOpacity>
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })}
+              </View>
+            ) : (
+              !taskInputVisible && (
+                <TouchableOpacity style={[s.taskEmptyCard, theme.cardSurface]} onPress={() => setTaskInputVisible(true)} activeOpacity={0.7}>
+                  <Text style={s.taskEmptyIcon}>📋</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[s.taskEmptyTitle, { color: theme.textPrimary }]}>Plan your day</Text>
+                    <Text style={[s.taskEmptySub, { color: theme.textSecondary }]}>Tap to add tasks — visible on your calendar too</Text>
+                  </View>
+                  <Text style={{ fontSize: 18, color: cycleColor }}>+</Text>
+                </TouchableOpacity>
+              )
+            )}
+          </View>
+        );
+      }
+
+      case 'sleep':
+        return (showSleepPrompt || sleep.todayLog !== null) ? (
+          <View key="sleep">
+            <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>SLEEP</Text>
+            {showSleepPrompt && (
+              <View style={[s.card, theme.cardSurface]}>
+                <Text style={s.cardPrompt}>🌙  How did you sleep last night?</Text>
+                <View style={s.sleepRow}>
+                  {SLEEP_OPTIONS.map((opt) => {
+                    const logged = sleep.todayLog?.quality_score === opt.score;
+                    return (
+                      <TouchableOpacity
+                        key={opt.score}
+                        style={[s.sleepBtn, logged && { borderColor: '#89B4CC', backgroundColor: '#89B4CC15' }]}
+                        onPress={() => userId && sleep.logManual(userId, opt.score)}
+                        disabled={sleep.todayLog !== null}
+                      >
+                        <Text style={[s.sleepBtnLabel, logged && { color: '#89B4CC', opacity: 1, fontWeight: '700' }]}>{opt.label}</Text>
+                        <Text style={[s.sleepBtnSub, logged && { color: '#89B4CC', opacity: 0.7 }]}>{opt.sub}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
+            {sleep.todayLog !== null && (
+              <View style={[s.card, s.sleepLoggedCard, theme.cardSurface]}>
+                <Text style={s.sleepLoggedIcon}>🌙</Text>
+                <View>
+                  <Text style={[s.sleepLoggedLabel, { color: theme.textPrimary }]}>
+                    {['', 'Poor', 'Light', 'OK', 'Good', 'Great'][sleep.todayLog.quality_score ?? 0]} sleep
+                  </Text>
+                  {sleep.todayLog.duration_minutes ? (
+                    <Text style={[s.sleepLoggedSub, { color: theme.textSecondary, opacity: 1 }]}>
+                      {Math.floor(sleep.todayLog.duration_minutes / 60)}h {sleep.todayLog.duration_minutes % 60}m
+                    </Text>
+                  ) : null}
+                </View>
+                <View style={[s.sleepQualBar, { marginLeft: 'auto' }]}>
+                  <View style={[s.sleepQualFill, { width: `${((sleep.todayLog.quality_score ?? 0) / 5) * 100}%` as unknown as number }]} />
+                </View>
+              </View>
+            )}
+          </View>
+        ) : null;
+
+      case 'checkins':
+        return (
+          <View key="checkins">
+            <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>CHECK-INS</Text>
+            <View style={[s.card, theme.cardSurface]}>
+              {showMedSection && (
+                <View style={s.checkinBlock}>
+                  <View style={s.checkinLabelRow}>
+                    <Text style={s.checkinBlockLabel}>💊  Medications</Text>
+                    <TouchableOpacity onPress={openMedSettings} hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+                      <Text style={s.settingsGear}>⚙</Text>
+                    </TouchableOpacity>
+                  </View>
+                  {meds.length > 0 ? (
+                    <View style={{ gap: 4, marginBottom: 8 }}>
+                      {meds.map((med) => (
+                        <View key={med.id} style={s.medNameRow}>
+                          <Text style={s.medNameText}>{med.name}{med.dosage ? ` · ${med.dosage}` : ''}</Text>
+                          {med.ring_enabled && <Text style={s.medRingBadge}>🔔</Text>}
+                        </View>
+                      ))}
+                    </View>
+                  ) : (
+                    <TouchableOpacity onPress={openMedSettings}>
+                      <Text style={s.addMedHint}>+ Add your medications</Text>
+                    </TouchableOpacity>
+                  )}
+                  <View style={s.medButtons}>
+                    {(['taken', 'skipped', 'partial'] as MedicationStatus[]).map((status) => {
+                      const active = today.medicationStatus === status;
+                      const color = status === 'taken' ? '#A8C5A0' : status === 'skipped' ? '#C4A0B0' : '#C9A84C';
+                      return (
+                        <TouchableOpacity
+                          key={status}
+                          style={[s.medBtn, active && { borderColor: color, backgroundColor: color + '18' }]}
+                          onPress={() => handleMedTap(status)}
+                        >
+                          <Text style={[s.medBtnText, active && { color, opacity: 1, fontWeight: '700' }]}>
+                            {status.charAt(0).toUpperCase() + status.slice(1)}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              )}
+              {trackSubstances && (
+                <View style={[s.checkinBlock, showMedSection && s.checkinDivider]}>
+                  <View style={s.checkinLabelRow}>
+                    <Text style={s.checkinBlockLabel}>🍃  Substances today</Text>
+                    <TouchableOpacity onPress={openSubSettings} hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+                      <Text style={s.settingsGear}>⚙</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <View style={s.substanceRow}>
+                    {(['alcohol', 'cannabis'] as const).map((sub) => {
+                      const active = today[sub] === true;
+                      return (
+                        <TouchableOpacity
+                          key={sub}
+                          style={[s.subBtn, active && { borderColor: '#C4A0B0', backgroundColor: '#C4A0B015' }]}
+                          onPress={() => toggleSubstance(sub)}
+                        >
+                          <Text style={[s.subBtnText, active && { color: '#C4A0B0', opacity: 1, fontWeight: '600' }]}>
+                            {sub === 'alcohol' ? '🍷' : '🌿'} {sub.charAt(0).toUpperCase() + sub.slice(1)}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+              )}
+              {!trackSubstances && !showMedSection && (
+                <View style={s.checkinBlock}>
+                  <TouchableOpacity onPress={openSubSettings}>
+                    <Text style={s.addMedHint}>+ Configure substance tracking</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+              {rhythm.todayAnchorsTotal > 0 && (
+                <TouchableOpacity style={[s.checkinBlock, s.checkinDivider, s.rhythmRow]} onPress={() => router.push('/(tabs)/you/routine')} activeOpacity={0.7}>
+                  <View>
+                    <Text style={[s.checkinBlockLabel, { marginBottom: 2 }]}>🗓  Daily Routine</Text>
+                    <Text style={s.rhythmSub}>{rhythm.todayAnchorsHit} of {rhythm.todayAnchorsTotal} anchors hit</Text>
+                  </View>
+                  <View style={s.rhythmRight}>
+                    <View style={s.rhythmBarWrap}>
+                      <View style={[s.rhythmFill, { width: `${((rhythm.todayAnchorsHit / rhythm.todayAnchorsTotal) * 100)}%` as unknown as number, backgroundColor: cycleColor }]} />
+                    </View>
+                    <Text style={s.rhythmChevron}>›</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        );
+
+      case 'focus':
+        return (
+          <View key="focus">
+            <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>TODAY'S FOCUS</Text>
+            <View style={[s.tipCard, { borderLeftColor: cycleColor, backgroundColor: cycleColor + '12' }]}>
+              <Text style={s.tipIcon}>{tip.icon}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={[s.tipTitle, { color: cycleColor === '#E8DCC8' ? '#A09060' : cycleColor }]}>{tip.title}</Text>
+                <Text style={[s.tipBody, { color: theme.textSecondary, opacity: 1 }]}>{tip.body}</Text>
+              </View>
+            </View>
+          </View>
+        );
+
+      case 'suggested':
+        return (
+          <View key="suggested">
+            <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>SUGGESTED FOR YOU</Text>
+            <View style={s.quickActsRow}>
+              {quickActs.map((act) => (
+                <TouchableOpacity
+                  key={act.title}
+                  style={[s.quickActCard, theme.cardSurface, { borderColor: cycleColor }]}
+                  onPress={() => router.push('/(tabs)/activities')}
+                  activeOpacity={0.75}
+                >
+                  <Text style={s.quickActIcon}>{act.icon}</Text>
+                  <Text style={[s.quickActTitle, { color: theme.textPrimary }]} numberOfLines={2}>{act.title}</Text>
+                  <View style={[s.quickActBadge, { backgroundColor: cycleColor + '22' }]}>
+                    <Text style={[s.quickActDur, { color: cycleColor === '#E8DCC8' ? '#A09060' : cycleColor }]}>{act.dur}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        );
+
+      case 'ai_insight':
+        return ai.trackerInsight ? (
+          <View key="ai_insight">
+            <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>AI INSIGHT</Text>
+            <TouchableOpacity style={[s.insightCard, theme.cardSurface]} onPress={() => router.push('/(tabs)/you/ai-report')} activeOpacity={0.8}>
+              <Text style={s.insightIcon}>✦</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={[s.insightText, { color: theme.textSecondary, opacity: 1 }]}>{ai.trackerInsight}</Text>
+                <Text style={s.insightLink}>See full report →</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        ) : null;
+
+      case 'explore':
+        return (
+          <View key="explore">
+            <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>EXPLORE</Text>
+            <View style={s.exploreGrid}>
+              {EXPLORE_LINKS.map((link) => (
+                <TouchableOpacity
+                  key={link.route}
+                  style={[s.exploreCard, theme.cardSurface]}
+                  onPress={() => router.push(link.route as never)}
+                  activeOpacity={0.75}
+                >
+                  <Text style={s.exploreIcon}>{link.icon}</Text>
+                  <Text style={[s.exploreLabel, { color: theme.textPrimary }]}>{link.label}</Text>
+                  <Text style={[s.exploreSub, { color: theme.textSecondary, opacity: 1 }]}>{link.sub}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        );
+
+      case 'nutrition':
+        return (
+          <View key="nutrition">
+            <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>NUTRITION</Text>
+            <TouchableOpacity
+              style={[s.card, theme.cardSurface, { flexDirection: 'row', alignItems: 'center', gap: 14 }]}
+              onPress={() => router.push('/(tabs)/you/nutrition')}
+              activeOpacity={0.8}
+            >
+              <Text style={{ fontSize: 30 }}>🥗</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={[{ fontSize: 14, fontWeight: '600', marginBottom: 3 }, { color: theme.textPrimary }]}>Food Quality Log</Text>
+                <Text style={[{ fontSize: 12, lineHeight: 17 }, { color: theme.textSecondary, opacity: 1 }]}>
+                  Track what you ate today across 11 quality categories
+                </Text>
+              </View>
+              <Text style={[s.heroArrow, { color: '#A8C5A0' }]}>›</Text>
+            </TouchableOpacity>
+          </View>
+        );
+
+      case 'activities':
+        return (
+          <View key="activities">
+            <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>ACTIVITIES</Text>
+            <View style={s.quickActsRow}>
+              {quickActs.map((act) => (
+                <TouchableOpacity
+                  key={act.title}
+                  style={[s.quickActCard, theme.cardSurface, { borderColor: cycleColor }]}
+                  onPress={() => router.push('/(tabs)/activities')}
+                  activeOpacity={0.75}
+                >
+                  <Text style={s.quickActIcon}>{act.icon}</Text>
+                  <Text style={[s.quickActTitle, { color: theme.textPrimary }]} numberOfLines={2}>{act.title}</Text>
+                  <View style={[s.quickActBadge, { backgroundColor: cycleColor + '22' }]}>
+                    <Text style={[s.quickActDur, { color: cycleColor === '#E8DCC8' ? '#A09060' : cycleColor }]}>{act.dur}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+              <TouchableOpacity
+                style={[s.quickActCard, theme.cardSurface, { borderColor: '#E0DDD8', alignItems: 'center', justifyContent: 'center' }]}
+                onPress={() => router.push('/(tabs)/activities')}
+                activeOpacity={0.75}
+              >
+                <Text style={{ fontSize: 22, marginBottom: 6 }}>➕</Text>
+                <Text style={[s.quickActTitle, { color: theme.textSecondary, textAlign: 'center', marginBottom: 0 }]}>Browse all</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        );
+
+      case 'social':
+        return (
+          <View key="social">
+            <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>SOCIAL</Text>
+            <View style={[s.card, theme.cardSurface, { padding: 0, overflow: 'hidden' }]}>
+              {/* Social rhythm */}
+              <TouchableOpacity
+                style={[s.checkinBlock, s.rhythmRow, { paddingHorizontal: 16 }]}
+                onPress={() => router.push('/(tabs)/you/routine')}
+                activeOpacity={0.7}
+              >
+                <View>
+                  <Text style={[s.checkinBlockLabel, { marginBottom: 2 }]}>🗓  Social Rhythm</Text>
+                  <Text style={s.rhythmSub}>
+                    {rhythm.todayAnchorsTotal > 0
+                      ? `${rhythm.todayAnchorsHit} of ${rhythm.todayAnchorsTotal} anchors today`
+                      : 'Set up your daily anchors →'}
+                  </Text>
+                </View>
+                {rhythm.todayAnchorsTotal > 0 && (
+                  <View style={s.rhythmRight}>
+                    <View style={s.rhythmBarWrap}>
+                      <View style={[s.rhythmFill, { width: `${((rhythm.todayAnchorsHit / rhythm.todayAnchorsTotal) * 100)}%` as unknown as number, backgroundColor: cycleColor }]} />
+                    </View>
+                    <Text style={s.rhythmChevron}>›</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+              {/* Community */}
+              <View style={s.checkinDivider} />
+              <TouchableOpacity
+                style={[s.checkinBlock, { paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}
+                onPress={() => router.push('/community')}
+                activeOpacity={0.7}
+              >
+                <View>
+                  <Text style={[s.checkinBlockLabel, { marginBottom: 2 }]}>💬  Community</Text>
+                  <Text style={s.rhythmSub}>Share anonymously with others who understand</Text>
+                </View>
+                <Text style={s.rhythmChevron}>›</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        );
+
+      case 'wearable':
+        return (
+          <View key="wearable">
+            <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>WEARABLE</Text>
+            <TouchableOpacity
+              style={[s.card, theme.cardSurface, { flexDirection: 'row', alignItems: 'center', gap: 14 }]}
+              onPress={() => router.push('/(tabs)/you/wearable-setup')}
+              activeOpacity={0.8}
+            >
+              <Text style={{ fontSize: 30 }}>⌚</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={[{ fontSize: 14, fontWeight: '600', marginBottom: 3 }, { color: theme.textPrimary }]}>Health Data</Text>
+                <Text style={[{ fontSize: 12, lineHeight: 17 }, { color: theme.textSecondary, opacity: 1 }]}>
+                  Steps, heart rate & sleep from Apple Health or Google Fit
+                </Text>
+              </View>
+              <Text style={[s.heroArrow, { color: cycleColor }]}>›</Text>
+            </TouchableOpacity>
+          </View>
+        );
+
+      default: return null;
+    }
   }
 
   return (
@@ -408,363 +1005,16 @@ export default function TodayScreen() {
               </View>
             ))}
             <Text style={[s.checkCount, theme.isActive && { color: '#3D3935', opacity: 0.7 }]}>{doneCount}/{checks.length}</Text>
+            <TouchableOpacity onPress={() => setCustomizeVisible(true)} style={s.customizeBtn} activeOpacity={0.7}>
+              <Text style={s.customizeBtnText}>⚙ Customise</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
         <View style={s.content}>
+          {layout.order.map((id) => renderSection(id))}
 
-          {/* ── Smart Hero Card — always readable on scene background ─────────── */}
-          <TouchableOpacity
-            style={[s.heroCard, theme.cardSurface, { borderLeftColor: hero.color, borderLeftWidth: 4 }]}
-            onPress={handleHeroPress}
-            activeOpacity={hero.route ? 0.75 : 1}
-          >
-            <Text style={s.heroIcon}>{hero.icon}</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={[s.heroTitle, { color: hero.color === '#E8DCC8' ? '#A09060' : hero.color }]}>
-                {hero.title}
-              </Text>
-              <Text style={[s.heroSub, { color: theme.textSecondary, opacity: 1 }]}>{hero.sub}</Text>
-            </View>
-            {hero.route && <Text style={[s.heroArrow, { color: hero.color }]}>›</Text>}
-          </TouchableOpacity>
-
-          {/* ── Pattern Pulse ─────────────────────────────────────────────────── */}
-          {pulse && (
-            <View style={[s.pulseCard, theme.cardSurface, { borderLeftColor: pulse.color, borderLeftWidth: 3 }]}>
-              <Text style={s.pulseIcon}>{pulse.icon}</Text>
-              <Text style={[s.pulseText, { color: pulse.color === '#E8DCC8' ? '#A09060' : pulse.color }]}>
-                {pulse.text}
-              </Text>
-            </View>
-          )}
-
-          {/* ── Mood ─────────────────────────────────────────────────────────── */}
-          <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>MOOD</Text>
-          <View style={[s.card, theme.cardSurface]}>
-            {today.moodScore !== null ? (
-              <View style={s.moodLogged}>
-                <Text style={s.moodLoggedEmoji}>{MOOD_EMOJIS[today.moodScore - 1]}</Text>
-                <View>
-                  <Text style={[s.moodLoggedTitle, { color: theme.textPrimary }]}>Mood logged</Text>
-                  <Text style={[s.moodLoggedSub, { color: theme.textSecondary, opacity: 1 }]}>{today.moodScore} / 10 · Tap tomorrow to update</Text>
-                </View>
-              </View>
-            ) : (
-              <>
-                <Text style={s.cardPrompt}>How are you feeling right now?</Text>
-                <View style={s.moodRow}>
-                  {MOOD_EMOJIS.map((emoji, i) => {
-                    const score = i + 1;
-                    return (
-                      <TouchableOpacity key={score} onPress={() => handleMoodTap(score)} style={s.moodItem} activeOpacity={0.6}>
-                        <Text style={s.moodEmoji}>{emoji}</Text>
-                        {(score === 1 || score === 5 || score === 10) && (
-                          <Text style={s.moodTick}>{score}</Text>
-                        )}
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-                <Text style={s.tapHint}>Tap once — saved instantly</Text>
-              </>
-            )}
-          </View>
-
-          {/* Rumination prompt */}
-          {showRuminationPrompt && (
-            <TouchableOpacity
-              style={[s.card, s.ruminationCard]}
-              onPress={() => router.push('/(tabs)/activities')}
-              activeOpacity={0.8}
-            >
-              <Text style={s.ruminationIcon}>🫂</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={s.ruminationTitle}>Difficult stretch?</Text>
-                <Text style={s.ruminationBody}>Some grounding activities are ready for you →</Text>
-              </View>
-            </TouchableOpacity>
-          )}
-
-          {/* ── Cycle State ───────────────────────────────────────────────────── */}
-          <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>CYCLE STATE</Text>
-          <View style={[s.card, theme.cardSurface]}>
-            {today.cycleState !== null ? (
-              <View style={s.cycleLogged}>
-                <View style={[s.cycleLoggedDot, { backgroundColor: CYCLE_COLORS[today.cycleState] }]} />
-                <View style={{ flex: 1 }}>
-                  <Text style={[s.cycleLoggedTitle, { color: theme.textPrimary }]}>{CYCLE_LABELS[today.cycleState]} today</Text>
-                  <Text style={[s.cycleLoggedSub, { color: theme.textSecondary, opacity: 1 }]}>Tap a state to update</Text>
-                </View>
-              </View>
-            ) : (
-              <Text style={s.cardPrompt}>How is your mood episode today?</Text>
-            )}
-            <View style={s.cycleRow}>
-              {(['stable', 'manic', 'depressive', 'mixed'] as CycleState[]).map((state) => {
-                const active = today.cycleState === state;
-                const col = CYCLE_COLORS[state];
-                return (
-                  <TouchableOpacity
-                    key={state}
-                    style={[s.cycleBtn, { borderColor: active ? col : col + '55', backgroundColor: active ? col + '22' : col + '0A' }]}
-                    onPress={() => handleCycleTap(state)}
-                    activeOpacity={0.7}
-                  >
-                    <View style={[s.cycleBtnDot, { backgroundColor: col }]} />
-                    <Text style={[s.cycleBtnText, { color: active ? col : '#3D3935', opacity: active ? 1 : 0.6, fontWeight: active ? '700' : '500' }]}>
-                      {CYCLE_LABELS[state]}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-
-          {/* ── Journal ───────────────────────────────────────────────────────── */}
-          <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>JOURNAL</Text>
-          <TouchableOpacity
-            style={[s.card, s.journalCard, theme.cardSurface]}
-            onPress={() => router.push('/(tabs)/journal')}
-            activeOpacity={0.8}
-          >
-            {journalWordCount > 0 ? (
-              <>
-                <View style={s.journalLogged}>
-                  <Text style={s.journalLoggedIcon}>📖</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[s.journalLoggedTitle, { color: theme.textPrimary }]}>Entry written</Text>
-                    <Text style={[s.journalLoggedSub, { color: theme.textSecondary, opacity: 1 }]}>{journalWordCount} words · Tap to read or edit</Text>
-                  </View>
-                  <Text style={s.journalChevron}>›</Text>
-                </View>
-                {todayJournal?.text ? (
-                  <Text style={s.journalPreview} numberOfLines={2}>{journalPlainText(todayJournal.text)}</Text>
-                ) : null}
-              </>
-            ) : (
-              <View style={s.journalEmpty}>
-                <Text style={s.journalEmptyIcon}>✏️</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={[s.journalEmptyTitle, { color: theme.textPrimary }]}>Write today's entry</Text>
-                  <Text style={[s.journalEmptySub, { color: theme.textSecondary, opacity: 1 }]}>Private · Locked after 48h · Never shared</Text>
-                </View>
-                <Text style={s.journalChevron}>›</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-
-          {/* ── Sleep ────────────────────────────────────────────────────────── */}
-          {(showSleepPrompt || sleep.todayLog !== null) && (
-            <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>SLEEP</Text>
-          )}
-          {showSleepPrompt && (
-            <View style={[s.card, theme.cardSurface]}>
-              <Text style={s.cardPrompt}>🌙  How did you sleep last night?</Text>
-              <View style={s.sleepRow}>
-                {SLEEP_OPTIONS.map((opt) => {
-                  const logged = sleep.todayLog?.quality_score === opt.score;
-                  return (
-                    <TouchableOpacity
-                      key={opt.score}
-                      style={[s.sleepBtn, logged && { borderColor: '#89B4CC', backgroundColor: '#89B4CC15' }]}
-                      onPress={() => userId && sleep.logManual(userId, opt.score)}
-                      disabled={sleep.todayLog !== null}
-                    >
-                      <Text style={[s.sleepBtnLabel, logged && { color: '#89B4CC', opacity: 1, fontWeight: '700' }]}>{opt.label}</Text>
-                      <Text style={[s.sleepBtnSub, logged && { color: '#89B4CC', opacity: 0.7 }]}>{opt.sub}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
-          )}
-          {sleep.todayLog !== null && (
-            <View style={[s.card, s.sleepLoggedCard, theme.cardSurface]}>
-              <Text style={s.sleepLoggedIcon}>🌙</Text>
-              <View>
-                <Text style={[s.sleepLoggedLabel, { color: theme.textPrimary }]}>
-                  {['', 'Poor', 'Light', 'OK', 'Good', 'Great'][sleep.todayLog.quality_score ?? 0]} sleep
-                </Text>
-                {sleep.todayLog.duration_minutes ? (
-                  <Text style={[s.sleepLoggedSub, { color: theme.textSecondary, opacity: 1 }]}>
-                    {Math.floor(sleep.todayLog.duration_minutes / 60)}h {sleep.todayLog.duration_minutes % 60}m
-                  </Text>
-                ) : null}
-              </View>
-              <View style={[s.sleepQualBar, { marginLeft: 'auto' }]}>
-                <View style={[s.sleepQualFill, { width: `${((sleep.todayLog.quality_score ?? 0) / 5) * 100}%` as unknown as number }]} />
-              </View>
-            </View>
-          )}
-
-          {/* ── Check-ins ────────────────────────────────────────────────────── */}
-          <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>CHECK-INS</Text>
-          <View style={[s.card, theme.cardSurface]}>
-            {showMedSection && (
-              <View style={s.checkinBlock}>
-                <View style={s.checkinLabelRow}>
-                  <Text style={s.checkinBlockLabel}>💊  Medications</Text>
-                  <TouchableOpacity onPress={openMedSettings} hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}>
-                    <Text style={s.settingsGear}>⚙</Text>
-                  </TouchableOpacity>
-                </View>
-                {meds.length > 0 ? (
-                  <View style={{ gap: 4, marginBottom: 8 }}>
-                    {meds.map((med) => (
-                      <View key={med.id} style={s.medNameRow}>
-                        <Text style={s.medNameText}>
-                          {med.name}{med.dosage ? ` · ${med.dosage}` : ''}
-                        </Text>
-                        {med.ring_enabled && <Text style={s.medRingBadge}>🔔</Text>}
-                      </View>
-                    ))}
-                  </View>
-                ) : (
-                  <TouchableOpacity onPress={openMedSettings}>
-                    <Text style={s.addMedHint}>+ Add your medications</Text>
-                  </TouchableOpacity>
-                )}
-                <View style={s.medButtons}>
-                  {(['taken', 'skipped', 'partial'] as MedicationStatus[]).map((status) => {
-                    const active = today.medicationStatus === status;
-                    const color = status === 'taken' ? '#A8C5A0' : status === 'skipped' ? '#C4A0B0' : '#C9A84C';
-                    return (
-                      <TouchableOpacity
-                        key={status}
-                        style={[s.medBtn, active && { borderColor: color, backgroundColor: color + '18' }]}
-                        onPress={() => handleMedTap(status)}
-                      >
-                        <Text style={[s.medBtnText, active && { color, opacity: 1, fontWeight: '700' }]}>
-                          {status.charAt(0).toUpperCase() + status.slice(1)}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </View>
-            )}
-            {trackSubstances && (
-              <View style={[s.checkinBlock, showMedSection && s.checkinDivider]}>
-                <View style={s.checkinLabelRow}>
-                  <Text style={s.checkinBlockLabel}>🍃  Substances today</Text>
-                  <TouchableOpacity onPress={openSubSettings} hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}>
-                    <Text style={s.settingsGear}>⚙</Text>
-                  </TouchableOpacity>
-                </View>
-                <View style={s.substanceRow}>
-                  {(['alcohol', 'cannabis'] as const).map((sub) => {
-                    const active = today[sub] === true;
-                    return (
-                      <TouchableOpacity
-                        key={sub}
-                        style={[s.subBtn, active && { borderColor: '#C4A0B0', backgroundColor: '#C4A0B015' }]}
-                        onPress={() => toggleSubstance(sub)}
-                      >
-                        <Text style={[s.subBtnText, active && { color: '#C4A0B0', opacity: 1, fontWeight: '600' }]}>
-                          {sub === 'alcohol' ? '🍷' : '🌿'} {sub.charAt(0).toUpperCase() + sub.slice(1)}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </View>
-            )}
-            {!trackSubstances && !showMedSection && (
-              <View style={s.checkinBlock}>
-                <TouchableOpacity onPress={openSubSettings}>
-                  <Text style={s.addMedHint}>+ Configure substance tracking</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-            {rhythm.todayAnchorsTotal > 0 && (
-              <TouchableOpacity
-                style={[s.checkinBlock, s.checkinDivider, s.rhythmRow]}
-                onPress={() => router.push('/(tabs)/you/routine')}
-                activeOpacity={0.7}
-              >
-                <View>
-                  <Text style={[s.checkinBlockLabel, { marginBottom: 2 }]}>🗓  Daily Routine</Text>
-                  <Text style={s.rhythmSub}>{rhythm.todayAnchorsHit} of {rhythm.todayAnchorsTotal} anchors hit</Text>
-                </View>
-                <View style={s.rhythmRight}>
-                  <View style={s.rhythmBarWrap}>
-                    <View style={[s.rhythmFill, {
-                      width: `${((rhythm.todayAnchorsHit / rhythm.todayAnchorsTotal) * 100)}%` as unknown as number,
-                      backgroundColor: cycleColor,
-                    }]} />
-                  </View>
-                  <Text style={s.rhythmChevron}>›</Text>
-                </View>
-              </TouchableOpacity>
-            )}
-          </View>
-
-          {/* ── Today's Focus ─────────────────────────────────────────────────── */}
-          <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>TODAY'S FOCUS</Text>
-          <View style={[s.tipCard, { borderLeftColor: cycleColor, backgroundColor: cycleColor + '12' }]}>
-            <Text style={s.tipIcon}>{tip.icon}</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={[s.tipTitle, { color: cycleColor === '#E8DCC8' ? '#A09060' : cycleColor }]}>{tip.title}</Text>
-              <Text style={[s.tipBody, { color: theme.textSecondary, opacity: 1 }]}>{tip.body}</Text>
-            </View>
-          </View>
-
-          {/* ── Quick Activities ──────────────────────────────────────────────── */}
-          <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>SUGGESTED FOR YOU</Text>
-          <View style={s.quickActsRow}>
-            {quickActs.map((act) => (
-              <TouchableOpacity
-                key={act.title}
-                style={[s.quickActCard, theme.cardSurface, { borderColor: cycleColor }]}
-                onPress={() => router.push('/(tabs)/activities')}
-                activeOpacity={0.75}
-              >
-                <Text style={s.quickActIcon}>{act.icon}</Text>
-                <Text style={[s.quickActTitle, { color: theme.textPrimary }]} numberOfLines={2}>{act.title}</Text>
-                <View style={[s.quickActBadge, { backgroundColor: cycleColor + '22' }]}>
-                  <Text style={[s.quickActDur, { color: cycleColor === '#E8DCC8' ? '#A09060' : cycleColor }]}>{act.dur}</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* ── AI Insight ───────────────────────────────────────────────────── */}
-          {ai.trackerInsight && (
-            <>
-              <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>AI INSIGHT</Text>
-              <TouchableOpacity
-                style={[s.insightCard, theme.cardSurface]}
-                onPress={() => router.push('/(tabs)/you/ai-report')}
-                activeOpacity={0.8}
-              >
-                <Text style={s.insightIcon}>✦</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={[s.insightText, { color: theme.textSecondary, opacity: 1 }]}>{ai.trackerInsight}</Text>
-                  <Text style={s.insightLink}>See full report →</Text>
-                </View>
-              </TouchableOpacity>
-            </>
-          )}
-
-          {/* ── Explore ──────────────────────────────────────────────────────── */}
-          <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>EXPLORE</Text>
-          <View style={s.exploreGrid}>
-            {EXPLORE_LINKS.map((link) => (
-              <TouchableOpacity
-                key={link.route}
-                style={[s.exploreCard, theme.cardSurface]}
-                onPress={() => router.push(link.route as never)}
-                activeOpacity={0.75}
-              >
-                <Text style={s.exploreIcon}>{link.icon}</Text>
-                <Text style={[s.exploreLabel, { color: theme.textPrimary }]}>{link.label}</Text>
-                <Text style={[s.exploreSub, { color: theme.textSecondary, opacity: 1 }]}>{link.sub}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* ── Crisis support ───────────────────────────────────────────────── */}
+          {/* ── Crisis support — always at bottom ─────────────────────────────── */}
           <TouchableOpacity
             style={s.sosBtn}
             onPress={() => crisis.open(notifs.prefs?.post_crisis_enabled)}
@@ -772,9 +1022,9 @@ export default function TodayScreen() {
           >
             <Text style={s.sosBtnText}>🆘  Crisis Support</Text>
           </TouchableOpacity>
-
           <View style={{ height: 32 }} />
         </View>
+
       </ScrollView>
 
       {/* Substance settings sheet */}
@@ -822,6 +1072,93 @@ export default function TodayScreen() {
             >
               <Text style={s.sheetConfirmText}>Confirm</Text>
             </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* ── Customize Layout Modal ─────────────────────────────────────────── */}
+      <Modal visible={customizeVisible} transparent animationType="slide">
+        <Pressable style={s.sheetBackdrop} onPress={() => setCustomizeVisible(false)}>
+          <Pressable style={[s.sheet, { paddingBottom: 48 }]} onPress={() => {}}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <View style={s.customizeHeader}>
+                <Text style={s.sheetTitle}>Customise Home</Text>
+                <TouchableOpacity onPress={() => layout.reset()} activeOpacity={0.7}>
+                  <Text style={s.customizeReset}>Reset</Text>
+                </TouchableOpacity>
+              </View>
+              <Text style={s.customizeSubtitle}>Reorder or add / remove sections from your home screen.</Text>
+
+              {/* ── Visible sections ── */}
+              <Text style={s.customizeSectionHead}>ON YOUR HOME SCREEN</Text>
+              {layout.order.map((id, idx) => {
+                const meta = SECTION_META[id];
+                return (
+                  <View key={id} style={s.customizeRow}>
+                    <Text style={s.customizeIcon}>{meta.icon}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.customizeLabel}>{meta.label}</Text>
+                      <Text style={s.customizeDesc}>{meta.desc}</Text>
+                    </View>
+                    <View style={s.customizeArrows}>
+                      <TouchableOpacity
+                        onPress={() => layout.moveUp(id)}
+                        disabled={idx === 0}
+                        style={[s.customizeArrowBtn, idx === 0 && { opacity: 0.25 }]}
+                        activeOpacity={0.6}
+                      >
+                        <Text style={s.customizeArrowTxt}>↑</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => layout.moveDown(id)}
+                        disabled={idx === layout.order.length - 1}
+                        style={[s.customizeArrowBtn, idx === layout.order.length - 1 && { opacity: 0.25 }]}
+                        activeOpacity={0.6}
+                      >
+                        <Text style={s.customizeArrowTxt}>↓</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => layout.hide(id)}
+                        style={s.customizeHideBtn}
+                        activeOpacity={0.6}
+                      >
+                        <Text style={s.customizeHideTxt}>−</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                );
+              })}
+
+              {/* ── Hidden / available sections ── */}
+              {ALL_SECTIONS.filter((id) => !layout.order.includes(id)).length > 0 && (
+                <>
+                  <Text style={[s.customizeSectionHead, { marginTop: 20 }]}>ADD TO HOME SCREEN</Text>
+                  {ALL_SECTIONS.filter((id) => !layout.order.includes(id)).map((id) => {
+                    const meta = SECTION_META[id];
+                    return (
+                      <View key={id} style={[s.customizeRow, { opacity: 0.65 }]}>
+                        <Text style={s.customizeIcon}>{meta.icon}</Text>
+                        <View style={{ flex: 1 }}>
+                          <Text style={s.customizeLabel}>{meta.label}</Text>
+                          <Text style={s.customizeDesc}>{meta.desc}</Text>
+                        </View>
+                        <TouchableOpacity
+                          onPress={() => layout.show(id)}
+                          style={s.customizeShowBtn}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={s.customizeShowTxt}>+ Add</Text>
+                        </TouchableOpacity>
+                      </View>
+                    );
+                  })}
+                </>
+              )}
+
+              <TouchableOpacity style={[s.sheetConfirm, { marginTop: 20 }]} onPress={() => setCustomizeVisible(false)}>
+                <Text style={s.sheetConfirmText}>Done</Text>
+              </TouchableOpacity>
+            </ScrollView>
           </Pressable>
         </Pressable>
       </Modal>
@@ -1027,6 +1364,38 @@ const s = StyleSheet.create({
   exploreSub: { fontSize: 11, color: '#3D3935', opacity: 0.4 },
 
   // Crisis
+  // Tasks section
+  taskSectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, marginTop: 4 },
+  taskCount: { fontSize: 12, fontWeight: '600' },
+  taskAddBtn: { borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5, borderWidth: 1.5 },
+  taskAddBtnText: { fontSize: 12, fontWeight: '700' },
+  taskGentleNote: { fontSize: 12, fontStyle: 'italic', marginBottom: 8, paddingHorizontal: 2 },
+
+  taskInputCard: { borderRadius: 16, borderWidth: 1.5, padding: 14, marginBottom: 10 },
+  taskInputField: { fontSize: 16, paddingVertical: 4, marginBottom: 10 },
+  taskEnergyRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  taskEnergyBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, borderWidth: 1.5, borderColor: '#E0DDD8' },
+  taskEnergyDot: { width: 7, height: 7, borderRadius: 4 },
+  taskEnergyLabel: { fontSize: 11, fontWeight: '600', textTransform: 'capitalize' },
+  taskSaveBtn: { marginLeft: 'auto' as unknown as number, paddingHorizontal: 16, paddingVertical: 7, borderRadius: 10 },
+  taskSaveBtnText: { fontSize: 13, fontWeight: '700', color: '#FFFFFF' },
+
+  taskList: { borderRadius: 16, borderWidth: 1.5, marginBottom: 10, overflow: 'hidden' },
+  taskRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12, gap: 10 },
+  taskDivider: { height: 1, backgroundColor: '#F0EDE8', marginLeft: 48 },
+  taskCheck: { width: 22, height: 22, borderRadius: 6, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  taskCheckMark: { fontSize: 12, color: '#FFFFFF', fontWeight: '800' },
+  taskTitle: { flex: 1, fontSize: 15, fontWeight: '500' },
+  taskTitleDone: { textDecorationLine: 'line-through', opacity: 0.4 },
+  taskEnergyPip: { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 8, borderWidth: 1 },
+  taskEnergyPipText: { fontSize: 10, fontWeight: '700', textTransform: 'capitalize' },
+  taskDelete: { fontSize: 13 },
+
+  taskEmptyCard: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 16, borderWidth: 1.5, padding: 14, marginBottom: 10 },
+  taskEmptyIcon: { fontSize: 24 },
+  taskEmptyTitle: { fontSize: 14, fontWeight: '600', marginBottom: 2 },
+  taskEmptySub: { fontSize: 12 },
+
   sosBtn: {
     borderRadius: 14, paddingVertical: 14, alignItems: 'center', justifyContent: 'center',
     backgroundColor: '#3D393510', borderWidth: 1.5, borderColor: '#3D393520', marginBottom: 8,
@@ -1052,4 +1421,46 @@ const s = StyleSheet.create({
   sheetConfirm: { backgroundColor: '#A8C5A0', borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 8 },
   sheetConfirmDisabled: { opacity: 0.4 },
   sheetConfirmText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF' },
+
+  // Customize button (in header chips row)
+  customizeBtn: {
+    marginLeft: 'auto' as unknown as number,
+    paddingHorizontal: 10, paddingVertical: 4,
+    borderRadius: 20, borderWidth: 1, borderColor: '#3D393520',
+    backgroundColor: '#3D393508',
+  },
+  customizeBtnText: { fontSize: 11, color: '#3D3935', opacity: 0.45, fontWeight: '600' },
+
+  // Customize modal
+  customizeHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
+  customizeReset: { fontSize: 13, color: '#89B4CC', fontWeight: '600' },
+  customizeSubtitle: { fontSize: 12, color: '#3D3935', opacity: 0.4, marginBottom: 16, lineHeight: 17 },
+  customizeRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#F0EDE8',
+  },
+  customizeIcon: { fontSize: 20, width: 28, textAlign: 'center' },
+  customizeLabel: { fontSize: 14, fontWeight: '600', color: '#3D3935', marginBottom: 1 },
+  customizeDesc: { fontSize: 11, color: '#3D3935', opacity: 0.4 },
+  customizeArrows: { flexDirection: 'row', gap: 4 },
+  customizeArrowBtn: {
+    width: 32, height: 32, borderRadius: 8, borderWidth: 1.5, borderColor: '#E0DDD8',
+    alignItems: 'center', justifyContent: 'center', backgroundColor: '#F7F3EE',
+  },
+  customizeArrowTxt: { fontSize: 14, color: '#3D3935', fontWeight: '700' },
+
+  customizeSectionHead: {
+    fontSize: 10, fontWeight: '700', color: '#3D3935', opacity: 0.35,
+    letterSpacing: 1, marginBottom: 4, marginTop: 4,
+  },
+  customizeHideBtn: {
+    width: 32, height: 32, borderRadius: 8, borderWidth: 1.5, borderColor: '#C4A0B055',
+    alignItems: 'center', justifyContent: 'center', backgroundColor: '#C4A0B010', marginLeft: 4,
+  },
+  customizeHideTxt: { fontSize: 18, color: '#C4A0B0', fontWeight: '700', lineHeight: 20 },
+  customizeShowBtn: {
+    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10,
+    backgroundColor: '#A8C5A022', borderWidth: 1.5, borderColor: '#A8C5A055',
+  },
+  customizeShowTxt: { fontSize: 12, fontWeight: '700', color: '#A8C5A0' },
 });
