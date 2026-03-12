@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  TextInput, Modal, Pressable, Switch, Alert,
+  TextInput, Modal, Pressable, Switch, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -315,6 +315,7 @@ export default function SupportNetworkScreen() {
 
       {/* Invite sheet */}
       <Modal visible={addSheetVisible} transparent animationType="slide">
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <Pressable style={s.backdrop} onPress={() => setAddSheetVisible(false)}>
           <Pressable style={s.sheet} onPress={() => {}}>
             <Text style={s.sheetTitle}>
@@ -342,6 +343,7 @@ export default function SupportNetworkScreen() {
             </TouchableOpacity>
           </Pressable>
         </Pressable>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );

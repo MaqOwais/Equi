@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
   TextInput, Modal, Pressable, Linking, ActivityIndicator,
-  Alert,
+  Alert, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -242,6 +242,7 @@ export default function CommunityScreen() {
 
       {/* Post sheet */}
       <Modal visible={postSheetVisible} transparent animationType="slide">
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <Pressable style={s.backdrop} onPress={() => setPostSheetVisible(false)}>
           <Pressable style={s.sheet} onPress={() => {}}>
             <Text style={s.sheetTitle}>Share anonymously</Text>
@@ -271,6 +272,7 @@ export default function CommunityScreen() {
             </TouchableOpacity>
           </Pressable>
         </Pressable>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );

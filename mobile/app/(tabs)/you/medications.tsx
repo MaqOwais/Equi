@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  Switch, TextInput, Modal, Alert,
+  Switch, TextInput, Modal, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Constants from 'expo-constants';
 import { useAuthStore } from '../../../stores/auth';
 import { useMedicationsStore } from '../../../stores/medications';
+import { useAccessStore } from '../../../stores/access';
 import type { Medication } from '../../../types/database';
 
 const IS_EXPO_GO = Constants.executionEnvironment === 'storeClient';
@@ -131,6 +132,7 @@ function MedModal({
 
   return (
     <Modal visible={visible} animationType="slide" transparent presentationStyle="overFullScreen">
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
       <View style={md.overlay}>
         <View style={md.sheet}>
           <View style={md.handle} />
@@ -203,6 +205,7 @@ function MedModal({
           </View>
         </View>
       </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -292,6 +295,7 @@ const mc = StyleSheet.create({
 export default function MedicationsScreen() {
   const { session } = useAuthStore();
   const store = useMedicationsStore();
+  const accessStore = useAccessStore();
   const router = useRouter();
   const userId = session?.user.id;
 
@@ -312,9 +316,45 @@ export default function MedicationsScreen() {
     setModalVisible(true);
   }
 
+  // Notify psychiatrist + guardian of medication changes (they must approve)
+  async function notifyMedChange(description: string, oldVal: object, newVal: object) {
+    if (!userId) return;
+    const hasPsychiatrist = !!accessStore.psychiatristConn;
+    const guardians = accessStore.guardians.filter((g) => g.status === 'accepted');
+
+    const requests = [];
+    if (hasPsychiatrist) {
+      requests.push(accessStore.submitApprovalRequest({
+        userId,
+        requestType: 'medication_change',
+        approverRole: 'psychiatrist',
+        approverCompanionId: null,
+        description,
+        oldValue: oldVal as Record<string, unknown>,
+        newValue: newVal as Record<string, unknown>,
+      }));
+    }
+    for (const g of guardians) {
+      requests.push(accessStore.submitApprovalRequest({
+        userId,
+        requestType: 'medication_change',
+        approverRole: 'guardian',
+        approverCompanionId: g.id,
+        description,
+        oldValue: oldVal as Record<string, unknown>,
+        newValue: newVal as Record<string, unknown>,
+      }));
+    }
+    await Promise.all(requests);
+  }
+
   async function handleSave(form: MedForm) {
     if (!userId) return;
     setModalVisible(false);
+
+    const hasNetwork = !!accessStore.psychiatristConn ||
+      accessStore.guardians.some((g) => g.status === 'accepted');
+
     if (editingMed) {
       await store.updateMedication(editingMed.id, {
         name: form.name,
@@ -322,6 +362,13 @@ export default function MedicationsScreen() {
         times: form.times,
         ring_enabled: form.ring_enabled,
       });
+      if (hasNetwork) {
+        await notifyMedChange(
+          `Updated medication: ${form.name}${form.dosage ? ` (${form.dosage})` : ''}`,
+          { name: editingMed.name, dosage: editingMed.dosage, times: editingMed.times },
+          { name: form.name, dosage: form.dosage, times: form.times },
+        );
+      }
     } else {
       await store.addMedication(userId, {
         name: form.name,
@@ -330,6 +377,13 @@ export default function MedicationsScreen() {
         ring_enabled: form.ring_enabled,
         active: true,
       });
+      if (hasNetwork) {
+        await notifyMedChange(
+          `Added new medication: ${form.name}${form.dosage ? ` (${form.dosage})` : ''}`,
+          {},
+          { name: form.name, dosage: form.dosage, times: form.times },
+        );
+      }
     }
   }
 
@@ -338,8 +392,24 @@ export default function MedicationsScreen() {
       `Remove ${med.name}?`,
       'This will also cancel its reminders.',
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Remove', style: 'destructive', onPress: () => store.deleteMedication(med.id) },
+        {
+          text: 'Cancel', style: 'cancel',
+        },
+        {
+          text: 'Remove', style: 'destructive',
+          onPress: async () => {
+            await store.deleteMedication(med.id);
+            const hasNetwork = !!accessStore.psychiatristConn ||
+              accessStore.guardians.some((g) => g.status === 'accepted');
+            if (hasNetwork) {
+              await notifyMedChange(
+                `Removed medication: ${med.name}`,
+                { name: med.name, dosage: med.dosage },
+                {},
+              );
+            }
+          },
+        },
       ],
     );
   }

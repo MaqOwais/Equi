@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, Modal, Pressable, TextInput,
+  StyleSheet, Modal, Pressable, TextInput, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuthStore } from '../../stores/auth';
@@ -954,7 +954,8 @@ const showRuminationPrompt = today.moodScore !== null && today.moodScore <= 3;
 
   return (
     <SafeAreaView style={s.safe} edges={['left', 'right']}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
 
         {/* ── State Header — transparent so the cartoon scene shows behind it ── */}
         <View style={[s.header, { backgroundColor: 'transparent' }]}>
@@ -1018,7 +1019,7 @@ const showRuminationPrompt = today.moodScore !== null && today.moodScore <= 3;
         </View>
 
       </ScrollView>
-
+      </KeyboardAvoidingView>
 
       {/* Medication skip sheet */}
       <Modal visible={skipSheetVisible} transparent animationType="slide">

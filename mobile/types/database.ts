@@ -202,11 +202,39 @@ export interface Companion {
   role: CompanionRole;
   guardian_level: GuardianLevel | null;
   status: CompanionStatus;
+  // Data section toggles
   share_mood_summaries: boolean;
   share_cycle_data: boolean;
+  share_journal: boolean;
+  share_activities: boolean;
   share_ai_report: boolean;
   share_medication: boolean;
+  share_sleep: boolean;
+  share_nutrition: boolean;
+  share_workbook: boolean;
+  // Optional expiry
+  access_expires_at: string | null;
   invite_email: string | null;
+  created_at: string;
+}
+
+// ── Access approval requests ───────────────────────────────────────────────
+
+export type ApprovalRequestType = 'medication_change' | 'access_change';
+export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
+export type ApproverRole = 'psychiatrist' | 'guardian';
+
+export interface AccessApprovalRequest {
+  id: string;
+  patient_id: string;
+  request_type: ApprovalRequestType;
+  description: string;
+  old_value: Record<string, unknown> | null;
+  new_value: Record<string, unknown> | null;
+  status: ApprovalStatus;
+  approver_role: ApproverRole;
+  approver_companion_id: string | null;   // null when approver is psychiatrist
+  responded_at: string | null;
   created_at: string;
 }
 
@@ -241,9 +269,14 @@ export interface PsychiatristConnection {
   patient_id: string;
   psychiatrist_id: string;
   status: 'requested' | 'accepted' | 'ended';
+  share_cycle_data: boolean;
+  share_journal: boolean;
+  share_activities: boolean;
   share_ai_report: boolean;
   share_medication: boolean;
-  share_cycle_data: boolean;
+  share_sleep: boolean;
+  share_nutrition: boolean;
+  share_workbook: boolean;
   connected_at: string;
 }
 

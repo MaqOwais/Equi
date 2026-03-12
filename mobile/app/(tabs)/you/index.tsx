@@ -411,6 +411,13 @@ export default function YouScreen() {
           />
           <View style={s.divider} />
           <MenuItem
+            icon="🔐"
+            label="Manage Access"
+            sub="Control what your network can see"
+            onPress={() => router.push('/(tabs)/you/manage-access')}
+          />
+          <View style={s.divider} />
+          <MenuItem
             icon="💬"
             label="Community"
             sub="Anonymous peer support"

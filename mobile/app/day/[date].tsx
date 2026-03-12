@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, ActivityIndicator, Modal, TextInput,
+  StyleSheet, ActivityIndicator, Modal, TextInput, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -208,7 +208,8 @@ export default function DayScreen() {
         </View>
       </View>
 
-      <ScrollView style={s.scroll} showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+      <ScrollView style={s.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
           {/* ── Cycle (multi-entry timeline) ── */}
           {(cycleStore.dayEntries.length > 0 || data.cycleState) && (
@@ -563,6 +564,7 @@ export default function DayScreen() {
 
           <View style={{ height: 40 }} />
         </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* AI Modal */}
       <Modal visible={showAiModal} transparent animationType="slide">
