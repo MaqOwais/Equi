@@ -26,6 +26,19 @@ drop policy if exists "own cycle logs" on cycle_logs;
 create policy "own cycle logs" on cycle_logs
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
+
+-- Allow multiple cycle log entries per day
+-- Change logged_at from date to full timestamp
+ALTER TABLE cycle_logs
+  ALTER COLUMN logged_at TYPE timestamptz
+  USING (logged_at::date::timestamptz);
+
+-- Remove any unique constraint that prevents multiple rows per user per day
+-- (check constraint name with: \d cycle_logs  — name varies)
+ALTER TABLE cycle_logs
+  DROP CONSTRAINT IF EXISTS cycle_logs_user_id_logged_at_key;
+
+
 -- 3. mood_logs
 create table if not exists mood_logs (
   id uuid primary key default gen_random_uuid(),
