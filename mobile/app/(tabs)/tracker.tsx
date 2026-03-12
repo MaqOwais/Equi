@@ -13,6 +13,7 @@ import { useSleepStore } from '../../stores/sleep';
 import { useMedicationsStore } from '../../stores/medications';
 import { useSubstanceLogsStore } from '../../stores/substanceLogs';
 import { useAmbientTheme } from '../../stores/ambient';
+import { fmtTime } from '../../utils/timestamps';
 import { getLocal, saveLocal } from '../../lib/local-day-store';
 import type { CycleState, MedicationStatus } from '../../types/database';
 
@@ -27,14 +28,6 @@ function toLocalIso(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-function fmtTime(iso: string) {
-  const d = new Date(iso);
-  const h = d.getHours();
-  const m = d.getMinutes();
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  const hour = h % 12 === 0 ? 12 : h % 12;
-  return `${hour}:${String(m).padStart(2, '0')} ${ampm}`;
-}
 
 function fmtDuration(mins: number) {
   const h = Math.floor(mins / 60);

@@ -8,6 +8,7 @@ import { useRouter } from 'expo-router';
 import { useAuthStore } from '../stores/auth';
 import { supabase } from '../lib/supabase';
 import type { WorkbookResponse } from '../types/database';
+import { parseSupabaseTs, fmtLocalTime, fmtTimestamp } from '../utils/timestamps';
 
 // ─── Clinical Content ──────────────────────────────────────────────────────────
 
@@ -351,55 +352,6 @@ const SURFACE = '#F7F3EE';
 const TOTAL_PROMPTS = SECTIONS.length * 7; // 49
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function fmtLocalTime(d: Date): string {
-  // Use getHours/getMinutes — always local timezone, no ICU dependency
-  const h = d.getHours();
-  const m = d.getMinutes();
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  const hour = h % 12 === 0 ? 12 : h % 12;
-  return `${hour}:${String(m).padStart(2, '0')} ${ampm}`;
-}
-
-const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-function parseSupabaseTs(iso: string): Date {
-  // Supabase server timestamps come as "2026-03-12T04:07:22.123456+00:00"
-  // — 6 decimal places (microseconds) + "+00:00" suffix.
-  // ECMAScript Date only handles 3 decimal places (ms) and prefers "Z".
-  // Normalize to "2026-03-12T04:07:22.123Z" so Hermes parses it correctly.
-  const normalized = iso
-    .replace(/(\.\d{3})\d+/, '$1')   // trim microseconds → milliseconds
-    .replace(/\+00:00$/, 'Z');        // replace +00:00 with Z
-  return new Date(normalized);
-}
-
-function fmtTimestamp(iso: string): string {
-  const d = parseSupabaseTs(iso);
-  const now = new Date();
-  const timeStr = fmtLocalTime(d);
-
-  // Compare calendar dates using toDateString() — reliable local-timezone comparison
-  const entryDay = d.toDateString();
-  const todayDay = now.toDateString();
-  const yesterday = new Date(now);
-  yesterday.setDate(now.getDate() - 1);
-  const yesterdayDay = yesterday.toDateString();
-
-  if (entryDay === todayDay) return `Today, ${timeStr}`;
-  if (entryDay === yesterdayDay) return `Yesterday, ${timeStr}`;
-
-  const diffMs = now.getTime() - d.getTime();
-  if (diffMs < 7 * 86400000) {
-    return `${WEEKDAYS[d.getDay()]}, ${timeStr}`;
-  }
-
-  const dateStr = diffMs > 365 * 86400000
-    ? `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`
-    : `${MONTHS[d.getMonth()]} ${d.getDate()}`;
-  return `${dateStr}, ${timeStr}`;
-}
 
 function todayISO(): string {
   return new Date().toISOString().split('T')[0];

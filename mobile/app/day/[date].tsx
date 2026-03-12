@@ -14,6 +14,7 @@ import { callGroq } from '../../lib/groq';
 import { supabase } from '../../lib/supabase';
 import type { DayData } from '../../stores/calendar';
 import type { WorkbookResponse } from '../../types/database';
+import { fmtTime } from '../../utils/timestamps';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -38,22 +39,6 @@ const NUTRITION_LABELS: Record<string, { label: string; icon: string }> = {
   lithium_interaction: { label: 'Lithium-Watch',     icon: '⚠️' },
 };
 
-function parseTs(iso: string): Date {
-  // Normalize Supabase server timestamps (microseconds + +00:00) to standard ms + Z
-  const normalized = iso
-    .replace(/(\.\d{3})\d+/, '$1')
-    .replace(/\+00:00$/, 'Z');
-  return new Date(normalized);
-}
-
-function fmtTime(iso: string) {
-  const d = parseTs(iso);
-  const h = d.getHours();
-  const m = d.getMinutes();
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  const hour = h % 12 === 0 ? 12 : h % 12;
-  return `${hour}:${String(m).padStart(2, '0')} ${ampm}`;
-}
 
 function formatFullDate(date: string) {
   return new Date(date + 'T00:00:00').toLocaleDateString('en-GB', {
