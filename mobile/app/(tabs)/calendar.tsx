@@ -104,8 +104,8 @@ export default function CalendarScreen() {
               const data = days[date];
               const cycleColor = data?.cycleState ? CYCLE_COLORS[data.cycleState] : null;
               const isToday = date === today;
-              const hasData = !!(data?.cycleState || data?.moodScore !== undefined ||
-                data?.hasJournal || data?.activityNames?.length);
+              const hasData = !!(data?.cycleState || data?.hasJournal ||
+                data?.activityNames?.length || data?.hasWorkbook);
               const dayTasks = tasksStore.byDate[date] ?? [];
               const tasksDone = dayTasks.filter((t) => t.completed_at !== null).length;
               const tasksTotal = dayTasks.length;
@@ -131,9 +131,6 @@ export default function CalendarScreen() {
                     </View>
                   )}
                   <View style={s.dotRow}>
-                    {data?.moodScore !== null && data?.moodScore !== undefined && (
-                      <View style={[s.dot, { backgroundColor: '#C9A84C' }]} />
-                    )}
                     {data?.hasJournal && (
                       <View style={[s.dot, { backgroundColor: '#89B4CC' }]} />
                     )}
@@ -174,10 +171,10 @@ export default function CalendarScreen() {
           <Text style={[s.legendHeading, theme.sectionLabelStyle]}>Dots</Text>
           <View style={s.legendRow}>
             {[
-              { color: '#C9A84C', label: 'Mood' },
               { color: '#89B4CC', label: 'Journal' },
               { color: '#A8C5A0', label: 'Activity' },
               { color: '#C4A0B0', label: 'Meds' },
+              { color: '#C9A84C', label: 'Workbook' },
             ].map(({ color, label }) => (
               <View key={label} style={s.legendItem}>
                 <View style={[s.dot, { backgroundColor: color }]} />

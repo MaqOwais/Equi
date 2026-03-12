@@ -38,8 +38,21 @@ const NUTRITION_LABELS: Record<string, { label: string; icon: string }> = {
   lithium_interaction: { label: 'Lithium-Watch',     icon: '⚠️' },
 };
 
+function parseTs(iso: string): Date {
+  // Normalize Supabase server timestamps (microseconds + +00:00) to standard ms + Z
+  const normalized = iso
+    .replace(/(\.\d{3})\d+/, '$1')
+    .replace(/\+00:00$/, 'Z');
+  return new Date(normalized);
+}
+
 function fmtTime(iso: string) {
-  return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  const d = parseTs(iso);
+  const h = d.getHours();
+  const m = d.getMinutes();
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const hour = h % 12 === 0 ? 12 : h % 12;
+  return `${hour}:${String(m).padStart(2, '0')} ${ampm}`;
 }
 
 function formatFullDate(date: string) {
@@ -72,6 +85,13 @@ export default function DayScreen() {
 
   const [journalExpanded, setJournalExpanded] = useState(false);
   const [workbookEntries, setWorkbookEntries] = useState<WorkbookResponse[]>([]);
+  const [detailData, setDetailData] = useState<{
+    activities: { title: string; completed_at: string }[];
+    journalCreatedAt: string | null;
+    sleepLoggedAt: string | null;
+    nutritionLoggedAt: string | null;
+    medLoggedAt: string | null;
+  } | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiText, setAiText] = useState<string | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
@@ -103,18 +123,38 @@ export default function DayScreen() {
     setTaskEnergy('medium');
   }
 
-  // Fetch workbook entries written on this date
+  // Fetch workbook entries and timestamped detail data
   useEffect(() => {
     if (!date || !user?.id) return;
-    (supabase as any)
-      .from('workbook_responses')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('entry_date', date)
+    const db = supabase as any;
+    // Workbook entries
+    db.from('workbook_responses').select('*').eq('user_id', user.id).eq('entry_date', date)
       .order('created_at', { ascending: true })
       .then(({ data: rows }: { data: WorkbookResponse[] | null }) => {
         if (rows) setWorkbookEntries(rows);
       });
+    // Timestamped details
+    Promise.all([
+      db.from('activity_completions').select('completed_at, activity:activities(title)')
+        .eq('user_id', user.id)
+        .gte('completed_at', date + 'T00:00:00').lte('completed_at', date + 'T23:59:59')
+        .order('completed_at', { ascending: true }),
+      db.from('journal_entries').select('created_at').eq('user_id', user.id).eq('entry_date', date).single(),
+      db.from('sleep_logs').select('created_at').eq('user_id', user.id).eq('date', date).single(),
+      db.from('nutrition_logs').select('updated_at').eq('user_id', user.id).eq('log_date', date).single(),
+      db.from('medication_logs').select('created_at').eq('user_id', user.id).eq('log_date', date).single(),
+    ]).then(([acts, jour, slp, nut, med]: any[]) => {
+      setDetailData({
+        activities: (acts.data ?? []).map((r: any) => ({
+          title: r.activity?.title ?? 'Activity',
+          completed_at: r.completed_at,
+        })),
+        journalCreatedAt: jour.data?.created_at ?? null,
+        sleepLoggedAt: slp.data?.created_at ?? null,
+        nutritionLoggedAt: nut.data?.updated_at ?? null,
+        medLoggedAt: med.data?.created_at ?? null,
+      });
+    });
   }, [date, user?.id]);
 
   const data: DayData | null = date ? (days[date] ?? null) : null;
@@ -239,6 +279,9 @@ export default function DayScreen() {
               {data.sleepQuality !== null && (
                 <DataRow label="Quality" value={`${data.sleepQuality} / 10`} />
               )}
+              {detailData?.sleepLoggedAt && (
+                <DataRow label="Logged at" value={fmtTime(detailData.sleepLoggedAt)} />
+              )}
             </SectionCard>
           )}
 
@@ -251,18 +294,26 @@ export default function DayScreen() {
               {data.medicationSkipReason && (
                 <DataRow label="Skip reason" value={data.medicationSkipReason} />
               )}
+              {detailData?.medLoggedAt && (
+                <DataRow label="Logged at" value={fmtTime(detailData.medLoggedAt)} />
+              )}
             </SectionCard>
           )}
 
           {/* ── Activities ── */}
           {data.activityNames.length > 0 && (
             <SectionCard title="Activities" icon="leaf-outline" color="#A8C5A0">
-              {data.activityNames.map((name, i) => (
+              {(detailData?.activities.length ? detailData.activities : data.activityNames.map((title) => ({ title, completed_at: '' }))).map((act, i) => (
                 <View key={i} style={s.activityRow}>
                   <View style={[s.activityBullet, { backgroundColor: '#A8C5A022' }]}>
                     <Text style={s.activityBulletText}>{i + 1}</Text>
                   </View>
-                  <Text style={s.activityName}>{name}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.activityName}>{act.title}</Text>
+                    {act.completed_at ? (
+                      <Text style={s.activityTime}>Completed at {fmtTime(act.completed_at)}</Text>
+                    ) : null}
+                  </View>
                 </View>
               ))}
             </SectionCard>
@@ -273,6 +324,9 @@ export default function DayScreen() {
             <SectionCard title="Journal" icon="book-outline" color="#89B4CC"
               badge="Private · not shared with AI"
             >
+              {detailData?.journalCreatedAt && (
+                <Text style={s.taskCompletedAt}>Written at {fmtTime(detailData.journalCreatedAt)}</Text>
+              )}
               <Text style={s.journalBody}>
                 {journalExpanded || data.journalText.length <= 300
                   ? data.journalText
@@ -313,7 +367,10 @@ export default function DayScreen() {
                 return (
                   <View key={e.id} style={s.workbookEntry}>
                     <Text style={s.workbookChapter}>{chapterTitles[chapterIdx] ?? `Chapter ${e.chapter}`}</Text>
-                    <Text style={s.workbookPrompt}>{prompt}</Text>
+                    {e.created_at && (
+                      <Text style={s.taskCompletedAt}>Written at {fmtTime(e.created_at)}</Text>
+                    )}
+                    <Text style={[s.workbookPrompt, { marginTop: 4 }]}>{prompt}</Text>
                     <Text style={s.workbookResponse}>{e.response}</Text>
                   </View>
                 );
@@ -325,6 +382,9 @@ export default function DayScreen() {
           {data.nutritionCategories &&
             Object.values(data.nutritionCategories).some((v) => v > 0) && (
             <SectionCard title="Nutrition" icon="nutrition-outline" color="#C9A84C">
+              {detailData?.nutritionLoggedAt && (
+                <Text style={s.taskCompletedAt}>Last updated at {fmtTime(detailData.nutritionLoggedAt)}</Text>
+              )}
               {Object.entries(data.nutritionCategories)
                 .filter(([, count]) => count > 0)
                 .map(([key, count]) => {
@@ -703,7 +763,11 @@ const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   activityBulletText: { fontSize: 11, fontWeight: '700', color: '#A8C5A0' },
-  activityName: { fontSize: 14, color: '#3D3935', fontWeight: '500', flex: 1 },
+  activityName: { fontSize: 14, color: '#3D3935', fontWeight: '500' },
+  activityTime: { fontSize: 11, color: '#3D393555', marginTop: 1 },
+
+  // Timestamps
+  entryTimestamp: { fontSize: 11, color: '#3D393555', fontStyle: 'italic', marginBottom: 4 },
 
   // Journal
   journalBody: {
