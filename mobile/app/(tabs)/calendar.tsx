@@ -12,7 +12,9 @@ import { useAmbientTheme } from '../../stores/ambient';
 import { useTasksStore } from '../../stores/tasks';
 
 const { width: SCREEN_W } = Dimensions.get('window');
-const DAY_SIZE = Math.floor((SCREEN_W - 32) / 7);
+const GRID_PAD = 16;
+const DAY_GAP = 4;
+const DAY_SIZE = Math.floor((SCREEN_W - GRID_PAD * 2 - DAY_GAP * 6) / 7);
 
 const CYCLE_COLORS: Record<string, string> = {
   stable:     '#A8C5A0',
@@ -25,7 +27,7 @@ const MONTH_NAMES = [
   'January','February','March','April','May','June',
   'July','August','September','October','November','December',
 ];
-const DAY_LABELS = ['S','M','T','W','T','F','S'];
+const DAY_LABELS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
 function isoDate(year: number, month: number, day: number) {
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -42,10 +44,9 @@ export default function CalendarScreen() {
   useEffect(() => {
     if (!user?.id) return;
     loadMonth(user.id);
-    // Load tasks for the visible month range
     const from = `${year}-${String(month).padStart(2, '0')}-01`;
     const lastDay = new Date(year, month, 0).getDate();
-    const to   = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+    const to = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
     tasksStore.loadRange(user.id, from, to);
   }, [year, month, user?.id]);
 
@@ -72,30 +73,41 @@ export default function CalendarScreen() {
     <SafeAreaView style={s.safe} edges={['left', 'right']}>
       <ScrollView style={s.scroll} showsVerticalScrollIndicator={false}>
 
-        {/* Month navigation */}
-        <View style={[s.monthNav, theme.cardSurface]}>
-          <TouchableOpacity onPress={prevMonth} style={[s.navBtn, { backgroundColor: theme.accent + '22' }]}>
+        {/* ── Month navigation ─────────────────────────────────────────────── */}
+        <View style={s.monthNav}>
+          <TouchableOpacity
+            onPress={prevMonth}
+            style={[s.navBtn, { backgroundColor: theme.accent + '18' }]}
+            activeOpacity={0.6}
+          >
             <Ionicons name="chevron-back" size={18} color={theme.accent} />
           </TouchableOpacity>
           <View style={s.monthTitleWrap}>
             <Text style={[s.monthTitle, { color: theme.textPrimary }]}>{MONTH_NAMES[month - 1]}</Text>
             <Text style={[s.monthYear, { color: theme.textSecondary }]}>{year}</Text>
           </View>
-          <TouchableOpacity onPress={nextMonth} style={[s.navBtn, { backgroundColor: theme.accent + '22' }]}>
+          <TouchableOpacity
+            onPress={nextMonth}
+            style={[s.navBtn, { backgroundColor: theme.accent + '18' }]}
+            activeOpacity={0.6}
+          >
             <Ionicons name="chevron-forward" size={18} color={theme.accent} />
           </TouchableOpacity>
         </View>
 
-        {/* Day-of-week header */}
-        <View style={[s.dayLabels, { backgroundColor: theme.accentBg, borderRadius: 12, marginHorizontal: 16, marginBottom: 6 }]}>
+        {/* ── Day-of-week labels ────────────────────────────────────────────── */}
+        <View style={s.dayLabels}>
           {DAY_LABELS.map((l, i) => (
-            <Text key={i} style={[s.dayLabelText, { color: theme.accent }]}>{l}</Text>
+            <Text key={i} style={[s.dayLabelText, { color: theme.textSecondary }]}>{l}</Text>
           ))}
         </View>
 
-        {/* Calendar grid */}
+        {/* ── Separator ────────────────────────────────────────────────────── */}
+        <View style={[s.divider, { backgroundColor: theme.accent + '20' }]} />
+
+        {/* ── Calendar grid ─────────────────────────────────────────────────── */}
         {isLoading ? (
-          <ActivityIndicator style={{ marginTop: 48 }} color="#A8C5A0" />
+          <ActivityIndicator style={{ marginTop: 48 }} color={theme.accent} />
         ) : (
           <View style={s.grid}>
             {cells.map((day, idx) => {
@@ -109,40 +121,44 @@ export default function CalendarScreen() {
               const dayTasks = tasksStore.byDate[date] ?? [];
               const tasksDone = dayTasks.filter((t) => t.completed_at !== null).length;
               const tasksTotal = dayTasks.length;
+              const allDone = tasksTotal > 0 && tasksDone === tasksTotal;
 
               return (
                 <TouchableOpacity
                   key={idx}
                   style={[
                     s.dayCell,
-                    hasData ? theme.cardSurface : s.dayCellEmpty,
-                    cycleColor && { backgroundColor: cycleColor + '50', borderColor: cycleColor },
-                    isToday && s.dayCellToday,
+                    cycleColor
+                      ? { backgroundColor: cycleColor + '35', borderColor: cycleColor + '60' }
+                      : hasData
+                        ? { backgroundColor: '#F7F3EE', borderColor: '#E8E4DF' }
+                        : s.dayCellEmpty,
+                    isToday && { borderColor: theme.accent, borderWidth: 2, shadowColor: theme.accent, shadowOpacity: 0.25, shadowRadius: 6, elevation: 4 },
                   ]}
                   onPress={() => router.push(`/day/${date}`)}
                   activeOpacity={0.65}
                 >
-                  <Text style={[s.dayNum, isToday && s.dayNumToday, { color: theme.textPrimary }]}>{day}</Text>
+                  <Text style={[
+                    s.dayNum,
+                    { color: isToday ? theme.accent : theme.textPrimary },
+                    isToday && s.dayNumToday,
+                  ]}>
+                    {day}
+                  </Text>
+
                   {tasksTotal > 0 && (
-                    <View style={[s.taskBadge, { backgroundColor: tasksDone === tasksTotal ? '#A8C5A030' : '#C9A84C22' }]}>
-                      <Text style={[s.taskBadgeText, { color: tasksDone === tasksTotal ? '#A8C5A0' : '#C9A84C' }]}>
+                    <View style={[s.taskBadge, { backgroundColor: allDone ? '#A8C5A028' : '#C9A84C20' }]}>
+                      <Text style={[s.taskBadgeText, { color: allDone ? '#A8C5A0' : '#C9A84C' }]}>
                         {tasksDone}/{tasksTotal}
                       </Text>
                     </View>
                   )}
+
                   <View style={s.dotRow}>
-                    {data?.hasJournal && (
-                      <View style={[s.dot, { backgroundColor: '#89B4CC' }]} />
-                    )}
-                    {data?.activityNames?.length > 0 && (
-                      <View style={[s.dot, { backgroundColor: '#A8C5A0' }]} />
-                    )}
-                    {data?.medicationStatus === 'taken' && (
-                      <View style={[s.dot, { backgroundColor: '#C4A0B0' }]} />
-                    )}
-                    {data?.hasWorkbook && (
-                      <View style={[s.dot, { backgroundColor: '#C9A84C' }]} />
-                    )}
+                    {data?.hasJournal && <View style={[s.dot, { backgroundColor: '#89B4CC' }]} />}
+                    {data?.activityNames?.length > 0 && <View style={[s.dot, { backgroundColor: '#A8C5A0' }]} />}
+                    {data?.medicationStatus === 'taken' && <View style={[s.dot, { backgroundColor: '#C4A0B0' }]} />}
+                    {data?.hasWorkbook && <View style={[s.dot, { backgroundColor: '#C9A84C' }]} />}
                   </View>
                 </TouchableOpacity>
               );
@@ -150,12 +166,12 @@ export default function CalendarScreen() {
           </View>
         )}
 
-        {/* Tap hint */}
-        <Text style={s.tapHint}>Tap any day to see the full daily view</Text>
+        {/* ── Tap hint ─────────────────────────────────────────────────────── */}
+        <Text style={[s.tapHint, { color: theme.textSecondary }]}>Tap any day to view details</Text>
 
-        {/* Cycle legend */}
-        <View style={[s.legendSection, theme.cardSurface]}>
-          <Text style={[s.legendHeading, theme.sectionLabelStyle]}>Cycle State</Text>
+        {/* ── Legend ───────────────────────────────────────────────────────── */}
+        <View style={s.legend}>
+          <Text style={[s.legendHeading, { color: theme.textSecondary }]}>CYCLE STATE</Text>
           <View style={s.legendRow}>
             {Object.entries(CYCLE_COLORS).map(([state, color]) => (
               <View key={state} style={s.legendItem}>
@@ -164,11 +180,10 @@ export default function CalendarScreen() {
               </View>
             ))}
           </View>
-        </View>
 
-        {/* Dot legend */}
-        <View style={[s.legendSection, theme.cardSurface]}>
-          <Text style={[s.legendHeading, theme.sectionLabelStyle]}>Dots</Text>
+          <View style={[s.legendDivider, { backgroundColor: theme.accent + '20' }]} />
+
+          <Text style={[s.legendHeading, { color: theme.textSecondary }]}>ACTIVITY DOTS</Text>
           <View style={s.legendRow}>
             {[
               { color: '#89B4CC', label: 'Journal' },
@@ -194,65 +209,77 @@ const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: 'transparent' },
   scroll: { flex: 1, backgroundColor: 'transparent' },
 
+  // Header — no border box
   monthNav: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    marginHorizontal: 16, marginTop: 16, marginBottom: 10,
-    paddingHorizontal: 12, paddingVertical: 12,
-    borderRadius: 20, borderWidth: 1.5,
+    paddingHorizontal: 16, paddingTop: 16, paddingBottom: 12,
   },
   navBtn: {
-    width: 36, height: 36, borderRadius: 12,
+    width: 38, height: 38, borderRadius: 19,
     alignItems: 'center', justifyContent: 'center',
   },
   monthTitleWrap: { alignItems: 'center' },
-  monthTitle: { fontSize: 18, fontWeight: '800', letterSpacing: -0.3 },
-  monthYear: { fontSize: 12, marginTop: 1 },
+  monthTitle: { fontSize: 22, fontWeight: '800', letterSpacing: -0.4 },
+  monthYear: { fontSize: 12, marginTop: 1, opacity: 0.6 },
 
-  dayLabels: { flexDirection: 'row', paddingHorizontal: 0, marginBottom: 4, paddingVertical: 6 },
+  // Day labels — plain text row
+  dayLabels: {
+    flexDirection: 'row',
+    paddingHorizontal: GRID_PAD,
+    paddingBottom: 8,
+  },
   dayLabelText: {
-    width: DAY_SIZE, textAlign: 'center',
-    fontSize: 11, fontWeight: '700', letterSpacing: 0.5,
+    width: DAY_SIZE + DAY_GAP * (6 / 7),
+    textAlign: 'center',
+    fontSize: 10, fontWeight: '700', letterSpacing: 0.3,
+    opacity: 0.5,
   },
 
-  grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16 },
-  emptyCell: { width: DAY_SIZE - 3, height: DAY_SIZE - 3, margin: 1.5 },
+  divider: { height: 1, marginHorizontal: 16, marginBottom: 10 },
+
+  // Grid
+  grid: {
+    flexDirection: 'row', flexWrap: 'wrap',
+    paddingHorizontal: GRID_PAD, gap: DAY_GAP,
+  },
+  emptyCell: { width: DAY_SIZE, height: DAY_SIZE + 8 },
   dayCell: {
-    width: DAY_SIZE - 3, height: DAY_SIZE - 3, margin: 1.5,
+    width: DAY_SIZE, height: DAY_SIZE + 8,
     borderRadius: 14, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1.5, borderColor: 'transparent',
+    borderWidth: 1, borderColor: 'transparent',
+    paddingVertical: 4,
   },
   dayCellEmpty: {
     backgroundColor: 'transparent', borderColor: 'transparent',
-    shadowOpacity: 0, elevation: 0,
   },
-  dayCellToday: {
-    borderColor: '#3D3935', borderWidth: 2,
-  },
-  dayNum: { fontSize: 13, fontWeight: '600' },
+  dayNum: { fontSize: 14, fontWeight: '600' },
   dayNumToday: { fontWeight: '900' },
   dotRow: { flexDirection: 'row', gap: 2, marginTop: 2 },
   dot: { width: 4, height: 4, borderRadius: 2 },
 
-  taskBadge: { borderRadius: 4, paddingHorizontal: 3, paddingVertical: 1, marginTop: 1 },
-  taskBadgeText: { fontSize: 8, fontWeight: '800' },
+  taskBadge: { borderRadius: 4, paddingHorizontal: 3, paddingVertical: 0.5, marginTop: 1 },
+  taskBadgeText: { fontSize: 7, fontWeight: '800' },
 
+  // Tap hint
   tapHint: {
-    textAlign: 'center', fontSize: 11, color: '#3D393555',
-    fontStyle: 'italic', marginTop: 14, marginBottom: 4,
+    textAlign: 'center', fontSize: 11,
+    fontStyle: 'italic', marginTop: 16, marginBottom: 4, opacity: 0.4,
   },
 
-  legendSection: {
-    marginHorizontal: 16, marginTop: 14,
-    paddingHorizontal: 14, paddingVertical: 12,
-    borderRadius: 20, borderWidth: 1.5,
-    gap: 6,
+  // Legend — no border box, just clean sections
+  legend: {
+    marginHorizontal: 16, marginTop: 16,
+    backgroundColor: '#FAFAF8', borderRadius: 18,
+    paddingHorizontal: 16, paddingVertical: 14,
+    gap: 10,
   },
   legendHeading: {
-    fontSize: 11, fontWeight: '700',
-    letterSpacing: 0.5, textTransform: 'uppercase',
+    fontSize: 10, fontWeight: '800',
+    letterSpacing: 0.8, opacity: 0.4,
   },
-  legendRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  legendSwatch: { width: 10, height: 10, borderRadius: 5 },
-  legendText: { fontSize: 12, textTransform: 'capitalize' },
+  legendRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  legendSwatch: { width: 9, height: 9, borderRadius: 4.5 },
+  legendText: { fontSize: 12, textTransform: 'capitalize', opacity: 0.7 },
+  legendDivider: { height: 1, marginVertical: 2 },
 });

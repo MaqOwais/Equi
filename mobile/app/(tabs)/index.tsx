@@ -1048,8 +1048,8 @@ const showRuminationPrompt = today.moodScore !== null && today.moodScore <= 3;
       {/* ── Customize Layout Modal ─────────────────────────────────────────── */}
       <Modal visible={customizeVisible} transparent animationType="slide">
         <Pressable style={s.sheetBackdrop} onPress={() => setCustomizeVisible(false)}>
-          <Pressable style={[s.sheet, { paddingBottom: 48 }]} onPress={() => {}}>
-            <ScrollView showsVerticalScrollIndicator={false}>
+          <View style={[s.sheet, { paddingBottom: 48 }]}>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <View style={s.customizeHeader}>
                 <Text style={s.sheetTitle}>Customise Home</Text>
                 <TouchableOpacity onPress={() => layout.reset()} activeOpacity={0.7}>
@@ -1128,7 +1128,7 @@ const showRuminationPrompt = today.moodScore !== null && today.moodScore <= 3;
                 <Text style={s.sheetConfirmText}>Done</Text>
               </TouchableOpacity>
             </ScrollView>
-          </Pressable>
+          </View>
         </Pressable>
       </Modal>
     </SafeAreaView>
@@ -1373,7 +1373,7 @@ const s = StyleSheet.create({
 
   // Med skip sheet
   sheetBackdrop: { flex: 1, backgroundColor: '#00000030', justifyContent: 'flex-end' },
-  sheet: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, paddingBottom: 40 },
+  sheet: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, paddingBottom: 40, maxHeight: '82%' },
   sheetTitle: { fontSize: 17, fontWeight: '700', color: '#3D3935', marginBottom: 16 },
   sheetFieldLabel: { fontSize: 12, fontWeight: '700', color: '#3D3935', opacity: 0.45, letterSpacing: 0.5, marginBottom: 6 },
   sheetInput: {

@@ -2,9 +2,10 @@ import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, KeyboardAvoidingView, Platform,
-  ScrollView,
+  ScrollView, Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../stores/auth';
 import { useTodayStore } from '../../stores/today';
 import { useJournalStore } from '../../stores/journal';
@@ -25,26 +26,25 @@ interface Block {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const CYCLE_COLORS: Record<CycleState, string> = {
-  stable: '#A8C5A0', manic: '#89B4CC', depressive: '#C4A0B0', mixed: '#E8DCC8',
+  stable: '#A8C5A0', manic: '#89B4CC', depressive: '#C4A0B0', mixed: '#C4A87A',
 };
 const CYCLE_LABELS: Record<CycleState, string> = {
   stable: 'Stable', manic: 'Elevated', depressive: 'Low', mixed: 'Mixed',
 };
-const MOOD_EMOJIS = ['😔', '😟', '😕', '😐', '🙂', '😊', '😄', '😁', '🤩', '✨'];
 
-const CYCLE_PROMPTS: Record<CycleState, { title: string; lines: string[] }> = {
-  stable:     { title: "A good day to reflect", lines: ["What went well today?", "Who did you connect with?", "What are you grateful for?"] },
-  manic:      { title: "Slow down for a moment", lines: ["What's racing through your mind?", "What can you let go of today?", "What would help you feel grounded?"] },
-  depressive: { title: "Even a few words is enough", lines: ["How are you feeling in your body?", "One small thing that happened today?", "What do you need most right now?"] },
-  mixed:      { title: "Whatever you feel is valid", lines: ["Describe your mood in three words.", "What's been hardest today?", "What would make tomorrow easier?"] },
+const CYCLE_PROMPTS: Record<CycleState, { title: string; icon: string; lines: string[] }> = {
+  stable:     { title: 'A good day to reflect', icon: '🌿', lines: ['What went well today?', 'Who did you connect with?', 'What are you grateful for?'] },
+  manic:      { title: 'Slow down for a moment', icon: '🌊', lines: ["What's racing through your mind?", 'What can you let go of today?', 'What would help you feel grounded?'] },
+  depressive: { title: 'Even a few words is enough', icon: '🕯️', lines: ['How are you feeling in your body?', 'One small thing that happened today?', 'What do you need most right now?'] },
+  mixed:      { title: 'Whatever you feel is valid', icon: '🌤️', lines: ['Describe your mood in three words.', "What's been hardest today?", 'What would make tomorrow easier?'] },
 };
 
-const BLOCK_TOOLS: { type: BlockType; icon: string; label: string }[] = [
-  { type: 'p',         icon: '¶',  label: 'Text' },
-  { type: 'h1',        icon: 'H',  label: 'Heading' },
-  { type: 'bullet',    icon: '•',  label: 'Bullet' },
-  { type: 'quote',     icon: '"',  label: 'Quote' },
-  { type: 'checklist', icon: '☐',  label: 'Check' },
+const BLOCK_TOOLS: { type: BlockType; icon: React.ComponentProps<typeof Ionicons>['name']; label: string }[] = [
+  { type: 'p',         icon: 'text',              label: 'Text' },
+  { type: 'h1',        icon: 'header',            label: 'Heading' },
+  { type: 'bullet',    icon: 'list',              label: 'List' },
+  { type: 'quote',     icon: 'chatbubble-outline', label: 'Quote' },
+  { type: 'checklist', icon: 'checkbox-outline',  label: 'Task' },
 ];
 
 // ─── Block serialisation ──────────────────────────────────────────────────────
@@ -60,7 +60,6 @@ function stringToBlocks(str: string): Block[] {
   if (str.startsWith(PREFIX)) {
     try { return JSON.parse(str.slice(PREFIX.length)) as Block[]; } catch { /* fall through */ }
   }
-  // Legacy plain text → single paragraph block
   return [{ id: 'legacy', type: 'p', text: str }];
 }
 
@@ -72,36 +71,32 @@ function totalWords(blocks: Block[]) {
   return blocks.map((b) => b.text.trim().split(/\s+/).filter(Boolean).length).reduce((a, b) => a + b, 0);
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Date helpers ─────────────────────────────────────────────────────────────
 
 function addDays(date: Date, days: number) {
   const d = new Date(date); d.setDate(d.getDate() + days); return d;
 }
 function toIso(d: Date) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 function formatBigDate(d: Date) {
-  const isToday = toIso(d) === toIso(new Date());
-  if (isToday) return 'Today';
-  const isYesterday = toIso(d) === toIso(addDays(new Date(), -1));
-  if (isYesterday) return 'Yesterday';
+  const key = toIso(d);
+  if (key === toIso(new Date())) return 'Today';
+  if (key === toIso(addDays(new Date(), -1))) return 'Yesterday';
   return d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
 }
 function formatSubDate(d: Date) {
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 }
+const WEEKDAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-// ─── Single block component ───────────────────────────────────────────────────
+// ─── Block component ──────────────────────────────────────────────────────────
 
 interface BlockProps {
   block: Block;
   accentColor: string;
   textPrimary: string;
   textSecondary: string;
-  focused: boolean;
   onChangeText: (text: string) => void;
   onEnter: () => void;
   onBackspaceEmpty: () => void;
@@ -111,106 +106,81 @@ interface BlockProps {
   locked: boolean;
 }
 
-function BlockView({ block, accentColor, textPrimary, textSecondary, focused, onChangeText, onEnter, onBackspaceEmpty, onFocus, onToggleCheck, refSetter, locked }: BlockProps) {
+function BlockView({ block, accentColor, textPrimary, textSecondary, onChangeText, onEnter, onBackspaceEmpty, onFocus, onToggleCheck, refSetter, locked }: BlockProps) {
   function handleChange(text: string) {
     const nl = text.indexOf('\n');
-    if (nl !== -1) {
-      onChangeText(text.slice(0, nl));
-      onEnter();
-      return;
-    }
+    if (nl !== -1) { onChangeText(text.slice(0, nl)); onEnter(); return; }
     onChangeText(text);
   }
-
   function handleKey({ nativeEvent: { key } }: { nativeEvent: { key: string } }) {
     if (key === 'Backspace' && block.text === '') onBackspaceEmpty();
   }
 
-  const accentDim = accentColor === '#E8DCC8' ? '#A09060' : accentColor;
+  const accentDim = accentColor === '#C4A87A' ? '#9A7840' : accentColor;
 
   if (block.type === 'h1') {
     return (
       <View style={bs.row}>
         {locked
           ? <Text style={[bs.h1Text, { color: accentDim }]}>{block.text || ' '}</Text>
-          : <TextInput
-              ref={refSetter} style={[bs.input, bs.h1Input, { color: accentDim }]}
+          : <TextInput ref={refSetter} style={[bs.input, bs.h1Input, { color: accentDim }]}
               value={block.text} onChangeText={handleChange} onKeyPress={handleKey} onFocus={onFocus}
-              placeholder="Heading" placeholderTextColor={accentColor + '55'}
-              multiline scrollEnabled={false}
-            />
+              placeholder="Heading" placeholderTextColor={accentColor + '55'} multiline scrollEnabled={false} />
         }
       </View>
     );
   }
-
   if (block.type === 'bullet') {
     return (
       <View style={bs.row}>
-        <View style={[bs.bulletDot, { backgroundColor: accentColor, marginTop: 11 }]} />
+        <View style={[bs.bulletDot, { backgroundColor: accentColor }]} />
         {locked
           ? <Text style={[bs.bodyText, { color: textPrimary }]}>{block.text || ' '}</Text>
-          : <TextInput
-              ref={refSetter} style={[bs.input, bs.bodyInput, { color: textPrimary }]}
+          : <TextInput ref={refSetter} style={[bs.input, bs.bodyInput, { color: textPrimary }]}
               value={block.text} onChangeText={handleChange} onKeyPress={handleKey} onFocus={onFocus}
-              placeholder="List item" placeholderTextColor={textSecondary}
-              multiline scrollEnabled={false}
-            />
+              placeholder="List item" placeholderTextColor={textSecondary} multiline scrollEnabled={false} />
         }
       </View>
     );
   }
-
   if (block.type === 'quote') {
     return (
-      <View style={[bs.quoteWrap, { borderLeftColor: accentColor }]}>
+      <View style={[bs.quoteWrap, { borderLeftColor: accentColor + '88' }]}>
         {locked
-          ? <Text style={[bs.quoteText, { color: textSecondary, opacity: 1 }]}>{block.text || ' '}</Text>
-          : <TextInput
-              ref={refSetter} style={[bs.input, bs.quoteInput, { color: textSecondary, opacity: 1 }]}
+          ? <Text style={[bs.quoteText, { color: textSecondary }]}>{block.text || ' '}</Text>
+          : <TextInput ref={refSetter} style={[bs.input, bs.quoteInput, { color: textSecondary }]}
               value={block.text} onChangeText={handleChange} onKeyPress={handleKey} onFocus={onFocus}
-              placeholder="Quote…" placeholderTextColor={textSecondary}
-              multiline scrollEnabled={false}
-            />
+              placeholder="A thought worth quoting…" placeholderTextColor={textSecondary} multiline scrollEnabled={false} />
         }
       </View>
     );
   }
-
   if (block.type === 'checklist') {
     return (
       <View style={bs.row}>
         <TouchableOpacity
-          style={[bs.checkBox, block.checked && { backgroundColor: accentColor, borderColor: accentColor }]}
-          onPress={onToggleCheck}
-          disabled={locked}
+          style={[bs.checkBox, { borderColor: accentColor + '66' }, block.checked && { backgroundColor: accentColor, borderColor: accentColor }]}
+          onPress={onToggleCheck} disabled={locked}
         >
-          {block.checked && <Text style={bs.checkMark}>✓</Text>}
+          {block.checked && <Ionicons name="checkmark" size={12} color="#FFFFFF" />}
         </TouchableOpacity>
         {locked
           ? <Text style={[bs.bodyText, { color: textPrimary }, block.checked && bs.checkedText]}>{block.text || ' '}</Text>
-          : <TextInput
-              ref={refSetter} style={[bs.input, bs.bodyInput, { color: textPrimary }, block.checked && bs.checkedInput]}
+          : <TextInput ref={refSetter} style={[bs.input, bs.bodyInput, { color: textPrimary }, block.checked && bs.checkedInput]}
               value={block.text} onChangeText={handleChange} onKeyPress={handleKey} onFocus={onFocus}
-              placeholder="To-do" placeholderTextColor={textSecondary}
-              multiline scrollEnabled={false}
-            />
+              placeholder="To-do item" placeholderTextColor={textSecondary} multiline scrollEnabled={false} />
         }
       </View>
     );
   }
-
-  // Default paragraph
+  // Paragraph (default)
   return (
     <View style={bs.row}>
       {locked
         ? <Text style={[bs.bodyText, { color: textPrimary }]}>{block.text || ' '}</Text>
-        : <TextInput
-            ref={refSetter} style={[bs.input, bs.bodyInput, { color: textPrimary }]}
+        : <TextInput ref={refSetter} style={[bs.input, bs.bodyInput, { color: textPrimary }]}
             value={block.text} onChangeText={handleChange} onKeyPress={handleKey} onFocus={onFocus}
-            placeholder="Write something…" placeholderTextColor={textSecondary}
-            multiline scrollEnabled={false}
-          />
+            placeholder="Write something…" placeholderTextColor={textSecondary + '88'} multiline scrollEnabled={false} />
       }
     </View>
   );
@@ -227,8 +197,9 @@ export default function JournalScreen() {
 
   const [activeDate, setActiveDate] = useState(new Date());
   const activeDateKey = toIso(activeDate);
-  const isToday = activeDateKey === toIso(new Date());
-  const isFuture = activeDate > new Date();
+  const todayKey = toIso(new Date());
+  const isToday = activeDateKey === todayKey;
+  const isFuture = activeDateKey > todayKey;
 
   const entry = journal.entries[activeDateKey];
   const [blocks, setBlocks] = useState<Block[]>([makeBlock('p')]);
@@ -240,11 +211,20 @@ export default function JournalScreen() {
   const isSaving = journal.savingDate === activeDateKey;
 
   const cycleState: CycleState = today.cycleState ?? 'stable';
-  const accentColor = CYCLE_COLORS[cycleState];
+  const accent = CYCLE_COLORS[cycleState];
+  const accentDim = accent === '#C4A87A' ? '#9A7840' : accent;
   const isLocked = entry?.locked ?? false;
   const wc = totalWords(blocks);
   const isEmpty = blocks.every((b) => b.text.trim() === '');
   const showPrompt = isToday && !isLocked && !isFuture && !promptDismissed && isEmpty;
+
+  // ── Fix: day strip follows activeDate, not today ──────────────────────────
+  const stripAnchor = activeDateKey <= todayKey ? activeDate : new Date();
+  const stripDays = useMemo(
+    () => Array.from({ length: 7 }, (_, i) => addDays(stripAnchor, -6 + i)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [activeDateKey, todayKey],
+  );
 
   // Load entry on date change
   useEffect(() => {
@@ -274,151 +254,139 @@ export default function JournalScreen() {
     setBlocks(newBlocks);
     scheduleSave(newBlocks);
   }
-
   function updateBlockText(id: string, text: string) {
-    const newBlocks = blocks.map((b) => b.id === id ? { ...b, text } : b);
-    updateBlocks(newBlocks);
+    updateBlocks(blocks.map((b) => b.id === id ? { ...b, text } : b));
   }
-
   function addBlockAfter(id: string) {
     const idx = blocks.findIndex((b) => b.id === id);
-    const current = blocks[idx];
-    // Continue lists, otherwise fall back to paragraph
-    const newType: BlockType = (current?.type === 'bullet' || current?.type === 'checklist') ? current.type : 'p';
+    const cur = blocks[idx];
+    const newType: BlockType = (cur?.type === 'bullet' || cur?.type === 'checklist') ? cur.type : 'p';
     const nb = makeBlock(newType);
-    const newBlocks = [...blocks.slice(0, idx + 1), nb, ...blocks.slice(idx + 1)];
-    updateBlocks(newBlocks);
+    updateBlocks([...blocks.slice(0, idx + 1), nb, ...blocks.slice(idx + 1)]);
     setTimeout(() => inputRefs.current[nb.id]?.focus(), 60);
   }
-
   function deleteBlock(id: string) {
     if (blocks.length <= 1) return;
     const idx = blocks.findIndex((b) => b.id === id);
     const newBlocks = blocks.filter((b) => b.id !== id);
     updateBlocks(newBlocks);
-    // Focus previous block
-    const prevBlock = newBlocks[Math.max(0, idx - 1)];
-    if (prevBlock) setTimeout(() => inputRefs.current[prevBlock.id]?.focus(), 60);
+    const prev = newBlocks[Math.max(0, idx - 1)];
+    if (prev) setTimeout(() => inputRefs.current[prev.id]?.focus(), 60);
   }
-
   function toggleCheck(id: string) {
-    const newBlocks = blocks.map((b) => b.id === id ? { ...b, checked: !b.checked } : b);
-    updateBlocks(newBlocks);
+    updateBlocks(blocks.map((b) => b.id === id ? { ...b, checked: !b.checked } : b));
   }
-
   function changeBlockType(type: BlockType) {
     if (!focusedId) {
-      // Add new block at end
       const nb = makeBlock(type);
-      const newBlocks = [...blocks, nb];
-      updateBlocks(newBlocks);
+      updateBlocks([...blocks, nb]);
       setTimeout(() => inputRefs.current[nb.id]?.focus(), 60);
       setFocusedId(nb.id);
       return;
     }
-    const newBlocks = blocks.map((b) => b.id === focusedId ? { ...b, type } : b);
-    updateBlocks(newBlocks);
+    updateBlocks(blocks.map((b) => b.id === focusedId ? { ...b, type } : b));
   }
-
   function navigateDate(dir: -1 | 1) {
     setActiveDate((d) => addDays(d, dir));
   }
-
   function insertPromptLine(line: string) {
     const nb = makeBlock('p', line);
-    const newBlocks = isEmpty ? [nb] : [...blocks, nb];
-    updateBlocks(newBlocks);
+    updateBlocks(isEmpty ? [nb] : [...blocks, nb]);
     setPromptDismissed(true);
     setTimeout(() => inputRefs.current[nb.id]?.focus(), 80);
   }
 
-  // Recent 7-day strip
-  const todayKey = toIso(new Date());
-  const recentDays = useMemo(
-    () => Array.from({ length: 7 }, (_, i) => addDays(new Date(), -6 + i)),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [todayKey],
-  );
   const focusedBlock = blocks.find((b) => b.id === focusedId);
+  const prompt = CYCLE_PROMPTS[cycleState];
 
   return (
     <SafeAreaView style={s.safe} edges={['left', 'right']}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
 
-        {/* ── Date navigation ─────────────────────────────────────────────── */}
-        <View style={[s.nav, theme.cardSurface, { marginHorizontal: 14, marginTop: 12, marginBottom: 4 }]}>
+        {/* ── Header ─────────────────────────────────────────────────────────── */}
+        <View style={s.header}>
           <TouchableOpacity
+            style={[s.arrowBtn, { backgroundColor: accent + '18' }]}
             onPress={() => navigateDate(-1)}
-            style={[s.navArrow, { backgroundColor: accentColor + '22' }]}
             activeOpacity={0.6}
           >
-            <Text style={[s.navArrowText, { color: accentColor }]}>‹</Text>
+            <Ionicons name="chevron-back" size={20} color={accentDim} />
           </TouchableOpacity>
-          <View style={s.navCenter}>
-            <Text style={[s.navTitle, { color: theme.textPrimary }]}>{formatBigDate(activeDate)}</Text>
-            <Text style={[s.navSub, { color: theme.textSecondary, opacity: 1 }]}>{formatSubDate(activeDate)}</Text>
+
+          <View style={s.headerCenter}>
+            <Text style={[s.headerTitle, { color: theme.textPrimary }]}>{formatBigDate(activeDate)}</Text>
+            <Text style={[s.headerSub, { color: theme.textSecondary }]}>{formatSubDate(activeDate)}</Text>
           </View>
+
           <TouchableOpacity
+            style={[s.arrowBtn, { backgroundColor: isToday ? 'transparent' : accent + '18' }]}
             onPress={() => navigateDate(1)}
-            style={[s.navArrow, { backgroundColor: isToday ? '#0000000A' : accentColor + '22' }]}
             disabled={isToday}
             activeOpacity={0.6}
           >
-            <Text style={[s.navArrowText, { color: isToday ? '#3D393530' : accentColor }]}>›</Text>
+            <Ionicons name="chevron-forward" size={20} color={isToday ? theme.textSecondary + '40' : accentDim} />
           </TouchableOpacity>
         </View>
 
-        {/* ── 7-day strip ─────────────────────────────────────────────────── */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.dayStrip} style={{ maxHeight: 80 }}>
-          {recentDays.map((d) => {
+        {/* ── Day strip ──────────────────────────────────────────────────────── */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={s.stripWrap}
+          style={s.stripScroll}
+        >
+          {stripDays.map((d) => {
             const key = toIso(d);
             const isActive = key === activeDateKey;
-            const dayEntry = journal.entries[key];
-            const hasEntry = dayEntry && dayEntry.text.trim().length > 0;
-            const dayLetter = d.toLocaleDateString('en-GB', { weekday: 'short' }).slice(0, 1);
-            const dayNum = d.getDate();
+            const hasEntry = !!(journal.entries[key]?.text?.trim());
             return (
               <TouchableOpacity
                 key={key}
-                style={[
-                  s.dayChip,
-                  theme.cardSurface,
-                  isActive && { backgroundColor: accentColor, borderColor: accentColor, shadowColor: accentColor, shadowOpacity: 0.35, elevation: 6 },
-                ]}
+                style={[s.dayChip, isActive && { backgroundColor: accent, borderColor: accent }]}
                 onPress={() => setActiveDate(d)}
                 activeOpacity={0.7}
               >
-                <Text style={[s.dayChipLetter, { color: theme.textSecondary }, isActive && { color: 'rgba(255,255,255,0.75)', opacity: 1 }]}>{dayLetter}</Text>
-                <Text style={[s.dayChipNum, { color: theme.textPrimary }, isActive && { color: '#FFFFFF', opacity: 1 }]}>{dayNum}</Text>
-                {hasEntry && <View style={[s.dayDot, { backgroundColor: isActive ? 'rgba(255,255,255,0.7)' : accentColor }]} />}
+                <Text style={[s.dayChipWkd, { color: isActive ? 'rgba(255,255,255,0.75)' : theme.textSecondary }]}>
+                  {WEEKDAY_SHORT[d.getDay()]}
+                </Text>
+                <Text style={[s.dayChipNum, { color: isActive ? '#FFFFFF' : theme.textPrimary }]}>
+                  {d.getDate()}
+                </Text>
+                <View style={[s.dayDot, { backgroundColor: hasEntry ? (isActive ? 'rgba(255,255,255,0.65)' : accent) : 'transparent' }]} />
               </TouchableOpacity>
             );
           })}
         </ScrollView>
 
-        {/* ── Context strip ────────────────────────────────────────────────── */}
-        <View style={[s.contextStrip, { borderColor: accentColor + '30' }]}>
-          <View style={[s.statePill, { backgroundColor: accentColor + '22', borderColor: accentColor + '55' }]}>
-            <View style={[s.stateDot, { backgroundColor: accentColor }]} />
-            <Text style={[s.stateText, { color: accentColor }]}>{CYCLE_LABELS[cycleState]}</Text>
+        {/* ── Status bar ─────────────────────────────────────────────────────── */}
+        <View style={[s.statusBar, { borderColor: accent + '25' }]}>
+          <View style={[s.cyclePill, { backgroundColor: accent + '18', borderColor: accent + '44' }]}>
+            <View style={[s.cycleDot, { backgroundColor: accent }]} />
+            <Text style={[s.cycleLabel, { color: accentDim }]}>{CYCLE_LABELS[cycleState]}</Text>
           </View>
-          {today.moodScore !== null && (
-            <Text style={[s.moodText, { color: theme.textSecondary, opacity: 1 }]}>{MOOD_EMOJIS[today.moodScore - 1]} {today.moodScore}/10</Text>
+          {isLocked && (
+            <View style={s.lockedBadge}>
+              <Ionicons name="lock-closed-outline" size={10} color={theme.textSecondary} />
+              <Text style={[s.lockedText, { color: theme.textSecondary }]}>Locked</Text>
+            </View>
           )}
           <View style={{ flex: 1 }} />
-          {wc > 0 && <Text style={[s.metaText, { color: theme.textSecondary, opacity: 1 }]}>{wc} words</Text>}
+          {wc > 0 && <Text style={[s.metaText, { color: theme.textSecondary }]}>{wc} words</Text>}
           {isSaving
-            ? <Text style={[s.metaText, { color: theme.textSecondary, opacity: 1 }]}>Saving…</Text>
-            : entry?.updatedAt ? <Text style={[s.metaText, { color: '#A8C5A0' }]}>Saved ✓</Text>
-            : null}
-          {isLocked && (
-            <View style={s.lockBadge}><Text style={[s.lockText, { color: theme.textSecondary, opacity: 1 }]}>🔒 Locked</Text></View>
-          )}
+            ? <Text style={[s.metaText, { color: theme.textSecondary }]}>Saving…</Text>
+            : entry?.updatedAt
+              ? <Text style={[s.metaText, { color: accent }]}>✓ Saved</Text>
+              : null
+          }
         </View>
 
-        {/* ── Editor ───────────────────────────────────────────────────────── */}
+        {/* ── Editor ─────────────────────────────────────────────────────────── */}
         {isFuture ? (
-          <View style={s.emptyState}><Text style={[s.emptyText, { color: theme.textSecondary, opacity: 1 }]}>No entries for future dates.</Text></View>
+          <View style={s.emptyState}>
+            <Ionicons name="calendar-outline" size={36} color={theme.textSecondary + '44'} />
+            <Text style={[s.emptyTitle, { color: theme.textSecondary }]}>Future date</Text>
+            <Text style={[s.emptyBody, { color: theme.textSecondary }]}>Navigate back to write in your journal.</Text>
+          </View>
         ) : (
           <ScrollView
             style={{ flex: 1 }}
@@ -428,35 +396,46 @@ export default function JournalScreen() {
           >
             {/* Prompt card */}
             {showPrompt && (
-              <View style={[s.promptCard, theme.cardSurface, { borderColor: accentColor + '44', backgroundColor: accentColor + '0D' }]}>
-                <View style={s.promptHeader}>
-                  <Text style={[s.promptTitle, { color: accentColor === '#E8DCC8' ? '#A09060' : accentColor }]}>
-                    {CYCLE_PROMPTS[cycleState].title}
-                  </Text>
-                  <TouchableOpacity onPress={() => setPromptDismissed(true)} hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}>
-                    <Text style={[s.promptDismiss, { color: theme.textSecondary, opacity: 1 }]}>✕</Text>
+              <View style={[s.promptCard, { backgroundColor: accent + '12', borderColor: accent + '33', borderLeftColor: accent }]}>
+                <View style={s.promptTop}>
+                  <Text style={s.promptIcon}>{prompt.icon}</Text>
+                  <Text style={[s.promptTitle, { color: accentDim }]}>{prompt.title}</Text>
+                  <TouchableOpacity
+                    onPress={() => setPromptDismissed(true)}
+                    hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
+                    style={{ marginLeft: 'auto' as unknown as number }}
+                  >
+                    <Ionicons name="close" size={16} color={theme.textSecondary} />
                   </TouchableOpacity>
                 </View>
-                {CYCLE_PROMPTS[cycleState].lines.map((line, i) => (
-                  <TouchableOpacity key={i} style={s.promptLine} onPress={() => insertPromptLine(line)} activeOpacity={0.65}>
-                    <Text style={[s.promptArrow, { color: accentColor }]}>›</Text>
-                    <Text style={[s.promptLineText, { color: theme.textSecondary, opacity: 1 }]}>{line}</Text>
-                  </TouchableOpacity>
-                ))}
-                <Text style={[s.promptHint, { color: theme.textSecondary, opacity: 1 }]}>Tap a prompt to start · or just write below</Text>
+                <View style={s.promptLines}>
+                  {prompt.lines.map((line, i) => (
+                    <TouchableOpacity key={i} style={s.promptLine} onPress={() => insertPromptLine(line)} activeOpacity={0.6}>
+                      <View style={[s.promptLineDot, { backgroundColor: accent }]} />
+                      <Text style={[s.promptLineText, { color: theme.textSecondary }]}>{line}</Text>
+                      <Ionicons name="arrow-forward" size={13} color={accent + '88'} />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <Text style={[s.promptHint, { color: theme.textSecondary }]}>Tap a prompt · or just start writing below</Text>
               </View>
             )}
 
-            {/* Blocks — opaque white card so text is always readable */}
-            <View style={[s.blocksCard, { backgroundColor: '#FFFFFF', borderWidth: 1.5, borderColor: accentColor + '30' }]}>
+            {/* Writing area */}
+            <Pressable
+              style={[s.paper, { borderColor: accent + '22' }]}
+              onPress={() => {
+                const last = blocks[blocks.length - 1];
+                if (last) setTimeout(() => inputRefs.current[last.id]?.focus(), 60);
+              }}
+            >
               {blocks.map((block) => (
                 <BlockView
                   key={block.id}
                   block={block}
-                  accentColor={accentColor}
+                  accentColor={accent}
                   textPrimary={theme.textPrimary}
                   textSecondary={theme.textSecondary}
-                  focused={focusedId === block.id}
                   locked={isLocked}
                   onChangeText={(text) => updateBlockText(block.id, text)}
                   onEnter={() => addBlockAfter(block.id)}
@@ -466,43 +445,52 @@ export default function JournalScreen() {
                   refSetter={(ref) => { inputRefs.current[block.id] = ref; }}
                 />
               ))}
-            </View>
+              {!isLocked && (
+                <TouchableOpacity
+                  style={s.addLineBtn}
+                  onPress={() => {
+                    const nb = makeBlock('p');
+                    updateBlocks([...blocks, nb]);
+                    setTimeout(() => inputRefs.current[nb.id]?.focus(), 60);
+                  }}
+                  activeOpacity={0.5}
+                >
+                  <Ionicons name="add" size={14} color={accent + '66'} />
+                  <Text style={[s.addLineText, { color: accent + '66' }]}>Add line</Text>
+                </TouchableOpacity>
+              )}
+            </Pressable>
+
             <View style={{ height: 60 }} />
           </ScrollView>
         )}
 
-        {/* ── Block toolbar ─────────────────────────────────────────────────── */}
+        {/* ── Toolbar ────────────────────────────────────────────────────────── */}
         {!isLocked && !isFuture && (
-          <View style={[s.toolbar, theme.cardSurface, { borderTopColor: accentColor + '30' }]}>
+          <View style={[s.toolbar, { borderTopColor: accent + '22' }]}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.toolbarInner}>
               {BLOCK_TOOLS.map((tool) => {
                 const isActive = focusedBlock?.type === tool.type;
                 return (
                   <TouchableOpacity
                     key={tool.type}
-                    style={[
-                      s.toolBtn,
-                      { borderColor: isActive ? accentColor : accentColor + '30', backgroundColor: isActive ? accentColor + '18' : 'transparent' },
-                    ]}
+                    style={[s.toolBtn, isActive && { backgroundColor: accent + '20', borderColor: accent }]}
                     onPress={() => changeBlockType(tool.type)}
                     activeOpacity={0.7}
                   >
-                    <Text style={[s.toolIcon, { color: isActive ? accentColor : theme.textSecondary }]}>{tool.icon}</Text>
-                    <Text style={[s.toolLabel, { color: isActive ? accentColor : theme.textSecondary }]}>{tool.label}</Text>
+                    <Ionicons
+                      name={tool.icon}
+                      size={15}
+                      color={isActive ? accentDim : theme.textSecondary}
+                    />
+                    <Text style={[s.toolLabel, { color: isActive ? accentDim : theme.textSecondary }]}>{tool.label}</Text>
                   </TouchableOpacity>
                 );
               })}
-              <View style={[s.toolSep, { backgroundColor: accentColor + '30' }]} />
-              <TouchableOpacity
-                style={[s.toolAddBtn, { backgroundColor: accentColor + '18', borderRadius: 10, borderWidth: 1.5, borderColor: accentColor + '40' }]}
-                onPress={() => { const nb = makeBlock('p'); updateBlocks([...blocks, nb]); setTimeout(() => inputRefs.current[nb.id]?.focus(), 60); }}
-                activeOpacity={0.7}
-              >
-                <Text style={[s.toolAddText, { color: accentColor }]}>+ Block</Text>
-              </TouchableOpacity>
             </ScrollView>
           </View>
         )}
+
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -511,22 +499,21 @@ export default function JournalScreen() {
 // ─── Block styles ─────────────────────────────────────────────────────────────
 
 const bs = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 20, paddingVertical: 2 },
-  input: { flex: 1, color: '#3D3935' },
-  bodyInput: { fontSize: 17, lineHeight: 28, minHeight: 28, paddingVertical: 4 },
-  bodyText: { flex: 1, fontSize: 17, color: '#3D3935', lineHeight: 28 },
-  h1Input: { fontSize: 24, fontWeight: '700', lineHeight: 32, letterSpacing: -0.5, paddingVertical: 8, paddingTop: 16 },
-  h1Text: { flex: 1, fontSize: 24, fontWeight: '700', lineHeight: 32, letterSpacing: -0.5, paddingVertical: 8, paddingTop: 16 },
-  bulletDot: { width: 6, height: 6, borderRadius: 3, flexShrink: 0, marginRight: 10 },
-  quoteWrap: { borderLeftWidth: 3, marginHorizontal: 20, paddingLeft: 14, paddingVertical: 4, marginVertical: 4 },
-  quoteInput: { fontSize: 16, fontStyle: 'italic', lineHeight: 26, color: '#3D3935', opacity: 0.7, paddingVertical: 2 },
-  quoteText: { fontSize: 16, fontStyle: 'italic', lineHeight: 26, color: '#3D3935', opacity: 0.7 },
+  row: { flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 18, paddingVertical: 1 },
+  input: { flex: 1 },
+  bodyInput: { fontSize: 16, lineHeight: 27, minHeight: 27, paddingVertical: 3 },
+  bodyText: { flex: 1, fontSize: 16, lineHeight: 27 },
+  h1Input: { fontSize: 22, fontWeight: '700', lineHeight: 30, letterSpacing: -0.4, paddingVertical: 6, paddingTop: 14 },
+  h1Text: { flex: 1, fontSize: 22, fontWeight: '700', lineHeight: 30, letterSpacing: -0.4, paddingTop: 14, paddingVertical: 6 },
+  bulletDot: { width: 5, height: 5, borderRadius: 2.5, flexShrink: 0, marginRight: 10, marginTop: 12 },
+  quoteWrap: { borderLeftWidth: 3, marginHorizontal: 18, paddingLeft: 14, paddingVertical: 6, marginVertical: 3 },
+  quoteInput: { fontSize: 15, fontStyle: 'italic', lineHeight: 25, paddingVertical: 2 },
+  quoteText: { fontSize: 15, fontStyle: 'italic', lineHeight: 25 },
   checkBox: {
-    width: 20, height: 20, borderRadius: 5, borderWidth: 1.5, borderColor: '#3D393545',
+    width: 19, height: 19, borderRadius: 5, borderWidth: 1.5,
     alignItems: 'center', justifyContent: 'center',
     marginRight: 10, marginTop: 7, flexShrink: 0,
   },
-  checkMark: { fontSize: 12, color: '#FFFFFF', fontWeight: '700' },
   checkedText: { textDecorationLine: 'line-through', opacity: 0.35 },
   checkedInput: { textDecorationLine: 'line-through', opacity: 0.4 },
 });
@@ -536,80 +523,99 @@ const bs = StyleSheet.create({
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: 'transparent' },
 
-  nav: {
-    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 10,
-    borderRadius: 20, borderWidth: 1.5,
+  // Header
+  header: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 12, paddingTop: 14, paddingBottom: 10,
   },
-  navArrow: { width: 38, height: 38, alignItems: 'center', justifyContent: 'center', borderRadius: 12 },
-  navArrowText: { fontSize: 26, fontWeight: '600' },
-  navArrowDisabled: { color: '#3D393525' },
-  navCenter: { flex: 1, alignItems: 'center' },
-  navTitle: { fontSize: 19, fontWeight: '700', color: '#3D3935', letterSpacing: -0.3 },
-  navSub: { fontSize: 11, color: '#3D3935', opacity: 0.35, marginTop: 1 },
+  arrowBtn: {
+    width: 38, height: 38, borderRadius: 19,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  headerCenter: { flex: 1, alignItems: 'center' },
+  headerTitle: { fontSize: 20, fontWeight: '800', letterSpacing: -0.4 },
+  headerSub: { fontSize: 11, marginTop: 1, opacity: 0.6 },
 
-  dayStrip: { paddingHorizontal: 14, paddingVertical: 10, gap: 7 },
+  // Day strip
+  stripScroll: { maxHeight: 82, flexGrow: 0 },
+  stripWrap: { paddingHorizontal: 14, paddingBottom: 10, gap: 7 },
   dayChip: {
-    width: 42, height: 62, paddingVertical: 8, alignItems: 'center', gap: 2,
-    borderRadius: 14, borderWidth: 1.5,
+    width: 44, height: 64, borderRadius: 16, borderWidth: 1.5,
+    borderColor: '#E8E4DF', alignItems: 'center', justifyContent: 'center',
+    gap: 3, paddingVertical: 10,
+    backgroundColor: '#FAFAF8',
   },
-  dayChipLetter: { fontSize: 10, fontWeight: '700', textTransform: 'uppercase' },
-  dayChipNum: { fontSize: 15, fontWeight: '700' },
-  dayDot: { width: 5, height: 5, borderRadius: 2.5, marginTop: 1 },
+  dayChipWkd: { fontSize: 10, fontWeight: '700', letterSpacing: 0.3 },
+  dayChipNum: { fontSize: 16, fontWeight: '700' },
+  dayDot: { width: 5, height: 5, borderRadius: 2.5 },
 
-  contextStrip: {
+  // Status bar
+  statusBar: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    paddingHorizontal: 16, paddingVertical: 8,
-    borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#F0EDE8',
+    paddingHorizontal: 16, paddingVertical: 7,
+    borderTopWidth: 1, borderBottomWidth: 1,
   },
-  statePill: {
+  cyclePill: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 10, paddingVertical: 4,
+    paddingHorizontal: 9, paddingVertical: 4,
     borderRadius: 20, borderWidth: 1,
   },
-  stateDot: { width: 7, height: 7, borderRadius: 3.5 },
-  stateText: { fontSize: 12, fontWeight: '600' },
-  moodText: { fontSize: 13, color: '#3D3935', opacity: 0.5 },
-  metaText: { fontSize: 11, color: '#3D3935', opacity: 0.3 },
-  lockBadge: { backgroundColor: '#E8DCC880', borderRadius: 8, paddingVertical: 3, paddingHorizontal: 8 },
-  lockText: { fontSize: 11, color: '#3D3935', opacity: 0.5, fontWeight: '500' },
+  cycleDot: { width: 6, height: 6, borderRadius: 3 },
+  cycleLabel: { fontSize: 11, fontWeight: '700' },
+  lockedBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, opacity: 0.5 },
+  lockedText: { fontSize: 11 },
+  metaText: { fontSize: 11, opacity: 0.6 },
 
-  editorScroll: { flexGrow: 1, paddingTop: 12, paddingBottom: 40 },
+  // Editor
+  editorScroll: { flexGrow: 1, paddingTop: 14, paddingBottom: 40 },
 
+  // Prompt card
   promptCard: {
-    marginHorizontal: 16, marginBottom: 16,
-    borderRadius: 16, borderWidth: 1.5, padding: 16,
+    marginHorizontal: 16, marginBottom: 14,
+    borderRadius: 14, borderWidth: 1.5, borderLeftWidth: 3,
+    padding: 14, paddingLeft: 16,
   },
-  promptHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+  promptTop: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
+  promptIcon: { fontSize: 18 },
   promptTitle: { fontSize: 14, fontWeight: '700' },
-  promptDismiss: { fontSize: 14, color: '#3D3935', opacity: 0.25 },
-  promptLine: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 7 },
-  promptArrow: { fontSize: 18, lineHeight: 22, fontWeight: '700' },
-  promptLineText: { fontSize: 14, color: '#3D3935', opacity: 0.6, lineHeight: 22, flex: 1 },
-  promptHint: { fontSize: 11, color: '#3D3935', opacity: 0.3, textAlign: 'center', marginTop: 10 },
-
-  toolbar: {
-    borderTopWidth: 1, borderTopColor: '#F0EDE8',
-    backgroundColor: '#FFFFFF', paddingVertical: 8,
+  promptLines: { gap: 2 },
+  promptLine: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingVertical: 8, paddingHorizontal: 2,
   },
-  toolbarInner: { paddingHorizontal: 12, gap: 8, alignItems: 'center' },
-  toolBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, paddingVertical: 8,
-    borderRadius: 10, borderWidth: 1.5, borderColor: '#E0DDD8',
-  },
-  toolIcon: { fontSize: 15, color: '#3D3935', opacity: 0.5, fontWeight: '600' },
-  toolLabel: { fontSize: 12, color: '#3D3935', opacity: 0.4, fontWeight: '500' },
-  toolSep: { width: 1, height: 24, backgroundColor: '#E0DDD8', marginHorizontal: 4 },
-  toolAddBtn: { paddingHorizontal: 14, paddingVertical: 8 },
-  toolAddText: { fontSize: 13, fontWeight: '600' },
+  promptLineDot: { width: 5, height: 5, borderRadius: 2.5, flexShrink: 0 },
+  promptLineText: { flex: 1, fontSize: 14, lineHeight: 20 },
+  promptHint: { fontSize: 11, textAlign: 'center', marginTop: 10, opacity: 0.5 },
 
-  blocksCard: {
+  // Paper / writing area
+  paper: {
     marginHorizontal: 16, marginBottom: 8,
-    borderRadius: 16, paddingVertical: 8,
-    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 2 },
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18, borderWidth: 1.5,
+    paddingVertical: 10, paddingBottom: 14,
+    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 12, shadowOffset: { width: 0, height: 3 },
     elevation: 2,
   },
+  addLineBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    marginHorizontal: 18, marginTop: 8, paddingVertical: 4,
+  },
+  addLineText: { fontSize: 12 },
 
-  emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  emptyText: { fontSize: 14, color: '#3D3935', opacity: 0.3 },
+  // Toolbar
+  toolbar: {
+    borderTopWidth: 1, backgroundColor: '#FFFFFF', paddingVertical: 9,
+  },
+  toolbarInner: { paddingHorizontal: 14, gap: 6, alignItems: 'center' },
+  toolBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 12, paddingVertical: 8,
+    borderRadius: 10, borderWidth: 1.5, borderColor: '#ECEAE6',
+  },
+  toolLabel: { fontSize: 12, fontWeight: '500' },
+
+  // Empty / future state
+  emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, paddingHorizontal: 40 },
+  emptyTitle: { fontSize: 16, fontWeight: '700', opacity: 0.4 },
+  emptyBody: { fontSize: 13, textAlign: 'center', opacity: 0.35, lineHeight: 20 },
 });
