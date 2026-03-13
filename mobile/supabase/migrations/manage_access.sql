@@ -54,3 +54,15 @@ CREATE POLICY "Patient cancels own requests"
 -- 5. Index for fast lookup of pending requests per patient
 CREATE INDEX IF NOT EXISTS idx_access_approval_patient_status
   ON access_approval_requests (patient_id, status);
+
+-- 6. Add AI access config to profiles
+ALTER TABLE profiles
+  ADD COLUMN IF NOT EXISTS ai_access jsonb DEFAULT '{
+    "share_cycle_data":true,
+    "share_journal":true,
+    "share_activities":true,
+    "share_medication":true,
+    "share_sleep":true,
+    "share_nutrition":true,
+    "share_workbook":true
+  }'::jsonb;

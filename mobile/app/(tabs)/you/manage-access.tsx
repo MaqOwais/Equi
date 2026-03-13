@@ -9,25 +9,23 @@ import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { useAuthStore } from '../../../stores/auth';
 import { seedTestConnections, clearTestConnections } from '../../../lib/test-seed';
-
-const IS_DEV = Constants.executionEnvironment === 'storeClient' || __DEV__;
 import {
   useAccessStore,
   SECTION_META,
-  WELL_WISHER_ALLOWED,
-  GUARDIAN_APPROVAL_SECTIONS,
+  ALL_SECTIONS,
+  AI_SECTIONS,
+  requiresApproval,
   type DataSection,
 } from '../../../stores/access';
 import type { Companion, PsychiatristConnection, AccessApprovalRequest } from '../../../types/database';
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const ALL_SECTIONS = Object.keys(SECTION_META) as DataSection[];
+const IS_DEV = Constants.executionEnvironment === 'storeClient' || __DEV__;
 
 const ROLE_COLORS = {
   psychiatrist: '#89B4CC',
   guardian:     '#A8C5A0',
   well_wisher:  '#C9A84C',
+  ai:           '#C4A0B0',
 };
 
 // ─── Pending Banner ───────────────────────────────────────────────────────────
@@ -68,34 +66,32 @@ function PendingBanner({
 function SectionRow({
   section,
   enabled,
-  disabled,
-  requiresApproval,
+  badgeLabel,
   hasPending,
   onToggle,
 }: {
   section: DataSection;
   enabled: boolean;
-  disabled?: boolean;
-  requiresApproval?: boolean;
+  badgeLabel?: string;
   hasPending?: boolean;
   onToggle: (value: boolean) => void;
 }) {
   const meta = SECTION_META[section];
   return (
-    <View style={[s.sectionRow, disabled && s.sectionRowDisabled]}>
+    <View style={s.sectionRow}>
       <Text style={s.sectionIcon}>{meta.icon}</Text>
       <View style={{ flex: 1 }}>
         <View style={s.sectionLabelRow}>
           <Text style={s.sectionLabel}>{meta.label}</Text>
-          {requiresApproval && (
+          {!!badgeLabel && !hasPending && (
             <View style={s.approvalBadge}>
-              <Ionicons name="shield-checkmark-outline" size={10} color="#C9A84C" />
-              <Text style={s.approvalBadgeText}>Needs approval</Text>
+              <Ionicons name="shield-checkmark-outline" size={9} color="#C9A84C" />
+              <Text style={s.approvalBadgeText}>{badgeLabel}</Text>
             </View>
           )}
           {hasPending && (
-            <View style={[s.approvalBadge, { backgroundColor: '#C9A84C15' }]}>
-              <Ionicons name="time-outline" size={10} color="#C9A84C" />
+            <View style={[s.approvalBadge, { backgroundColor: '#C9A84C20' }]}>
+              <Ionicons name="time-outline" size={9} color="#C9A84C" />
               <Text style={s.approvalBadgeText}>Pending</Text>
             </View>
           )}
@@ -108,7 +104,6 @@ function SectionRow({
         <Switch
           value={enabled}
           onValueChange={onToggle}
-          disabled={disabled}
           trackColor={{ true: '#A8C5A0', false: '#E0DDD8' }}
           thumbColor="#FFFFFF"
         />
@@ -137,7 +132,6 @@ function ConnectionCard({
   const [expanded, setExpanded] = useState(connected);
   const prevConnected = useRef(connected);
   useEffect(() => {
-    // Auto-expand when connection status changes from false → true (e.g. after seeding)
     if (!prevConnected.current && connected) setExpanded(true);
     prevConnected.current = connected;
   }, [connected]);
@@ -155,18 +149,13 @@ function ConnectionCard({
           <Text style={s.cardSubtitle}>{connected ? subtitle : 'Not connected'}</Text>
         </View>
         {connected ? (
-          <Ionicons
-            name={expanded ? 'chevron-up' : 'chevron-down'}
-            size={16}
-            color="#3D393560"
-          />
+          <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={16} color="#3D393560" />
         ) : (
           <TouchableOpacity style={[s.setupBtn, { borderColor: color }]} onPress={onSetup}>
             <Text style={[s.setupBtnText, { color }]}>Set up</Text>
           </TouchableOpacity>
         )}
       </TouchableOpacity>
-
       {connected && expanded && (
         <View style={s.cardBody}>{children}</View>
       )}
@@ -174,18 +163,66 @@ function ConnectionCard({
   );
 }
 
-// ─── Approval Confirm Sheet ───────────────────────────────────────────────────
+// ─── Confirm Sheet ────────────────────────────────────────────────────────────
+
+function ConfirmSheet({
+  visible,
+  section,
+  newValue,
+  roleLabel,
+  onConfirm,
+  onCancel,
+}: {
+  visible: boolean;
+  section: DataSection | null;
+  newValue: boolean;
+  roleLabel: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  if (!section) return null;
+  const meta = SECTION_META[section];
+  return (
+    <Modal visible={visible} transparent animationType="slide">
+      <Pressable style={s.backdrop} onPress={onCancel}>
+        <View style={s.sheet}>
+          <View style={[s.sheetIconWrap, { backgroundColor: newValue ? '#A8C5A015' : '#C4A0B015' }]}>
+            <Ionicons
+              name={newValue ? 'eye-outline' : 'eye-off-outline'}
+              size={26}
+              color={newValue ? '#A8C5A0' : '#C4A0B0'}
+            />
+          </View>
+          <Text style={s.sheetTitle}>
+            {newValue ? 'Enable' : 'Disable'} {meta.label}?
+          </Text>
+          <Text style={s.sheetBody}>
+            {newValue
+              ? `${roleLabel} will be able to see your ${meta.label.toLowerCase()} data.`
+              : `${roleLabel} will no longer see your ${meta.label.toLowerCase()} data.`}
+          </Text>
+          <TouchableOpacity style={s.sheetConfirm} onPress={onConfirm}>
+            <Text style={s.sheetConfirmText}>Confirm</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={s.sheetCancel} onPress={onCancel}>
+            <Text style={s.sheetCancelText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      </Pressable>
+    </Modal>
+  );
+}
+
+// ─── Approval Sheet ───────────────────────────────────────────────────────────
 
 function ApprovalSheet({
   visible,
   description,
-  approverLabel,
   onConfirm,
   onCancel,
 }: {
   visible: boolean;
   description: string;
-  approverLabel: string;
   onConfirm: () => void;
   onCancel: () => void;
 }) {
@@ -194,14 +231,13 @@ function ApprovalSheet({
       <Pressable style={s.backdrop} onPress={onCancel}>
         <View style={s.sheet}>
           <View style={s.sheetIconWrap}>
-            <Ionicons name="shield-checkmark-outline" size={28} color="#C9A84C" />
+            <Ionicons name="shield-checkmark-outline" size={26} color="#C9A84C" />
           </View>
-          <Text style={s.sheetTitle}>Approval required</Text>
+          <Text style={s.sheetTitle}>Guardian approval required</Text>
           <Text style={s.sheetBody}>
             <Text style={{ fontWeight: '600' }}>{description}</Text>
-            {'\n\n'}Your <Text style={{ fontWeight: '600' }}>{approverLabel}</Text> will
-            be notified and must approve this change before it takes effect. You can cancel
-            the request at any time.
+            {'\n\n'}Your guardian will be notified and must approve this before it takes effect.
+            You can cancel the request at any time.
           </Text>
           <TouchableOpacity style={s.sheetConfirm} onPress={onConfirm}>
             <Text style={s.sheetConfirmText}>Send for approval</Text>
@@ -217,105 +253,162 @@ function ApprovalSheet({
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
-export default function ManageAccessScreen() {
-  const router = useRouter();
-  const { session } = useAuthStore();
-  const userId = session?.user.id;
-  const store = useAccessStore();
+type ConfirmPending = {
+  section: DataSection;
+  newValue: boolean;
+  role: 'guardian' | 'well_wisher' | 'psychiatrist' | 'ai';
+  companionId?: string;
+  roleLabel: string;
+};
 
-  const [approvalSheet, setApprovalSheet] = useState<{
-    section: DataSection;
-    companionId: string;
-    value: boolean;
-    approverLabel: string;
-  } | null>(null);
+type ApprovalPending = {
+  section: DataSection;
+  value: boolean;
+  role: 'guardian' | 'well_wisher' | 'psychiatrist';
+  companionId?: string;
+};
+
+export default function ManageAccessScreen() {
+  const router    = useRouter();
+  const { session } = useAuthStore();
+  const userId    = session?.user.id;
+  const store     = useAccessStore();
+
+  const [confirmPending, setConfirmPending] = useState<ConfirmPending | null>(null);
+  const [approvalPending, setApprovalPending] = useState<ApprovalPending | null>(null);
 
   useEffect(() => {
     if (userId) store.load(userId);
   }, [userId]);
 
-  // Build a set of pending section+companion pairs for quick lookup
+  // Pending keys for quick lookup
   const pendingKeys = new Set(
     store.pendingRequests.map((r) => {
       const section = Object.keys(r.new_value ?? {})[0];
       return `${r.approver_companion_id}:${section}`;
     }),
   );
-
-  function isPendingFor(companionId: string, section: DataSection) {
-    return pendingKeys.has(`${companionId}:${section}`);
+  function isPendingFor(companionId: string | undefined, section: DataSection) {
+    return companionId ? pendingKeys.has(`${companionId}:${section}`) : false;
   }
 
-  async function handleCompanionToggle(companion: Companion, section: DataSection, value: boolean) {
-    if (!userId) return;
-    const needsApprovalCheck = companion.role === 'guardian' && GUARDIAN_APPROVAL_SECTIONS.includes(section);
+  // ── Toggle entry point (opens confirm sheet) ──
+  function handleToggle(
+    section: DataSection,
+    newValue: boolean,
+    role: 'guardian' | 'well_wisher' | 'psychiatrist' | 'ai',
+    roleLabel: string,
+    companionId?: string,
+  ) {
+    setConfirmPending({ section, newValue, role, companionId, roleLabel });
+  }
 
-    if (needsApprovalCheck) {
-      setApprovalSheet({
-        section,
-        companionId: companion.id,
-        value,
-        approverLabel: 'guardian',
-      });
+  // ── After confirm ──
+  async function handleConfirmed() {
+    if (!confirmPending || !userId) { setConfirmPending(null); return; }
+    const { section, newValue, role, companionId } = confirmPending;
+    setConfirmPending(null);
+
+    if (role === 'ai') {
+      await store.toggleAiSection(section, newValue, userId);
       return;
     }
 
-    await store.toggleCompanionSection(companion.id, section, value, userId);
+    const activeGuardian = store.guardians.find((g) => g.status === 'accepted');
+    const needsApproval  = requiresApproval(role, newValue) && !!activeGuardian;
+
+    if (needsApproval) {
+      setApprovalPending({ section, value: newValue, role, companionId });
+      return;
+    }
+
+    // Apply immediately
+    if (role === 'psychiatrist' && store.psychiatristConn) {
+      await store.togglePsychiatristSection(store.psychiatristConn.id, section, newValue);
+    } else if (companionId) {
+      await store.toggleCompanionSection(companionId, section, newValue, userId);
+    }
   }
 
-  async function handleApprovalConfirm() {
-    if (!approvalSheet || !userId) return;
-    await store.toggleCompanionSection(
-      approvalSheet.companionId,
-      approvalSheet.section,
-      approvalSheet.value,
-      userId,
-    );
-    setApprovalSheet(null);
+  // ── After approval confirmed ──
+  async function handleApprovalConfirmed() {
+    if (!approvalPending || !userId) { setApprovalPending(null); return; }
+    const { section, value, role, companionId } = approvalPending;
+    const activeGuardian = store.guardians.find((g) => g.status === 'accepted');
+    setApprovalPending(null);
+
+    if (role === 'psychiatrist' && store.psychiatristConn) {
+      await store.submitApprovalRequest({
+        userId,
+        requestType: 'access_change',
+        approverRole: 'guardian',
+        approverCompanionId: activeGuardian?.id ?? null,
+        description: `${value ? 'Enable' : 'Disable'} ${SECTION_META[section].label} access for your psychiatrist`,
+        oldValue: { [section]: !value },
+        newValue:  { [section]: value },
+      });
+    } else if (companionId) {
+      await store.toggleCompanionSection(companionId, section, value, userId);
+    }
   }
 
-  async function handleCancelRequest(requestId: string) {
+  function handleCancelRequest(requestId: string) {
     Alert.alert('Cancel request?', 'The change will not be applied.', [
       { text: 'Keep waiting', style: 'cancel' },
-      { text: 'Cancel request', style: 'destructive', onPress: () => store.cancelRequest(requestId) },
+      {
+        text: 'Cancel request', style: 'destructive',
+        onPress: () => store.cancelRequest(requestId),
+      },
     ]);
   }
 
+  // ── Render section list ──
   function renderSections(
     conn: Companion | PsychiatristConnection,
-    isPsychiatrist: boolean,
-    companionObj?: Companion,
+    role: 'guardian' | 'well_wisher' | 'psychiatrist',
+    roleLabel: string,
   ) {
-    const sections = isPsychiatrist
-      ? ALL_SECTIONS
-      : companionObj?.role === 'well_wisher'
-        ? WELL_WISHER_ALLOWED
-        : ALL_SECTIONS;
+    const companionId = role !== 'psychiatrist' ? (conn as Companion).id : undefined;
+    return ALL_SECTIONS.map((section, idx) => {
+      const isLast     = idx === ALL_SECTIONS.length - 1;
+      const enabled    = !!(conn as Record<string, unknown>)[section];
+      const hasPending = isPendingFor(companionId, section);
 
-    return sections.map((section, idx) => {
-      const isLast = idx === sections.length - 1;
-      const enabled = !!(conn as Record<string, unknown>)[section];
-      const companionId = (conn as Companion).id;
-      const hasPending = !isPsychiatrist && isPendingFor(companionId, section);
-      const requiresApproval =
-        !isPsychiatrist &&
-        companionObj?.role === 'guardian' &&
-        GUARDIAN_APPROVAL_SECTIONS.includes(section);
+      // Show approval badge on the section that WOULD trigger approval on next toggle
+      const nextValueWouldNeedApproval = requiresApproval(role, !enabled);
+      let badgeLabel: string | undefined;
+      if (nextValueWouldNeedApproval) {
+        badgeLabel = role === 'psychiatrist' ? 'Guardian approval' : 'Needs approval';
+      }
 
       return (
         <View key={section}>
           <SectionRow
             section={section}
             enabled={enabled}
-            requiresApproval={requiresApproval}
+            badgeLabel={badgeLabel}
             hasPending={hasPending}
-            onToggle={(value) => {
-              if (isPsychiatrist) {
-                store.togglePsychiatristSection((conn as PsychiatristConnection).id, section, value);
-              } else if (companionObj) {
-                handleCompanionToggle(companionObj, section, value);
-              }
-            }}
+            onToggle={(value) =>
+              handleToggle(section, value, role, roleLabel, companionId)
+            }
+          />
+          {!isLast && <View style={s.sectionDivider} />}
+        </View>
+      );
+    });
+  }
+
+  // ── AI section list ──
+  function renderAiSections() {
+    return AI_SECTIONS.map((section, idx) => {
+      const isLast  = idx === AI_SECTIONS.length - 1;
+      const enabled = store.aiAccess[section];
+      return (
+        <View key={section}>
+          <SectionRow
+            section={section}
+            enabled={enabled}
+            onToggle={(value) => handleToggle(section, value, 'ai', 'AI report')}
           />
           {!isLast && <View style={s.sectionDivider} />}
         </View>
@@ -335,7 +428,6 @@ export default function ManageAccessScreen() {
     <SafeAreaView style={s.safe} edges={['left', 'right']}>
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
 
-        {/* Nav */}
         <View style={s.nav}>
           <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
             <Ionicons name="arrow-back" size={18} color="#A8C5A0" />
@@ -345,40 +437,33 @@ export default function ManageAccessScreen() {
 
         <Text style={s.title}>Manage Access</Text>
         <Text style={s.subtitle}>
-          Control exactly what each person in your care network can see. Changes to sensitive
-          sections require approval from your guardian or psychiatrist.
+          Control exactly what each person — and the AI — can see. All changes ask
+          for confirmation. Sensitive changes go through guardian approval.
         </Text>
 
-        {/* Pending approvals */}
         <PendingBanner requests={store.pendingRequests} onCancel={handleCancelRequest} />
 
         {/* ── Psychiatrist ─────────────────────────────────────────────────── */}
         <Text style={s.sectionHeading}>PSYCHIATRIST</Text>
+        <Text style={s.roleIntro}>All changes require your guardian's approval.</Text>
         <ConnectionCard
           title="Your psychiatrist"
-          subtitle={store.psychiatristConn ? 'Connected via Equi' : ''}
+          subtitle="Connected via Equi"
           color={ROLE_COLORS.psychiatrist}
           connected={!!store.psychiatristConn}
           onSetup={() => router.push('/psychiatrists')}
         >
           {store.psychiatristConn && (
-            <>
-              <Text style={s.roleNote}>
-                Your psychiatrist has full clinical access by default. You can restrict sections below.
-                Medication changes always notify your psychiatrist regardless of these settings.
-              </Text>
-              <View style={s.sectionList}>
-                {renderSections(store.psychiatristConn, true)}
-              </View>
-            </>
+            <View style={s.sectionList}>
+              {renderSections(store.psychiatristConn, 'psychiatrist', 'Psychiatrist')}
+            </View>
           )}
         </ConnectionCard>
 
         {/* ── Guardian ─────────────────────────────────────────────────────── */}
         <Text style={[s.sectionHeading, { marginTop: 24 }]}>GUARDIAN</Text>
         <Text style={s.roleIntro}>
-          A trusted person (partner, family) who can receive alerts and act on your behalf.
-          Changes to sensitive sections require their approval.
+          Turning access OFF requires your guardian's approval.
         </Text>
         {store.guardians.length === 0 ? (
           <TouchableOpacity
@@ -395,25 +480,22 @@ export default function ManageAccessScreen() {
             <ConnectionCard
               key={g.id}
               title={g.invite_email ?? 'Guardian'}
-              subtitle={g.status === 'pending' ? 'Invite pending' : 'Connected'}
+              subtitle={g.status === 'accepted' ? 'Connected' : 'Invite pending'}
               color={ROLE_COLORS.guardian}
               connected={g.status === 'accepted'}
               onSetup={() => router.push('/(tabs)/you/support-network')}
             >
-              <Text style={s.roleNote}>
-                Changing journal, workbook, or medication access requires your guardian's approval.
-              </Text>
               <View style={s.sectionList}>
-                {renderSections(g, false, g)}
+                {renderSections(g, 'guardian', g.invite_email ?? 'Guardian')}
               </View>
             </ConnectionCard>
           ))
         )}
 
-        {/* ── Well-wisher ───────────────────────────────────────────────────── */}
+        {/* ── Well-wishers ──────────────────────────────────────────────────── */}
         <Text style={[s.sectionHeading, { marginTop: 24 }]}>WELL-WISHERS</Text>
         <Text style={s.roleIntro}>
-          Friends and family who offer support. Limited to a simplified view — never raw clinical data.
+          Turning access ON requires your guardian's approval.
         </Text>
         {store.wellWishers.length === 0 ? (
           <TouchableOpacity
@@ -430,34 +512,50 @@ export default function ManageAccessScreen() {
             <ConnectionCard
               key={w.id}
               title={w.invite_email ?? 'Well-wisher'}
-              subtitle={w.status === 'pending' ? 'Invite pending' : 'Connected'}
+              subtitle={w.status === 'accepted' ? 'Connected' : 'Invite pending'}
               color={ROLE_COLORS.well_wisher}
               connected={w.status === 'accepted'}
               onSetup={() => router.push('/(tabs)/you/support-network')}
             >
-              <Text style={s.roleNote}>
-                Well-wishers see a simplified view. Cycle tracker is shared by default.
-                Journal, workbook, and medications are never accessible to well-wishers.
-              </Text>
               <View style={s.sectionList}>
-                {renderSections(w, false, w)}
+                {renderSections(w, 'well_wisher', w.invite_email ?? 'Well-wisher')}
               </View>
             </ConnectionCard>
           ))
         )}
 
-        {/* ── How approvals work ────────────────────────────────────────────── */}
+        {/* ── AI Access ─────────────────────────────────────────────────────── */}
+        <Text style={[s.sectionHeading, { marginTop: 24 }]}>AI REPORT ACCESS</Text>
+        <Text style={s.roleIntro}>
+          Choose which data the AI uses when generating your weekly wellness report.
+        </Text>
+        <View style={[s.card, { borderLeftColor: ROLE_COLORS.ai, borderLeftWidth: 3 }]}>
+          <View style={s.cardHeader}>
+            <View style={[s.cardDot, { backgroundColor: ROLE_COLORS.ai }]} />
+            <View style={{ flex: 1 }}>
+              <Text style={s.cardTitle}>AI Wellness Report</Text>
+              <Text style={s.cardSubtitle}>Zero data retention · Groq API</Text>
+            </View>
+            <Ionicons name="sparkles-outline" size={18} color={ROLE_COLORS.ai} />
+          </View>
+          <View style={s.cardBody}>
+            <View style={s.sectionList}>
+              {renderAiSections()}
+            </View>
+          </View>
+        </View>
+
+        {/* ── Info box ──────────────────────────────────────────────────────── */}
         <View style={s.infoBox}>
           <Ionicons name="information-circle-outline" size={16} color="#89B4CC" />
           <Text style={s.infoText}>
-            <Text style={{ fontWeight: '700' }}>How approvals work</Text>{'\n'}
-            When you request a change that needs approval, your guardian or psychiatrist receives
-            a notification. The change stays pending until they respond. You can cancel a pending
-            request at any time — your current setting remains in place until then.
+            <Text style={{ fontWeight: '700' }}>How approvals work{'\n'}</Text>
+            When a change needs approval, your guardian gets a notification. The setting
+            stays unchanged until they respond. You can cancel a pending request at any time.
           </Text>
         </View>
 
-        {/* ── Dev seed panel (dev builds only) ──────────────────────────── */}
+        {/* ── Dev seed ──────────────────────────────────────────────────────── */}
         {IS_DEV && (
           <View style={s.devPanel}>
             <Text style={s.devPanelTitle}>🛠  DEV — Test Connections</Text>
@@ -475,7 +573,7 @@ export default function ManageAccessScreen() {
                   const { ok, error } = await seedTestConnections(userId);
                   if (ok) {
                     await store.load(userId);
-                    Alert.alert('Seeded ✓', '3 test connections added. Reload to see them.');
+                    Alert.alert('Seeded ✓', '3 test connections added.');
                   } else {
                     Alert.alert('Seed failed', error ?? 'Unknown error');
                   }
@@ -487,17 +585,14 @@ export default function ManageAccessScreen() {
                 style={s.devClearBtn}
                 onPress={async () => {
                   if (!userId) return;
-                  Alert.alert('Clear test data?', 'Removes all 3 test connections and pending requests.', [
+                  Alert.alert('Clear test data?', '', [
                     { text: 'Cancel', style: 'cancel' },
                     {
                       text: 'Clear', style: 'destructive',
                       onPress: async () => {
                         const { ok, error } = await clearTestConnections(userId);
-                        if (ok) {
-                          await store.load(userId);
-                        } else {
-                          Alert.alert('Clear failed', error ?? 'Unknown error');
-                        }
+                        if (ok) { await store.load(userId); }
+                        else { Alert.alert('Clear failed', error ?? 'Unknown error'); }
                       },
                     },
                   ]);
@@ -512,17 +607,26 @@ export default function ManageAccessScreen() {
         <View style={{ height: 48 }} />
       </ScrollView>
 
-      {/* Approval confirmation sheet */}
+      {/* Confirm sheet — step 1 */}
+      <ConfirmSheet
+        visible={!!confirmPending}
+        section={confirmPending?.section ?? null}
+        newValue={confirmPending?.newValue ?? false}
+        roleLabel={confirmPending?.roleLabel ?? ''}
+        onConfirm={handleConfirmed}
+        onCancel={() => setConfirmPending(null)}
+      />
+
+      {/* Approval sheet — step 2 (only when guardian approval needed) */}
       <ApprovalSheet
-        visible={!!approvalSheet}
+        visible={!!approvalPending}
         description={
-          approvalSheet
-            ? `${approvalSheet.value ? 'Enable' : 'Disable'} ${SECTION_META[approvalSheet.section].label} access`
+          approvalPending
+            ? `${approvalPending.value ? 'Enable' : 'Disable'} ${SECTION_META[approvalPending.section].label} access`
             : ''
         }
-        approverLabel={approvalSheet?.approverLabel ?? 'guardian'}
-        onConfirm={handleApprovalConfirm}
-        onCancel={() => setApprovalSheet(null)}
+        onConfirm={handleApprovalConfirmed}
+        onCancel={() => setApprovalPending(null)}
       />
     </SafeAreaView>
   );
@@ -543,11 +647,11 @@ const s = StyleSheet.create({
 
   sectionHeading: {
     fontSize: 10, fontWeight: '800', color: '#3D3935', opacity: 0.35,
-    letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 8,
+    letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 4,
   },
-  roleIntro: { fontSize: 12, color: '#3D3935', opacity: 0.4, lineHeight: 17, marginBottom: 10 },
+  roleIntro: { fontSize: 12, color: '#3D3935', opacity: 0.4, lineHeight: 17, marginBottom: 8 },
 
-  // ── Pending Banner ──
+  // Pending banner
   pendingBanner: {
     backgroundColor: '#C9A84C10', borderRadius: 14, padding: 14,
     borderWidth: 1, borderColor: '#C9A84C30', marginBottom: 20,
@@ -563,41 +667,25 @@ const s = StyleSheet.create({
   pendingCancelBtn: { paddingHorizontal: 10, paddingVertical: 4 },
   pendingCancelText: { fontSize: 12, color: '#C4A0B0', fontWeight: '600' },
 
-  // ── Cards ──
+  // Cards
   card: {
     backgroundColor: '#FFFFFF', borderRadius: 16, marginBottom: 10,
     shadowColor: '#3D3935', shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06, shadowRadius: 6, elevation: 2,
     overflow: 'hidden',
   },
-  cardHeader: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    padding: 16,
-  },
-  cardDot:     { width: 9, height: 9, borderRadius: 5 },
-  cardTitle:   { fontSize: 14, fontWeight: '700', color: '#3D3935' },
-  cardSubtitle:{ fontSize: 12, color: '#3D3935', opacity: 0.4, marginTop: 1 },
-  cardBody:    { paddingHorizontal: 16, paddingBottom: 16 },
+  cardHeader:   { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 16 },
+  cardDot:      { width: 9, height: 9, borderRadius: 5 },
+  cardTitle:    { fontSize: 14, fontWeight: '700', color: '#3D3935' },
+  cardSubtitle: { fontSize: 12, color: '#3D3935', opacity: 0.4, marginTop: 1 },
+  cardBody:     { paddingHorizontal: 16, paddingBottom: 16 },
 
-  setupBtn: {
-    borderWidth: 1.5, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 5,
-  },
+  setupBtn:     { borderWidth: 1.5, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 5 },
   setupBtnText: { fontSize: 12, fontWeight: '600' },
 
-  roleNote: {
-    fontSize: 12, color: '#3D3935', opacity: 0.4, lineHeight: 17,
-    marginBottom: 12, fontStyle: 'italic',
-  },
-
-  // ── Section List ──
-  sectionList: {
-    backgroundColor: '#F7F3EE', borderRadius: 12, overflow: 'hidden',
-  },
-  sectionRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingHorizontal: 12, paddingVertical: 10,
-  },
-  sectionRowDisabled: { opacity: 0.4 },
+  // Section list
+  sectionList:  { backgroundColor: '#F7F3EE', borderRadius: 12, overflow: 'hidden' },
+  sectionRow:   { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 10 },
   sectionIcon:  { fontSize: 16, width: 22, textAlign: 'center' },
   sectionLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
   sectionLabel: { fontSize: 13, fontWeight: '600', color: '#3D3935' },
@@ -611,7 +699,7 @@ const s = StyleSheet.create({
   },
   approvalBadgeText: { fontSize: 9, fontWeight: '700', color: '#C9A84C' },
 
-  // ── Empty state ──
+  // Empty state
   emptyCard: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     borderWidth: 1.5, borderRadius: 14, borderStyle: 'dashed',
@@ -619,7 +707,7 @@ const s = StyleSheet.create({
   },
   emptyCardText: { fontSize: 13, fontWeight: '600' },
 
-  // ── Info box ──
+  // Info box
   infoBox: {
     flexDirection: 'row', gap: 10, marginTop: 24,
     backgroundColor: '#89B4CC10', borderRadius: 14,
@@ -627,7 +715,7 @@ const s = StyleSheet.create({
   },
   infoText: { flex: 1, fontSize: 12, color: '#3D3935', opacity: 0.6, lineHeight: 18 },
 
-  // ── Approval sheet ──
+  // Sheets (shared by Confirm + Approval)
   backdrop: { flex: 1, backgroundColor: '#00000035', justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24,
@@ -638,33 +726,24 @@ const s = StyleSheet.create({
     backgroundColor: '#C9A84C15', alignItems: 'center', justifyContent: 'center',
     marginBottom: 14,
   },
-  sheetTitle:  { fontSize: 18, fontWeight: '800', color: '#3D3935', marginBottom: 10 },
-  sheetBody:   { fontSize: 14, color: '#3D3935', opacity: 0.6, lineHeight: 22, textAlign: 'center', marginBottom: 24 },
-  sheetConfirm: {
-    backgroundColor: '#A8C5A0', borderRadius: 14, paddingVertical: 14,
-    alignItems: 'center', width: '100%', marginBottom: 10,
-  },
+  sheetTitle:       { fontSize: 18, fontWeight: '800', color: '#3D3935', marginBottom: 10 },
+  sheetBody:        { fontSize: 14, color: '#3D3935', opacity: 0.6, lineHeight: 22, textAlign: 'center', marginBottom: 24 },
+  sheetConfirm:     { backgroundColor: '#A8C5A0', borderRadius: 14, paddingVertical: 14, alignItems: 'center', width: '100%', marginBottom: 10 },
   sheetConfirmText: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
-  sheetCancel:  { paddingVertical: 10, alignItems: 'center', width: '100%' },
-  sheetCancelText: { fontSize: 14, color: '#3D3935', opacity: 0.4, fontWeight: '500' },
+  sheetCancel:      { paddingVertical: 10, alignItems: 'center', width: '100%' },
+  sheetCancelText:  { fontSize: 14, color: '#3D3935', opacity: 0.4, fontWeight: '500' },
 
-  // ── Dev panel ──
+  // Dev panel
   devPanel: {
     marginTop: 32, borderRadius: 14, borderWidth: 1.5,
     borderColor: '#C9A84C50', borderStyle: 'dashed',
     backgroundColor: '#C9A84C08', padding: 14,
   },
-  devPanelTitle: { fontSize: 12, fontWeight: '800', color: '#C9A84C', marginBottom: 6 },
-  devPanelSub: { fontSize: 11, color: '#3D3935', opacity: 0.5, lineHeight: 17, marginBottom: 12 },
-  devBtnRow:    { flexDirection: 'row', gap: 8 },
-  devSeedBtn: {
-    flex: 1, backgroundColor: '#C9A84C', borderRadius: 10,
-    paddingVertical: 10, alignItems: 'center',
-  },
-  devSeedBtnText: { fontSize: 13, fontWeight: '700', color: '#FFFFFF' },
-  devClearBtn: {
-    paddingHorizontal: 16, borderRadius: 10, borderWidth: 1.5,
-    borderColor: '#C4A0B0', paddingVertical: 10, alignItems: 'center',
-  },
+  devPanelTitle:   { fontSize: 12, fontWeight: '800', color: '#C9A84C', marginBottom: 6 },
+  devPanelSub:     { fontSize: 11, color: '#3D3935', opacity: 0.5, lineHeight: 17, marginBottom: 12 },
+  devBtnRow:       { flexDirection: 'row', gap: 8 },
+  devSeedBtn:      { flex: 1, backgroundColor: '#C9A84C', borderRadius: 10, paddingVertical: 10, alignItems: 'center' },
+  devSeedBtnText:  { fontSize: 13, fontWeight: '700', color: '#FFFFFF' },
+  devClearBtn:     { paddingHorizontal: 16, borderRadius: 10, borderWidth: 1.5, borderColor: '#C4A0B0', paddingVertical: 10, alignItems: 'center' },
   devClearBtnText: { fontSize: 13, fontWeight: '600', color: '#C4A0B0' },
 });

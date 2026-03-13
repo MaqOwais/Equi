@@ -19,85 +19,79 @@ const TEST_GUARDIAN_ID     = '00000000-0000-4000-a000-000000000003';
 const TEST_WELLWISHER_ID   = '00000000-0000-4000-a000-000000000004';
 
 export async function seedTestConnections(userId: string): Promise<{ ok: boolean; error?: string }> {
-  try {
-    // 1. Upsert a test psychiatrist record
-    await supabase.from('psychiatrists').upsert({
-      id:                          TEST_PSYCHIATRIST_ID,
-      npi_number:                  'TEST-NPI-001',
-      name:                        'Dr. Test Psychiatrist',
-      credentials:                 'MD, Test Account',
-      bio:                         'This is a test psychiatrist account for development.',
-      offers_telehealth:           true,
-      offers_in_person:            false,
-      is_equi_partner:             true,
-      activity_prescribing_enabled:true,
-      profile_visible:             false,   // hidden from real directory
-      verified_at:                 new Date().toISOString(),
-    }, { onConflict: 'id' });
+  // 1. Upsert a test psychiatrist record
+  const { error: e1 } = await supabase.from('psychiatrists').upsert({
+    id:                           TEST_PSYCHIATRIST_ID,
+    npi_number:                   'TEST-NPI-001',
+    name:                         'Dr. Test Psychiatrist',
+    credentials:                  'MD, Test Account',
+    bio:                          'This is a test psychiatrist account for development.',
+    offers_telehealth:            true,
+    offers_in_person:             false,
+    is_equi_partner:              true,
+    activity_prescribing_enabled: true,
+    profile_visible:              false,
+    verified_at:                  new Date().toISOString(),
+  }, { onConflict: 'id' });
+  if (e1) return { ok: false, error: `psychiatrists: ${e1.message}` };
 
-    // 2. Upsert the psychiatrist connection (pre-accepted)
-    await supabase.from('psychiatrist_connections').upsert({
-      id:                TEST_PSYCH_CONN_ID,
-      patient_id:        userId,
-      psychiatrist_id:   TEST_PSYCHIATRIST_ID,
-      status:            'accepted',
-      share_cycle_data:  true,
-      share_journal:     true,
-      share_activities:  true,
-      share_ai_report:   true,
-      share_medication:  true,
-      share_sleep:       true,
-      share_nutrition:   false,
-      share_workbook:    false,
-      connected_at:      new Date().toISOString(),
-    }, { onConflict: 'id' });
+  // 2. Upsert the psychiatrist connection — core fields only
+  const { error: e2 } = await supabase.from('psychiatrist_connections').upsert({
+    id:              TEST_PSYCH_CONN_ID,
+    patient_id:      userId,
+    psychiatrist_id: TEST_PSYCHIATRIST_ID,
+    status:          'accepted',
+    connected_at:    new Date().toISOString(),
+  }, { onConflict: 'id' });
+  if (e2) return { ok: false, error: `psychiatrist_connections: ${e2.message}` };
+  // share_* columns (best-effort — requires migration to be run)
+  await supabase.from('psychiatrist_connections').update({
+    share_cycle_data: true, share_journal: true, share_activities: true,
+    share_ai_report: true, share_medication: true, share_sleep: true,
+    share_nutrition: false, share_workbook: false,
+  }).eq('id', TEST_PSYCH_CONN_ID);
 
-    // 3. Upsert guardian companion (pre-accepted)
-    await supabase.from('companions').upsert({
-      id:                   TEST_GUARDIAN_ID,
-      patient_id:           userId,
-      companion_id:         null,
-      role:                 'guardian',
-      guardian_level:       'alert_on_risk',
-      status:               'accepted',
-      invite_email:         'test.guardian@equi.dev',
-      share_mood_summaries: true,
-      share_cycle_data:     true,
-      share_journal:        false,
-      share_activities:     true,
-      share_ai_report:      true,
-      share_medication:     true,
-      share_sleep:          true,
-      share_nutrition:      false,
-      share_workbook:       false,
-      access_expires_at:    null,
-    }, { onConflict: 'id' });
+  // 3. Upsert guardian companion — core fields only
+  const { error: e3 } = await supabase.from('companions').upsert({
+    id:                   TEST_GUARDIAN_ID,
+    patient_id:           userId,
+    companion_id:         null,
+    role:                 'guardian',
+    guardian_level:       'alert_on_risk',
+    status:               'accepted',
+    invite_email:         'test.guardian@equi.dev',
+    share_mood_summaries: true,
+    share_cycle_data:     true,
+  }, { onConflict: 'id' });
+  if (e3) return { ok: false, error: `companions (guardian): ${e3.message}` };
+  // share_* columns (best-effort — requires migration)
+  await supabase.from('companions').update({
+    share_journal: false, share_activities: true, share_ai_report: true,
+    share_medication: true, share_sleep: true, share_nutrition: false,
+    share_workbook: false, access_expires_at: null,
+  }).eq('id', TEST_GUARDIAN_ID);
 
-    // 4. Upsert well-wisher companion (pre-accepted)
-    await supabase.from('companions').upsert({
-      id:                   TEST_WELLWISHER_ID,
-      patient_id:           userId,
-      companion_id:         null,
-      role:                 'well_wisher',
-      guardian_level:       null,
-      status:               'accepted',
-      invite_email:         'test.wellwisher@equi.dev',
-      share_mood_summaries: true,
-      share_cycle_data:     true,
-      share_journal:        false,
-      share_activities:     false,
-      share_ai_report:      false,
-      share_medication:     false,
-      share_sleep:          false,
-      share_nutrition:      false,
-      share_workbook:       false,
-      access_expires_at:    null,
-    }, { onConflict: 'id' });
+  // 4. Upsert well-wisher companion — core fields only
+  const { error: e4 } = await supabase.from('companions').upsert({
+    id:                   TEST_WELLWISHER_ID,
+    patient_id:           userId,
+    companion_id:         null,
+    role:                 'well_wisher',
+    guardian_level:       null,
+    status:               'accepted',
+    invite_email:         'test.wellwisher@equi.dev',
+    share_mood_summaries: true,
+    share_cycle_data:     true,
+  }, { onConflict: 'id' });
+  if (e4) return { ok: false, error: `companions (well-wisher): ${e4.message}` };
+  // share_* columns (best-effort — requires migration)
+  await supabase.from('companions').update({
+    share_journal: false, share_activities: false, share_ai_report: false,
+    share_medication: false, share_sleep: false, share_nutrition: false,
+    share_workbook: false, access_expires_at: null,
+  }).eq('id', TEST_WELLWISHER_ID);
 
-    return { ok: true };
-  } catch (e: unknown) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
-  }
+  return { ok: true };
 }
 
 export async function clearTestConnections(userId: string): Promise<{ ok: boolean; error?: string }> {
