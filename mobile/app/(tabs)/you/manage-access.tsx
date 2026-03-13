@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { useAuthStore } from '../../../stores/auth';
 import { seedTestConnections, clearTestConnections } from '../../../lib/test-seed';
+import { useCompanionStore } from '../../../stores/companion';
 import {
   useAccessStore,
   SECTION_META,
@@ -334,19 +335,27 @@ export default function ManageAccessScreen() {
   async function handleApprovalConfirmed() {
     if (!approvalPending || !userId) { setApprovalPending(null); return; }
     const { section, value, role, companionId } = approvalPending;
-    const activeGuardian = store.guardians.find((g) => g.status === 'accepted');
+    const activeGuardians = store.guardians.filter((g) => g.status === 'accepted');
     setApprovalPending(null);
 
     if (role === 'psychiatrist' && store.psychiatristConn) {
-      await store.submitApprovalRequest({
-        userId,
-        requestType: 'access_change',
-        approverRole: 'guardian',
-        approverCompanionId: activeGuardian?.id ?? null,
-        description: `${value ? 'Enable' : 'Disable'} ${SECTION_META[section].label} access for your psychiatrist`,
-        oldValue: { [section]: !value },
-        newValue:  { [section]: value },
-      });
+      if (activeGuardians.length === 0) {
+        // No guardian — apply immediately
+        await store.togglePsychiatristSection(store.psychiatristConn.id, section, value);
+      } else {
+        // Notify ALL active guardians
+        await Promise.all(activeGuardians.map((g) =>
+          store.submitApprovalRequest({
+            userId,
+            requestType: 'access_change',
+            approverRole: 'guardian',
+            approverCompanionId: g.id,
+            description: `${value ? 'Enable' : 'Disable'} ${SECTION_META[section].label} access for your psychiatrist`,
+            oldValue: { [section]: !value },
+            newValue:  { [section]: value },
+          }),
+        ));
+      }
     } else if (companionId) {
       await store.toggleCompanionSection(companionId, section, value, userId);
     }
@@ -571,12 +580,48 @@ export default function ManageAccessScreen() {
                 onPress={async () => {
                   if (!userId) return;
                   const { ok, error } = await seedTestConnections(userId);
-                  if (ok) {
-                    await store.load(userId);
-                    Alert.alert('Seeded ✓', '3 test connections added.');
-                  } else {
+                  if (!ok) {
                     Alert.alert('Seed failed', error ?? 'Unknown error');
+                    return;
                   }
+                  // Reload companions + requests from DB
+                  await store.load(userId);
+                  // Inject "watching over" connection so You tab shows the section immediately
+                  useCompanionStore.setState({
+                    watching: [{
+                      companion: {
+                        id:           '00000000-0000-4000-a000-000000000006',
+                        patient_id:   '00000000-0000-4000-a000-000000000005',
+                        companion_id: userId,
+                        role:         'guardian',
+                        status:       'accepted',
+                        share_cycle_data: true,
+                      } as never,
+                      patientId:   '00000000-0000-4000-a000-000000000005',
+                      patientName: 'Alex (test patient)',
+                      cycleState:  'stable',
+                    }],
+                  });
+                  // Inject psychiatrist connection directly into store state
+                  // (bypasses psychiatrists FK / RLS for dev testing)
+                  useAccessStore.setState({
+                    psychiatristConn: {
+                      id:               '00000000-0000-4000-a000-000000000002',
+                      patient_id:       userId,
+                      psychiatrist_id:  '00000000-0000-4000-a000-000000000001',
+                      status:           'accepted',
+                      connected_at:     new Date().toISOString(),
+                      share_cycle_data: true,
+                      share_journal:    true,
+                      share_activities: true,
+                      share_ai_report:  true,
+                      share_medication: true,
+                      share_sleep:      true,
+                      share_nutrition:  false,
+                      share_workbook:   false,
+                    } as never,
+                  });
+                  Alert.alert('Seeded ✓', '3 test connections added.');
                 }}
               >
                 <Text style={s.devSeedBtnText}>Seed test data</Text>
@@ -591,8 +636,13 @@ export default function ManageAccessScreen() {
                       text: 'Clear', style: 'destructive',
                       onPress: async () => {
                         const { ok, error } = await clearTestConnections(userId);
-                        if (ok) { await store.load(userId); }
-                        else { Alert.alert('Clear failed', error ?? 'Unknown error'); }
+                        if (ok) {
+                          await store.load(userId);
+                          useAccessStore.setState({ psychiatristConn: null });
+                          useCompanionStore.setState({ watching: [] });
+                        } else {
+                          Alert.alert('Clear failed', error ?? 'Unknown error');
+                        }
                       },
                     },
                   ]);

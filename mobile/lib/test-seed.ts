@@ -13,10 +13,13 @@
 import { supabase } from './supabase';
 
 // Stable valid UUIDs so seeding is idempotent (re-running won't duplicate)
-const TEST_PSYCHIATRIST_ID = '00000000-0000-4000-a000-000000000001';
-const TEST_PSYCH_CONN_ID   = '00000000-0000-4000-a000-000000000002';
-const TEST_GUARDIAN_ID     = '00000000-0000-4000-a000-000000000003';
-const TEST_WELLWISHER_ID   = '00000000-0000-4000-a000-000000000004';
+const TEST_PSYCHIATRIST_ID  = '00000000-0000-4000-a000-000000000001';
+const TEST_PSYCH_CONN_ID    = '00000000-0000-4000-a000-000000000002';
+const TEST_GUARDIAN_ID      = '00000000-0000-4000-a000-000000000003';
+const TEST_WELLWISHER_ID    = '00000000-0000-4000-a000-000000000004';
+// "You are watching this test patient" — companion_id = currentUser, patient_id = TEST_PATIENT_ID
+const TEST_PATIENT_ID       = '00000000-0000-4000-a000-000000000005';
+const TEST_WATCHING_CONN_ID = '00000000-0000-4000-a000-000000000006';
 
 export async function seedTestConnections(userId: string): Promise<{ ok: boolean; error?: string }> {
   // 1. Upsert a test psychiatrist record
@@ -91,6 +94,28 @@ export async function seedTestConnections(userId: string): Promise<{ ok: boolean
     share_workbook: false, access_expires_at: null,
   }).eq('id', TEST_WELLWISHER_ID);
 
+  // 5. Seed a "you are watching" companion connection (currentUser is the guardian)
+  //    This makes the "Watching over" section visible on the You tab.
+  //    We also store state directly so it shows up immediately without a DB profile row.
+  const { error: e5 } = await supabase.from('companions').upsert({
+    id:                   TEST_WATCHING_CONN_ID,
+    patient_id:           TEST_PATIENT_ID,   // fake patient UUID (no auth.users row)
+    companion_id:         userId,            // current user IS the companion
+    role:                 'guardian',
+    guardian_level:       'alert_on_risk',
+    status:               'accepted',
+    invite_email:         'test.patient@equi.dev',
+    share_mood_summaries: true,
+    share_cycle_data:     true,
+  }, { onConflict: 'id' });
+  if (e5) return { ok: false, error: `companions (watching): ${e5.message}` };
+  // share_* columns best-effort
+  await supabase.from('companions').update({
+    share_journal: true, share_activities: true, share_ai_report: false,
+    share_medication: true, share_sleep: true, share_nutrition: false,
+    share_workbook: false,
+  }).eq('id', TEST_WATCHING_CONN_ID);
+
   return { ok: true };
 }
 
@@ -107,6 +132,11 @@ export async function clearTestConnections(userId: string): Promise<{ ok: boolea
         .delete()
         .in('id', [TEST_GUARDIAN_ID, TEST_WELLWISHER_ID])
         .eq('patient_id', userId),
+      supabase
+        .from('companions')
+        .delete()
+        .eq('id', TEST_WATCHING_CONN_ID)
+        .eq('companion_id', userId),
       supabase
         .from('access_approval_requests')
         .delete()

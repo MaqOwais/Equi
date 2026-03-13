@@ -162,15 +162,28 @@ export const useAccessStore = create<AccessStore>((set, get) => ({
     const needsApprovalFlag = requiresApproval(role, value);
 
     if (needsApprovalFlag) {
-      await get().submitApprovalRequest({
-        userId,
-        requestType: 'access_change',
-        approverRole: 'guardian',
-        approverCompanionId: companionId,
-        description: `${value ? 'Enable' : 'Disable'} ${SECTION_META[section].label} for ${role === 'guardian' ? 'guardian' : 'well-wisher'}`,
-        oldValue: { [section]: !value },
-        newValue: { [section]: value },
-      });
+      // Guardian: approves their own access change
+      // Well-wisher: ALL active guardians approve
+      const approverIds =
+        role === 'guardian'
+          ? [companionId]
+          : get().guardians.filter((g) => g.status === 'accepted').map((g) => g.id);
+
+      // Fallback if no guardians connected yet
+      const ids = approverIds.length > 0 ? approverIds : [companionId];
+      const desc = `${value ? 'Enable' : 'Disable'} ${SECTION_META[section].label} for ${role === 'guardian' ? 'guardian' : 'well-wisher'}`;
+
+      await Promise.all(ids.map((approverId) =>
+        get().submitApprovalRequest({
+          userId,
+          requestType: 'access_change',
+          approverRole: 'guardian',
+          approverCompanionId: approverId,
+          description: desc,
+          oldValue: { [section]: !value },
+          newValue: { [section]: value },
+        }),
+      ));
       return { needsApproval: true };
     }
 

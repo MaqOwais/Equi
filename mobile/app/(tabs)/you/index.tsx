@@ -9,6 +9,7 @@ import { useAuthStore } from '../../../stores/auth';
 import { useSleepStore } from '../../../stores/sleep';
 import { useSocialRhythmStore } from '../../../stores/socialRhythm';
 import { useAmbientStore, useAmbientTheme, SCENES } from '../../../stores/ambient';
+import { useCompanionStore, abstractCycleLabel, abstractCycleColor } from '../../../stores/companion';
 import { supabase } from '../../../lib/supabase';
 import type { Diagnosis } from '../../../types/database';
 
@@ -135,6 +136,7 @@ export default function YouScreen() {
   const medsStore = useMedicationsStore();
   const activitiesStore = useActivitiesStore();
   const { activeSceneId, isPlaying, pause, resume } = useAmbientStore();
+  const companionStore = useCompanionStore();
   const activeScene = SCENES.find((sc) => sc.id === activeSceneId);
   const theme = useAmbientTheme();
   const userId = session?.user.id;
@@ -156,6 +158,7 @@ export default function YouScreen() {
       rhythm.load(userId);
       medsStore.load(userId);
       activitiesStore.load(userId);
+      companionStore.load(userId);
     }
   }, [userId]);
 
@@ -432,6 +435,56 @@ export default function YouScreen() {
           />
         </View>
 
+        {/* Watching over — shown only when user is a companion for others */}
+        {companionStore.watching.length > 0 && (
+          <>
+            <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>WATCHING OVER</Text>
+            <View style={[s.menuCard, theme.cardSurface]}>
+              {companionStore.watching.map((wp, idx) => {
+                const isWellWisher = wp.companion.role === 'well_wisher';
+                const roleColor    = isWellWisher ? '#C9A84C' : '#A8C5A0';
+                const roleLabel    = isWellWisher ? 'Well-wisher' : 'Guardian';
+                const cycleColor   = abstractCycleColor(wp.cycleState);
+                const cycleLabel   = isWellWisher
+                  ? abstractCycleLabel(wp.cycleState)
+                  : (wp.cycleState ?? 'No update');
+                const name         = wp.patientName ?? 'Someone';
+                return (
+                  <View key={wp.patientId}>
+                    {idx > 0 && <View style={s.divider} />}
+                    <TouchableOpacity
+                      style={s.watchRow}
+                      onPress={() => router.push(`/(companion)/${wp.patientId}`)}
+                      activeOpacity={0.7}
+                    >
+                      {/* Avatar dot */}
+                      <View style={[s.watchAvatar, { backgroundColor: cycleColor + '25' }]}>
+                        <Text style={[s.watchAvatarText, { color: cycleColor }]}>
+                          {name.charAt(0).toUpperCase()}
+                        </Text>
+                      </View>
+                      {/* Info */}
+                      <View style={{ flex: 1 }}>
+                        <Text style={[s.menuLabel, { color: theme.textPrimary }]}>{name}</Text>
+                        <View style={s.watchMeta}>
+                          <View style={[s.rolePill, { backgroundColor: roleColor + '18', borderColor: roleColor + '50' }]}>
+                            <Text style={[s.rolePillText, { color: roleColor }]}>{roleLabel}</Text>
+                          </View>
+                          <View style={[s.cyclePill, { backgroundColor: cycleColor + '18' }]}>
+                            <View style={[s.cycleDot, { backgroundColor: cycleColor }]} />
+                            <Text style={[s.cyclePillText, { color: cycleColor }]}>{cycleLabel}</Text>
+                          </View>
+                        </View>
+                      </View>
+                      <Text style={[s.menuChevron, { color: theme.textSecondary }]}>›</Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
+            </View>
+          </>
+        )}
+
         {/* Data & Device */}
         <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>DATA & DEVICE</Text>
         <View style={[s.menuCard, theme.cardSurface]}>
@@ -544,4 +597,26 @@ const s = StyleSheet.create({
 
   signOutBtn: { paddingVertical: 14, alignItems: 'center', marginTop: 8 },
   signOutText: { fontSize: 14, fontWeight: '500' },
+
+  watchRow: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 16, paddingVertical: 14, gap: 12,
+  },
+  watchAvatar: {
+    width: 40, height: 40, borderRadius: 20,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  watchAvatarText: { fontSize: 16, fontWeight: '700' },
+  watchMeta: { flexDirection: 'row', gap: 6, marginTop: 4, flexWrap: 'wrap' },
+  rolePill: {
+    borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2,
+    borderWidth: 1,
+  },
+  rolePillText: { fontSize: 10, fontWeight: '700', letterSpacing: 0.4 },
+  cyclePill: {
+    borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2,
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+  },
+  cycleDot: { width: 6, height: 6, borderRadius: 3 },
+  cyclePillText: { fontSize: 10, fontWeight: '600' },
 });
