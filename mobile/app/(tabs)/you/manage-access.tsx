@@ -8,7 +8,10 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { useAuthStore } from '../../../stores/auth';
-import { seedTestConnections, clearTestConnections } from '../../../lib/test-seed';
+import {
+  seedTestConnections, clearTestConnections,
+  TEST_PATIENT_GUARDIAN_ID, TEST_PATIENT_WELLWISHER_ID,
+} from '../../../lib/test-seed';
 import { useCompanionStore } from '../../../stores/companion';
 import {
   useAccessStore,
@@ -380,7 +383,7 @@ export default function ManageAccessScreen() {
     const companionId = role !== 'psychiatrist' ? (conn as Companion).id : undefined;
     return ALL_SECTIONS.map((section, idx) => {
       const isLast     = idx === ALL_SECTIONS.length - 1;
-      const enabled    = !!(conn as Record<string, unknown>)[section];
+      const enabled    = !!(conn as unknown as Record<string, unknown>)[section];
       const hasPending = isPendingFor(companionId, section);
 
       // Show approval badge on the section that WOULD trigger approval on next toggle
@@ -586,21 +589,36 @@ export default function ManageAccessScreen() {
                   }
                   // Reload companions + requests from DB
                   await store.load(userId);
-                  // Inject "watching over" connection so You tab shows the section immediately
+                  // Inject both watching personas so You tab & Home show the section
                   useCompanionStore.setState({
-                    watching: [{
-                      companion: {
-                        id:           '00000000-0000-4000-a000-000000000006',
-                        patient_id:   '00000000-0000-4000-a000-000000000005',
-                        companion_id: userId,
-                        role:         'guardian',
-                        status:       'accepted',
-                        share_cycle_data: true,
-                      } as never,
-                      patientId:   '00000000-0000-4000-a000-000000000005',
-                      patientName: 'Alex (test patient)',
-                      cycleState:  'stable',
-                    }],
+                    watching: [
+                      {
+                        companion: {
+                          id:           '00000000-0000-4000-a000-000000000006',
+                          patient_id:   TEST_PATIENT_GUARDIAN_ID,
+                          companion_id: userId,
+                          role:         'guardian',
+                          status:       'accepted',
+                          share_cycle_data: true,
+                        } as never,
+                        patientId:   TEST_PATIENT_GUARDIAN_ID,
+                        patientName: 'Alex (guardian view)',
+                        cycleState:  'stable',
+                      },
+                      {
+                        companion: {
+                          id:           '00000000-0000-4000-a000-000000000008',
+                          patient_id:   TEST_PATIENT_WELLWISHER_ID,
+                          companion_id: userId,
+                          role:         'well_wisher',
+                          status:       'accepted',
+                          share_cycle_data: true,
+                        } as never,
+                        patientId:   TEST_PATIENT_WELLWISHER_ID,
+                        patientName: 'Jordan (well-wisher view)',
+                        cycleState:  'depressive',
+                      },
+                    ],
                   });
                   // Inject psychiatrist connection directly into store state
                   // (bypasses psychiatrists FK / RLS for dev testing)
@@ -649,6 +667,23 @@ export default function ManageAccessScreen() {
                 }}
               >
                 <Text style={s.devClearBtnText}>Clear</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Persona preview buttons */}
+            <Text style={[s.devLabel, { marginTop: 10 }]}>PREVIEW AS COMPANION</Text>
+            <View style={s.devBtnRow}>
+              <TouchableOpacity
+                style={s.devPersonaBtn}
+                onPress={() => router.push(`/(companion)/${TEST_PATIENT_GUARDIAN_ID}`)}
+              >
+                <Text style={s.devPersonaBtnText}>👁 Guardian view</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[s.devPersonaBtn, { borderColor: '#C9A84C60' }]}
+                onPress={() => router.push(`/(companion)/${TEST_PATIENT_WELLWISHER_ID}`)}
+              >
+                <Text style={[s.devPersonaBtnText, { color: '#C9A84C' }]}>👁 Well-wisher view</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -796,4 +831,7 @@ const s = StyleSheet.create({
   devSeedBtnText:  { fontSize: 13, fontWeight: '700', color: '#FFFFFF' },
   devClearBtn:     { paddingHorizontal: 16, borderRadius: 10, borderWidth: 1.5, borderColor: '#C4A0B0', paddingVertical: 10, alignItems: 'center' },
   devClearBtnText: { fontSize: 13, fontWeight: '600', color: '#C4A0B0' },
+  devLabel:        { fontSize: 10, fontWeight: '700', color: '#3D3935', opacity: 0.35, letterSpacing: 1, marginBottom: 6 },
+  devPersonaBtn:   { flex: 1, borderRadius: 10, borderWidth: 1.5, borderColor: '#A8C5A060', paddingVertical: 10, alignItems: 'center' },
+  devPersonaBtnText: { fontSize: 12, fontWeight: '600', color: '#A8C5A0' },
 });

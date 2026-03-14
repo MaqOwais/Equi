@@ -20,6 +20,7 @@ import { useHomeLayoutStore, SECTION_META, ALL_SECTIONS, type SectionId } from '
 import type { CycleState, MedicationStatus } from '../../types/database';
 import { useAmbientTheme } from '../../stores/ambient';
 import { useSubstanceLogsStore } from '../../stores/substanceLogs';
+import { useCompanionStore, abstractCycleLabel, abstractCycleColor } from '../../stores/companion';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -234,6 +235,7 @@ export default function TodayScreen() {
   const tasksStore = useTasksStore();
   const layout = useHomeLayoutStore();
   const subLogs = useSubstanceLogsStore();
+  const companionStore = useCompanionStore();
   const router = useRouter();
   const userId = session?.user.id;
 
@@ -1005,6 +1007,38 @@ const showRuminationPrompt = today.moodScore !== null && today.moodScore <= 3;
         </View>
 
         <View style={s.content}>
+          {/* ── Watching over — visible when user is guardian/well-wisher for others ── */}
+          {companionStore.watching.length > 0 && (
+            <View style={s.watchingCard}>
+              <Text style={s.watchingHeader}>Watching over</Text>
+              <View style={s.watchingList}>
+                {companionStore.watching.map((wp, idx) => {
+                  const isWellWisher = wp.companion.role === 'well_wisher';
+                  const cycleColor = abstractCycleColor(wp.cycleState);
+                  const cycleLabel = isWellWisher
+                    ? abstractCycleLabel(wp.cycleState)
+                    : (wp.cycleState ?? 'No update');
+                  const name = wp.patientName ?? 'Someone';
+                  return (
+                    <TouchableOpacity
+                      key={wp.patientId}
+                      style={[s.watchingRow, idx > 0 && s.watchingRowBorder]}
+                      onPress={() => router.push(`/(companion)/${wp.patientId}`)}
+                      activeOpacity={0.7}
+                    >
+                      <View style={[s.watchingDot, { backgroundColor: cycleColor }]} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={s.watchingName}>{name}</Text>
+                        <Text style={[s.watchingState, { color: cycleColor }]}>{cycleLabel}</Text>
+                      </View>
+                      <Text style={s.watchingChevron}>›</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
           {layout.order.map((id) => renderSection(id))}
 
           {/* ── Crisis support — always at bottom ─────────────────────────────── */}
@@ -1049,7 +1083,7 @@ const showRuminationPrompt = today.moodScore !== null && today.moodScore <= 3;
       {/* ── Customize Layout Modal ─────────────────────────────────────────── */}
       <Modal visible={customizeVisible} transparent animationType="slide">
         <Pressable style={s.sheetBackdrop} onPress={() => setCustomizeVisible(false)}>
-          <View style={[s.sheet, { paddingBottom: 48 }]}>
+          <Pressable style={[s.sheet, { paddingBottom: 48 }]} onPress={() => {}}>
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <View style={s.customizeHeader}>
                 <Text style={s.sheetTitle}>Customise Home</Text>
@@ -1129,7 +1163,7 @@ const showRuminationPrompt = today.moodScore !== null && today.moodScore <= 3;
                 <Text style={s.sheetConfirmText}>Done</Text>
               </TouchableOpacity>
             </ScrollView>
-          </View>
+          </Pressable>
         </Pressable>
       </Modal>
     </SafeAreaView>
@@ -1430,4 +1464,27 @@ const s = StyleSheet.create({
     backgroundColor: '#A8C5A022', borderWidth: 1.5, borderColor: '#A8C5A055',
   },
   customizeShowTxt: { fontSize: 12, fontWeight: '700', color: '#A8C5A0' },
+
+  // Watching over widget
+  watchingCard: {
+    backgroundColor: '#FFFFFF', borderRadius: 16, marginHorizontal: 18, marginBottom: 12,
+    shadowColor: '#3D3935', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06, shadowRadius: 6, elevation: 2,
+    borderWidth: 1, borderColor: '#F0EDE8',
+  },
+  watchingHeader: {
+    fontSize: 11, fontWeight: '700', color: '#3D3935', opacity: 0.4,
+    letterSpacing: 1, textTransform: 'uppercase',
+    paddingHorizontal: 14, paddingTop: 12, paddingBottom: 6,
+  },
+  watchingList: { paddingBottom: 4 },
+  watchingRow: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 14, paddingVertical: 10, gap: 10,
+  },
+  watchingRowBorder: { borderTopWidth: 1, borderTopColor: '#F0EDE8' },
+  watchingDot: { width: 8, height: 8, borderRadius: 4 },
+  watchingName: { fontSize: 14, fontWeight: '600', color: '#3D3935' },
+  watchingState: { fontSize: 12, fontWeight: '500', marginTop: 1 },
+  watchingChevron: { fontSize: 18, color: '#3D393540' },
 });

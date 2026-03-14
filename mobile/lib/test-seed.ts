@@ -8,18 +8,25 @@
  *   test.psychiatrist@equi.dev  → psychiatrist connection (accepted)
  *   test.guardian@equi.dev      → guardian companion (accepted)
  *   test.wellwisher@equi.dev    → well-wisher companion (accepted)
+ *
+ * Personas (for companion view testing):
+ *   TEST_PATIENT_GUARDIAN_ID   → current user watches as GUARDIAN
+ *   TEST_PATIENT_WELLWISHER_ID → current user watches as WELL-WISHER
  */
 
 import { supabase } from './supabase';
 
 // Stable valid UUIDs so seeding is idempotent (re-running won't duplicate)
-const TEST_PSYCHIATRIST_ID  = '00000000-0000-4000-a000-000000000001';
-const TEST_PSYCH_CONN_ID    = '00000000-0000-4000-a000-000000000002';
-const TEST_GUARDIAN_ID      = '00000000-0000-4000-a000-000000000003';
-const TEST_WELLWISHER_ID    = '00000000-0000-4000-a000-000000000004';
-// "You are watching this test patient" — companion_id = currentUser, patient_id = TEST_PATIENT_ID
-const TEST_PATIENT_ID       = '00000000-0000-4000-a000-000000000005';
-const TEST_WATCHING_CONN_ID = '00000000-0000-4000-a000-000000000006';
+const TEST_PSYCHIATRIST_ID          = '00000000-0000-4000-a000-000000000001';
+const TEST_PSYCH_CONN_ID            = '00000000-0000-4000-a000-000000000002';
+const TEST_GUARDIAN_ID              = '00000000-0000-4000-a000-000000000003';
+const TEST_WELLWISHER_ID            = '00000000-0000-4000-a000-000000000004';
+// Persona: current user IS guardian for this patient
+export const TEST_PATIENT_GUARDIAN_ID       = '00000000-0000-4000-a000-000000000005';
+const TEST_WATCHING_GUARDIAN_CONN_ID        = '00000000-0000-4000-a000-000000000006';
+// Persona: current user IS well-wisher for this patient
+export const TEST_PATIENT_WELLWISHER_ID     = '00000000-0000-4000-a000-000000000007';
+const TEST_WATCHING_WELLWISHER_CONN_ID      = '00000000-0000-4000-a000-000000000008';
 
 export async function seedTestConnections(userId: string): Promise<{ ok: boolean; error?: string }> {
   // 1. Upsert a test psychiatrist record
@@ -94,27 +101,43 @@ export async function seedTestConnections(userId: string): Promise<{ ok: boolean
     share_workbook: false, access_expires_at: null,
   }).eq('id', TEST_WELLWISHER_ID);
 
-  // 5. Seed a "you are watching" companion connection (currentUser is the guardian)
-  //    This makes the "Watching over" section visible on the You tab.
-  //    We also store state directly so it shows up immediately without a DB profile row.
+  // 5. PERSONA A — current user is GUARDIAN watching test patient A
   const { error: e5 } = await supabase.from('companions').upsert({
-    id:                   TEST_WATCHING_CONN_ID,
-    patient_id:           TEST_PATIENT_ID,   // fake patient UUID (no auth.users row)
-    companion_id:         userId,            // current user IS the companion
+    id:                   TEST_WATCHING_GUARDIAN_CONN_ID,
+    patient_id:           TEST_PATIENT_GUARDIAN_ID,
+    companion_id:         userId,
     role:                 'guardian',
     guardian_level:       'alert_on_risk',
     status:               'accepted',
-    invite_email:         'test.patient@equi.dev',
+    invite_email:         'test.patient.a@equi.dev',
     share_mood_summaries: true,
     share_cycle_data:     true,
   }, { onConflict: 'id' });
-  if (e5) return { ok: false, error: `companions (watching): ${e5.message}` };
-  // share_* columns best-effort
+  if (e5) return { ok: false, error: `companions (watching guardian): ${e5.message}` };
   await supabase.from('companions').update({
     share_journal: true, share_activities: true, share_ai_report: false,
     share_medication: true, share_sleep: true, share_nutrition: false,
     share_workbook: false,
-  }).eq('id', TEST_WATCHING_CONN_ID);
+  }).eq('id', TEST_WATCHING_GUARDIAN_CONN_ID);
+
+  // 6. PERSONA B — current user is WELL-WISHER watching test patient B
+  const { error: e6 } = await supabase.from('companions').upsert({
+    id:                   TEST_WATCHING_WELLWISHER_CONN_ID,
+    patient_id:           TEST_PATIENT_WELLWISHER_ID,
+    companion_id:         userId,
+    role:                 'well_wisher',
+    guardian_level:       null,
+    status:               'accepted',
+    invite_email:         'test.patient.b@equi.dev',
+    share_mood_summaries: true,
+    share_cycle_data:     true,
+  }, { onConflict: 'id' });
+  if (e6) return { ok: false, error: `companions (watching well-wisher): ${e6.message}` };
+  await supabase.from('companions').update({
+    share_journal: false, share_activities: true, share_ai_report: false,
+    share_medication: false, share_sleep: true, share_nutrition: false,
+    share_workbook: false,
+  }).eq('id', TEST_WATCHING_WELLWISHER_CONN_ID);
 
   return { ok: true };
 }
@@ -122,25 +145,12 @@ export async function seedTestConnections(userId: string): Promise<{ ok: boolean
 export async function clearTestConnections(userId: string): Promise<{ ok: boolean; error?: string }> {
   try {
     await Promise.all([
-      supabase
-        .from('psychiatrist_connections')
-        .delete()
-        .eq('id', TEST_PSYCH_CONN_ID)
-        .eq('patient_id', userId),
-      supabase
-        .from('companions')
-        .delete()
-        .in('id', [TEST_GUARDIAN_ID, TEST_WELLWISHER_ID])
-        .eq('patient_id', userId),
-      supabase
-        .from('companions')
-        .delete()
-        .eq('id', TEST_WATCHING_CONN_ID)
-        .eq('companion_id', userId),
-      supabase
-        .from('access_approval_requests')
-        .delete()
-        .eq('patient_id', userId),
+      supabase.from('psychiatrist_connections').delete().eq('id', TEST_PSYCH_CONN_ID).eq('patient_id', userId),
+      supabase.from('companions').delete().eq('id', TEST_GUARDIAN_ID).eq('patient_id', userId),
+      supabase.from('companions').delete().eq('id', TEST_WELLWISHER_ID).eq('patient_id', userId),
+      supabase.from('companions').delete().eq('id', TEST_WATCHING_GUARDIAN_CONN_ID).eq('companion_id', userId),
+      supabase.from('companions').delete().eq('id', TEST_WATCHING_WELLWISHER_CONN_ID).eq('companion_id', userId),
+      supabase.from('access_approval_requests').delete().eq('patient_id', userId),
     ]);
     return { ok: true };
   } catch (e: unknown) {

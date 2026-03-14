@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  TextInput, Modal, Pressable, Switch, Alert, KeyboardAvoidingView, Platform,
+  TextInput, Modal, Pressable, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -28,14 +28,14 @@ const ALERT_TRIGGERS = [
 
 function CompanionCard({
   companion,
-  onToggle,
   onRemove,
   onGuardianLevelChange,
+  onManageAccess,
 }: {
   companion: Companion;
-  onToggle: (id: string, field: keyof Companion, value: boolean) => void;
   onRemove: (id: string) => void;
   onGuardianLevelChange: (id: string, level: GuardianLevel) => void;
+  onManageAccess: () => void;
 }) {
   const isPending = companion.status === 'pending';
 
@@ -70,61 +70,14 @@ function CompanionCard({
 
       {!isPending && (
         <>
-          <Text style={s.toggleSectionLabel}>WHAT THEY CAN SEE</Text>
-
-          <View style={s.toggleRow}>
-            <View>
-              <Text style={s.toggleLabel}>Mood summary</Text>
-              <Text style={s.toggleSub}>"Having a calm day" — not a raw score</Text>
-            </View>
-            <Switch
-              value={companion.share_mood_summaries}
-              onValueChange={(v) => onToggle(companion.id, 'share_mood_summaries', v)}
-              trackColor={{ true: '#A8C5A0' }}
-            />
-          </View>
-
-          <View style={s.divider} />
-          <View style={s.toggleRow}>
-            <View>
-              <Text style={s.toggleLabel}>Cycle state</Text>
-              <Text style={s.toggleSub}>State name only — no intensity</Text>
-            </View>
-            <Switch
-              value={companion.share_cycle_data}
-              onValueChange={(v) => onToggle(companion.id, 'share_cycle_data', v)}
-              trackColor={{ true: '#A8C5A0' }}
-            />
-          </View>
-
-          <View style={s.divider} />
-          <View style={s.toggleRow}>
-            <View>
-              <Text style={s.toggleLabel}>AI Wellness Report</Text>
-              <Text style={s.toggleSub}>Full PDF</Text>
-            </View>
-            <Switch
-              value={companion.share_ai_report}
-              onValueChange={(v) => onToggle(companion.id, 'share_ai_report', v)}
-              trackColor={{ true: '#A8C5A0' }}
-            />
-          </View>
+          {/* Manage access link */}
+          <TouchableOpacity style={s.manageAccessRow} onPress={onManageAccess} activeOpacity={0.7}>
+            <Text style={s.manageAccessLabel}>Manage what they can see</Text>
+            <Text style={s.manageAccessChevron}>›</Text>
+          </TouchableOpacity>
 
           {companion.role === 'guardian' && (
             <>
-              <View style={s.divider} />
-              <View style={s.toggleRow}>
-                <View>
-                  <Text style={s.toggleLabel}>Medication status</Text>
-                  <Text style={s.toggleSub}>Off by default — your choice</Text>
-                </View>
-                <Switch
-                  value={companion.share_medication}
-                  onValueChange={(v) => onToggle(companion.id, 'share_medication', v)}
-                  trackColor={{ true: '#A8C5A0' }}
-                />
-              </View>
-
               {/* Guardian level */}
               <Text style={[s.toggleSectionLabel, { marginTop: 12 }]}>GUARDIAN LEVEL</Text>
               {GUARDIAN_LEVELS.map((gl) => (
@@ -189,13 +142,6 @@ export default function SupportNetworkScreen() {
       .eq('patient_id', userId)
       .order('created_at');
     setCompanions((data ?? []) as Companion[]);
-  }
-
-  async function handleToggle(id: string, field: keyof Companion, value: boolean) {
-    setCompanions((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, [field]: value } : c)),
-    );
-    await supabase.from('companions').update({ [field]: value }).eq('id', id);
   }
 
   async function handleGuardianLevel(id: string, level: GuardianLevel) {
@@ -291,9 +237,9 @@ export default function SupportNetworkScreen() {
             <CompanionCard
               key={c.id}
               companion={c}
-              onToggle={handleToggle}
               onRemove={handleRemove}
               onGuardianLevelChange={handleGuardianLevel}
+              onManageAccess={() => router.push('/(tabs)/you/manage-access')}
             />
           ))
         )}
@@ -389,6 +335,13 @@ const s = StyleSheet.create({
   companionStatus: { fontSize: 12, color: '#3D3935', opacity: 0.4, marginTop: 2 },
   removeBtn: { paddingVertical: 4, paddingHorizontal: 10 },
   removeBtnText: { fontSize: 12, color: '#C4A0B0', fontWeight: '500' },
+
+  manageAccessRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingVertical: 10, borderTopWidth: 1, borderTopColor: '#F0EDE8', marginTop: 4,
+  },
+  manageAccessLabel: { fontSize: 13, color: '#A8C5A0', fontWeight: '600' },
+  manageAccessChevron: { fontSize: 18, color: '#A8C5A0' },
 
   toggleSectionLabel: {
     fontSize: 10, fontWeight: '700', color: '#3D3935', opacity: 0.3,
