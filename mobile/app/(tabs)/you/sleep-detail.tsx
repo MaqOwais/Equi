@@ -41,7 +41,7 @@ function SleepBarChart({ logs }: { logs: SleepLog[] }) {
   for (let i = 0; i < days; i++) {
     const d = new Date();
     d.setDate(d.getDate() - (days - 1 - i));
-    const key = d.toISOString().split('T')[0];
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     const log = logMap[key];
     const x = i * (BAR_W + GAP);
 
