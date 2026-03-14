@@ -288,7 +288,9 @@ export interface Booking {
   appointment_at: string | null;
   appointment_type: 'telehealth' | 'in_person' | null;
   insurance_claimed: string | null;
-  status: 'scheduled' | 'completed' | 'cancelled';
+  status: 'requested' | 'scheduled' | 'completed' | 'cancelled';
+  notes: string | null;
+  include_ai_snapshot: boolean;
   created_at: string;
 }
 

@@ -5,8 +5,96 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import Constants from 'expo-constants';
 import { usePsychiatristsStore } from '../../stores/psychiatrists';
 import type { Psychiatrist } from '../../types/database';
+
+const IS_DEV = Constants.appOwnership === 'expo' || __DEV__;
+
+// ─── Dev seed ─────────────────────────────────────────────────────────────────
+
+const DEV_PSYCHIATRISTS: Psychiatrist[] = [
+  {
+    id: 'dev-psych-001',
+    npi_number: 'DEV-001',
+    name: 'Dr. Sarah Chen',
+    credentials: 'MD, Board Certified in Psychiatry',
+    bio: 'Specializing in mood disorders including bipolar I and II for 12 years. I use a collaborative, evidence-based approach that integrates medication management with psychoeducation. Familiar with Equi\'s monitoring approach.',
+    photo_url: null,
+    offers_telehealth: true,
+    offers_in_person: true,
+    location_city: 'San Francisco',
+    location_state: 'CA',
+    insurance_accepted: ['Aetna', 'Blue Cross', 'Cigna'],
+    sliding_scale: false,
+    is_equi_partner: true,
+    calendly_username: 'sarahchen-md',
+    activity_prescribing_enabled: true,
+    verified_at: '2024-01-01T00:00:00Z',
+    profile_visible: true,
+    created_at: '2024-01-01T00:00:00Z',
+  },
+  {
+    id: 'dev-psych-002',
+    npi_number: 'DEV-002',
+    name: 'Dr. Marcus Williams',
+    credentials: 'MD, MPH',
+    bio: 'Community psychiatrist with a focus on accessible care. I offer sliding-scale fees and have extensive experience treating bipolar spectrum disorders across all age groups.',
+    photo_url: null,
+    offers_telehealth: true,
+    offers_in_person: false,
+    location_city: 'Chicago',
+    location_state: 'IL',
+    insurance_accepted: ['Medicaid', 'United Health'],
+    sliding_scale: true,
+    is_equi_partner: false,
+    calendly_username: null,
+    activity_prescribing_enabled: false,
+    verified_at: '2024-01-01T00:00:00Z',
+    profile_visible: true,
+    created_at: '2024-01-01T00:00:00Z',
+  },
+  {
+    id: 'dev-psych-003',
+    npi_number: 'DEV-003',
+    name: 'Dr. Priya Patel',
+    credentials: 'DO, Psychiatry & Neurology',
+    bio: 'I take an integrated mind-body approach to bipolar care, combining medication management with lifestyle medicine. Equi Partner — I actively use patient tracking data to inform treatment adjustments.',
+    photo_url: null,
+    offers_telehealth: true,
+    offers_in_person: true,
+    location_city: 'New York',
+    location_state: 'NY',
+    insurance_accepted: ['Aetna', 'Humana', 'Empire BCBS'],
+    sliding_scale: false,
+    is_equi_partner: true,
+    calendly_username: 'drpriyapatel',
+    activity_prescribing_enabled: true,
+    verified_at: '2024-01-01T00:00:00Z',
+    profile_visible: true,
+    created_at: '2024-01-01T00:00:00Z',
+  },
+  {
+    id: 'dev-psych-004',
+    npi_number: 'DEV-004',
+    name: 'Dr. James O\'Brien',
+    credentials: 'MD, FAPA',
+    bio: 'Fellow of the American Psychiatric Association with 20 years in private practice. Subspecialty in treatment-resistant mood disorders and TMS therapy.',
+    photo_url: null,
+    offers_telehealth: false,
+    offers_in_person: true,
+    location_city: 'Austin',
+    location_state: 'TX',
+    insurance_accepted: ['Blue Cross', 'Cigna', 'Out-of-pocket'],
+    sliding_scale: false,
+    is_equi_partner: false,
+    calendly_username: 'drjobrien',
+    activity_prescribing_enabled: false,
+    verified_at: '2024-01-01T00:00:00Z',
+    profile_visible: true,
+    created_at: '2024-01-01T00:00:00Z',
+  },
+];
 
 // ─── Card ─────────────────────────────────────────────────────────────────────
 
@@ -122,6 +210,18 @@ export default function PsychiatristsScreen() {
         })}
       </ScrollView>
 
+      {IS_DEV && store.all.length === 0 && !store.isLoading && (
+        <View style={s.devBanner}>
+          <Text style={s.devBannerText}>🛠  No data from DB — tap to load test psychiatrists</Text>
+          <TouchableOpacity
+            style={s.devBannerBtn}
+            onPress={() => usePsychiatristsStore.setState({ all: DEV_PSYCHIATRISTS })}
+          >
+            <Text style={s.devBannerBtnText}>Load dev data</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {store.isLoading ? (
         <View style={s.center}><ActivityIndicator color="#A8C5A0" /></View>
       ) : (
@@ -210,4 +310,16 @@ const s = StyleSheet.create({
   emptyText: { fontSize: 14, color: '#3D3935', opacity: 0.45, textAlign: 'center', lineHeight: 20 },
   disclaimerCard: { backgroundColor: '#FFFFFF', borderRadius: 12, padding: 14, marginTop: 4 },
   disclaimerText: { fontSize: 12, color: '#3D3935', opacity: 0.4, lineHeight: 18 },
+
+  devBanner: {
+    marginHorizontal: 16, marginBottom: 8, backgroundColor: '#C9A84C12',
+    borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#C9A84C30',
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+  },
+  devBannerText: { flex: 1, fontSize: 12, color: '#C9A84C', lineHeight: 17 },
+  devBannerBtn: {
+    backgroundColor: '#C9A84C', borderRadius: 8,
+    paddingHorizontal: 12, paddingVertical: 6,
+  },
+  devBannerBtnText: { fontSize: 12, fontWeight: '700', color: '#FFFFFF' },
 });

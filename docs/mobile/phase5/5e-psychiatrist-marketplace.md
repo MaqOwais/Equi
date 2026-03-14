@@ -99,9 +99,15 @@ create table bookings (
   appointment_at      timestamptz,
   appointment_type    text,                    -- 'telehealth' | 'in_person'
   insurance_claimed   text,
-  status              text default 'scheduled', -- 'scheduled' | 'completed' | 'cancelled'
+  status              text default 'requested', -- 'requested' | 'scheduled' | 'completed' | 'cancelled'
+  notes               text,                    -- patient's pre-appointment notes
+  include_ai_snapshot boolean default true,    -- attach AI wellness snapshot to the request
   created_at          timestamptz default now()
 );
+
+-- Migration (run if bookings table already exists without these columns)
+-- alter table bookings add column if not exists notes text;
+-- alter table bookings add column if not exists include_ai_snapshot boolean default true;
 
 -- RLS
 alter table psychiatrist_connections enable row level security;

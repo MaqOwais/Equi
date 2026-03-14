@@ -52,7 +52,8 @@
       "Bash(find node_modules/@react-navigation/bottom-tabs -name *.js)",
       "Bash(find node_modules/@react-navigation/elements -name SafeAreaProviderCompat*)",
       "Bash(grep -n \"case ''nutrition''\\\\|case ''activities''\\\\|case ''social''\\\\|case ''wearable''\\\\|customizeSectionHead\\\\|customizeHideBtn\\\\|customizeShowBtn\\\\|layout\\\\.show\\\\|layout\\\\.hide\\\\|ALL_SECTIONS\" \"/Users/maqowais/Documents/Equi/mobile/app/\\(tabs\\)/index.tsx\")",
-      "Bash(npx jest:*)"
+      "Bash(npx jest:*)",
+      "Bash(git checkout:*)"
     ]
   }
 }

@@ -10,6 +10,8 @@ import { useSleepStore } from '../../../stores/sleep';
 import { useSocialRhythmStore } from '../../../stores/socialRhythm';
 import { useAmbientStore, useAmbientTheme, SCENES } from '../../../stores/ambient';
 import { useCompanionStore, abstractCycleLabel, abstractCycleColor } from '../../../stores/companion';
+import { useAccessStore } from '../../../stores/access';
+import { usePsychiatristsStore } from '../../../stores/psychiatrists';
 import { supabase } from '../../../lib/supabase';
 import type { Diagnosis } from '../../../types/database';
 
@@ -137,6 +139,8 @@ export default function YouScreen() {
   const activitiesStore = useActivitiesStore();
   const { activeSceneId, isPlaying, pause, resume } = useAmbientStore();
   const companionStore = useCompanionStore();
+  const accessStore = useAccessStore();
+  const psychiatristsStore = usePsychiatristsStore();
   const activeScene = SCENES.find((sc) => sc.id === activeSceneId);
   const theme = useAmbientTheme();
   const userId = session?.user.id;
@@ -159,6 +163,7 @@ export default function YouScreen() {
       medsStore.load(userId);
       activitiesStore.load(userId);
       companionStore.load(userId);
+      accessStore.load(userId);
     }
   }, [userId]);
 
@@ -427,12 +432,33 @@ export default function YouScreen() {
             onPress={() => router.push('/community')}
           />
           <View style={s.divider} />
-          <MenuItem
-            icon="🩺"
-            label="Psychiatrists"
-            sub="Find & connect with clinicians"
-            onPress={() => router.push('/psychiatrists')}
-          />
+          {accessStore.psychiatristConn?.status === 'accepted' ? (
+            (() => {
+              const conn = accessStore.psychiatristConn!;
+              const psychName = psychiatristsStore.all.find((p) => p.id === conn.psychiatrist_id)?.name ?? 'Your Psychiatrist';
+              return (
+                <TouchableOpacity
+                  style={s.menuItem}
+                  onPress={() => router.push(`/psychiatrists/${conn.psychiatrist_id}` as never)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={s.menuIcon}>🩺</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[s.menuLabel, { color: theme.textPrimary }]}>{psychName}</Text>
+                    <Text style={[s.menuSub, { color: '#A8C5A0' }]}>Connected · tap to manage sharing</Text>
+                  </View>
+                  <Text style={[s.menuChevron, { color: theme.textSecondary }]}>›</Text>
+                </TouchableOpacity>
+              );
+            })()
+          ) : (
+            <MenuItem
+              icon="🩺"
+              label="Find a Psychiatrist"
+              sub={accessStore.psychiatristConn?.status === 'requested' ? 'Connection pending' : 'Search & connect with clinicians'}
+              onPress={() => router.push('/psychiatrists')}
+            />
+          )}
         </View>
 
         {/* Watching over — shown only when user is a companion for others */}
