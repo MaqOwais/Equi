@@ -40,6 +40,9 @@ export const useJournalStore = create<JournalStore>((set, get) => ({
   savingDate: null,
 
   loadEntry: async (userId, date) => {
+    // Already in memory — skip all I/O
+    if (get().entries[date]) return;
+
     // Check local first
     const local = await getLocal(userId, date);
     if (local?.journalText) {

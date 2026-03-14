@@ -11,8 +11,9 @@ interface MedicationsStore {
   medications: Medication[];
   substances: UserSubstance[];
   isLoading: boolean;
+  lastLoaded: number | null;
 
-  load: (userId: string) => Promise<void>;
+  load: (userId: string, force?: boolean) => Promise<void>;
   addMedication: (userId: string, med: Omit<Medication, 'id' | 'user_id' | 'created_at'>) => Promise<void>;
   updateMedication: (id: string, updates: Partial<Medication>) => Promise<void>;
   deleteMedication: (id: string) => Promise<void>;
@@ -25,8 +26,11 @@ export const useMedicationsStore = create<MedicationsStore>((set, get) => ({
   medications: [],
   substances: [],
   isLoading: false,
+  lastLoaded: null,
 
-  load: async (userId) => {
+  load: async (userId, force = false) => {
+    const { lastLoaded } = get();
+    if (!force && lastLoaded && Date.now() - lastLoaded < 5 * 60 * 1000) return;
     set({ isLoading: true });
     const db = supabase as any;
     const [medsRes, subsRes] = await Promise.all([
@@ -37,6 +41,7 @@ export const useMedicationsStore = create<MedicationsStore>((set, get) => ({
       medications: (medsRes.data ?? []) as Medication[],
       substances: (subsRes.data ?? []) as UserSubstance[],
       isLoading: false,
+      lastLoaded: Date.now(),
     });
   },
 
@@ -46,7 +51,7 @@ export const useMedicationsStore = create<MedicationsStore>((set, get) => ({
     const db = supabase as any;
     await db.from('medications').insert(row);
     const newList = [...get().medications, row as Medication];
-    set({ medications: newList });
+    set({ medications: newList, lastLoaded: null });
     await schedulePerMedicationReminders(newList).catch(() => {});
   },
 
@@ -54,7 +59,7 @@ export const useMedicationsStore = create<MedicationsStore>((set, get) => ({
     const db = supabase as any;
     await db.from('medications').update(updates).eq('id', id);
     const newList = get().medications.map((m) => m.id === id ? { ...m, ...updates } : m);
-    set({ medications: newList });
+    set({ medications: newList, lastLoaded: null });
     await schedulePerMedicationReminders(newList).catch(() => {});
   },
 
@@ -62,7 +67,7 @@ export const useMedicationsStore = create<MedicationsStore>((set, get) => ({
     const db = supabase as any;
     await db.from('medications').update({ active: false }).eq('id', id);
     const newList = get().medications.filter((m) => m.id !== id);
-    set({ medications: newList });
+    set({ medications: newList, lastLoaded: null });
     await schedulePerMedicationReminders(newList).catch(() => {});
   },
 
@@ -71,12 +76,12 @@ export const useMedicationsStore = create<MedicationsStore>((set, get) => ({
     const row = { id, user_id: userId, ...sub, active: true, created_at: new Date().toISOString() };
     const db = supabase as any;
     await db.from('user_substances').insert(row);
-    set({ substances: [...get().substances, row as UserSubstance] });
+    set({ substances: [...get().substances, row as UserSubstance], lastLoaded: null });
   },
 
   deleteSubstance: async (id) => {
     const db = supabase as any;
     await db.from('user_substances').update({ active: false }).eq('id', id);
-    set({ substances: get().substances.filter((s) => s.id !== id) });
+    set({ substances: get().substances.filter((s) => s.id !== id), lastLoaded: null });
   },
 }));

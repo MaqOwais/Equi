@@ -68,8 +68,9 @@ interface AccessStore {
   pendingRequests: AccessApprovalRequest[];
   aiAccess: Record<DataSection, boolean>;
   isLoading: boolean;
+  lastLoaded: number | null;
 
-  load: (userId: string) => Promise<void>;
+  load: (userId: string, force?: boolean) => Promise<void>;
 
   toggleCompanionSection: (
     companionId: string,
@@ -110,8 +111,11 @@ export const useAccessStore = create<AccessStore>((set, get) => ({
   pendingRequests:  [],
   aiAccess:         { ...DEFAULT_AI_ACCESS },
   isLoading:        false,
+  lastLoaded:       null,
 
-  async load(userId) {
+  async load(userId, force = false) {
+    const { lastLoaded } = get();
+    if (!force && lastLoaded && Date.now() - lastLoaded < 5 * 60 * 1000) return;
     set({ isLoading: true });
     const [connRes, companionsRes, requestsRes, profileRes] = await Promise.all([
       supabase
@@ -150,7 +154,8 @@ export const useAccessStore = create<AccessStore>((set, get) => ({
       wellWishers:      companions.filter((c) => c.role === 'well_wisher'),
       pendingRequests:  (requestsRes.data ?? []) as AccessApprovalRequest[],
       aiAccess,
-      isLoading: false,
+      isLoading:  false,
+      lastLoaded: Date.now(),
     });
   },
 

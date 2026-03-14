@@ -11,8 +11,9 @@ interface ActivitiesStore {
   prescribed: PrescribedActivity[];
   completions: ActivityCompletion[];
   isLoading: boolean;
+  lastLoaded: number | null;
 
-  load: (userId: string) => Promise<void>;
+  load: (userId: string, force?: boolean) => Promise<void>;
   complete: (userId: string, activityId: string, cycleState: CycleState | null, notes?: string) => Promise<void>;
   toggleBookmark: (userId: string, activityId: string) => Promise<void>;
 }
@@ -22,8 +23,11 @@ export const useActivitiesStore = create<ActivitiesStore>((set, get) => ({
   prescribed: [],
   completions: [],
   isLoading: false,
+  lastLoaded: null,
 
-  load: async (userId) => {
+  load: async (userId, force = false) => {
+    const { lastLoaded } = get();
+    if (!force && lastLoaded && Date.now() - lastLoaded < 5 * 60 * 1000) return;
     set({ isLoading: true });
 
     const [activitiesRes, completionsRes, prescribedRes] = await Promise.all([
@@ -49,6 +53,7 @@ export const useActivitiesStore = create<ActivitiesStore>((set, get) => ({
       completions,
       prescribed,
       isLoading: false,
+      lastLoaded: Date.now(),
     });
   },
 
@@ -93,6 +98,7 @@ export const useActivitiesStore = create<ActivitiesStore>((set, get) => ({
         completions: s.completions
           .filter((c) => c.id !== optimistic.id)
           .concat(data as ActivityCompletion),
+        lastLoaded: null,
       }));
     }
   },

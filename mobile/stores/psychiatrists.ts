@@ -16,9 +16,10 @@ interface Filters {
 interface PsychiatristsStore {
   all: Psychiatrist[];
   isLoading: boolean;
+  lastLoaded: number | null;
   filters: Filters;
   query: string;
-  load: () => Promise<void>;
+  load: (force?: boolean) => Promise<void>;
   setQuery: (q: string) => void;
   setFilter: (key: keyof Filters, value: boolean) => void;
   filtered: () => Psychiatrist[];
@@ -34,10 +35,13 @@ const defaultFilters: Filters = {
 export const usePsychiatristsStore = create<PsychiatristsStore>((set, get) => ({
   all: [],
   isLoading: false,
+  lastLoaded: null,
   filters: defaultFilters,
   query: '',
 
-  load: async () => {
+  load: async (force = false) => {
+    const { lastLoaded } = get();
+    if (!force && lastLoaded && Date.now() - lastLoaded < 30 * 60 * 1000) return;
     set({ isLoading: true });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data } = await (supabase as any)
@@ -45,7 +49,7 @@ export const usePsychiatristsStore = create<PsychiatristsStore>((set, get) => ({
       .select('*')
       .order('is_equi_partner', { ascending: false })
       .order('name');
-    set({ all: (data ?? []) as Psychiatrist[], isLoading: false });
+    set({ all: (data ?? []) as Psychiatrist[], isLoading: false, lastLoaded: Date.now() });
   },
 
   setQuery: (query) => set({ query }),

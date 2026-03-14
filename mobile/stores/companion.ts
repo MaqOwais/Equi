@@ -14,14 +14,18 @@ export interface WatchedPatient {
 interface CompanionStore {
   watching: WatchedPatient[];
   isLoading: boolean;
-  load: (userId: string) => Promise<void>;
+  lastLoaded: number | null;
+  load: (userId: string, force?: boolean) => Promise<void>;
 }
 
-export const useCompanionStore = create<CompanionStore>((set) => ({
+export const useCompanionStore = create<CompanionStore>((set, get) => ({
   watching:  [],
   isLoading: false,
+  lastLoaded: null,
 
-  async load(userId) {
+  async load(userId, force = false) {
+    const { lastLoaded } = get();
+    if (!force && lastLoaded && Date.now() - lastLoaded < 5 * 60 * 1000) return;
     set({ isLoading: true });
 
     // All patients this user is an accepted companion for
@@ -33,7 +37,7 @@ export const useCompanionStore = create<CompanionStore>((set) => ({
       .order('created_at');
 
     if (!connections || connections.length === 0) {
-      set({ watching: [], isLoading: false });
+      set({ watching: [], isLoading: false, lastLoaded: Date.now() });
       return;
     }
 
@@ -68,7 +72,7 @@ export const useCompanionStore = create<CompanionStore>((set) => ({
       };
     });
 
-    set({ watching, isLoading: false });
+    set({ watching, isLoading: false, lastLoaded: Date.now() });
   },
 }));
 

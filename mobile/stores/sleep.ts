@@ -17,8 +17,9 @@ interface SleepStore {
   wearableConnections: WearableConnection[];
   isLoading: boolean;
   isSyncing: boolean;
+  lastLoaded: number | null;
 
-  load: (userId: string) => Promise<void>;
+  load: (userId: string, force?: boolean) => Promise<void>;
   logManual: (userId: string, qualityScore: number, durationMinutes?: number) => Promise<void>;
   syncFromHealthKit: (userId: string) => Promise<{ synced: boolean; message: string }>;
   setWearableConnection: (userId: string, provider: WearableProvider, connected: boolean) => Promise<void>;
@@ -35,8 +36,11 @@ export const useSleepStore = create<SleepStore>((set, get) => ({
   wearableConnections: [],
   isLoading: false,
   isSyncing: false,
+  lastLoaded: null,
 
-  load: async (userId) => {
+  load: async (userId, force = false) => {
+    const { lastLoaded } = get();
+    if (!force && lastLoaded && Date.now() - lastLoaded < 5 * 60 * 1000) return;
     set({ isLoading: true });
     const today = isoToday();
     const thirtyDaysAgo = new Date();
@@ -54,6 +58,7 @@ export const useSleepStore = create<SleepStore>((set, get) => ({
       history: (historyRes.data as SleepLog[]) ?? [],
       wearableConnections: (connectionsRes.data as WearableConnection[]) ?? [],
       isLoading: false,
+      lastLoaded: Date.now(),
     });
   },
 
@@ -94,6 +99,7 @@ export const useSleepStore = create<SleepStore>((set, get) => ({
       set((s) => ({
         todayLog: data as SleepLog,
         history: s.history.map((h) => (h.date === date ? (data as SleepLog) : h)),
+        lastLoaded: null,
       }));
     }
   },
