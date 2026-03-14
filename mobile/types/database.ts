@@ -215,6 +215,7 @@ export interface Companion {
   // Optional expiry
   access_expires_at: string | null;
   invite_email: string | null;
+  phone: string | null;
   created_at: string;
 }
 

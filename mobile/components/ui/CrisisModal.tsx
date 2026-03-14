@@ -18,6 +18,7 @@ interface Contact {
 interface Guardian {
   id: string;
   invite_email: string | null;
+  phone: string | null;
   role: string;
   guardian_level: string | null;
 }
@@ -69,7 +70,7 @@ export function CrisisModal() {
 
     supabase
       .from('companions')
-      .select('id, invite_email, role, guardian_level')
+      .select('id, invite_email, phone, role, guardian_level')
       .eq('patient_id', uid)
       .eq('status', 'accepted')
       .then(({ data }) => setGuardians((data as Guardian[]) ?? []));
@@ -170,13 +171,24 @@ export function CrisisModal() {
                     <View style={s.cardInfo}>
                       <Text style={s.cardName}>{roleLabel}</Text>
                       <Text style={s.cardPhone}>{g.invite_email ?? 'Connected via Equi'}</Text>
+                      {g.phone ? <Text style={s.cardPhone}>{g.phone}</Text> : null}
                     </View>
-                    <TouchableOpacity
-                      style={[s.actionBtn, { backgroundColor: '#C9A84C' }]}
-                      onPress={() => notifyGuardian(g)}
-                    >
-                      <Text style={s.actionBtnText}>Notify</Text>
-                    </TouchableOpacity>
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      {g.phone ? (
+                        <TouchableOpacity
+                          style={s.actionBtn}
+                          onPress={() => Linking.openURL(`tel:${g.phone!.replace(/\D/g, '')}`)}
+                        >
+                          <Text style={s.actionBtnText}>Call</Text>
+                        </TouchableOpacity>
+                      ) : null}
+                      <TouchableOpacity
+                        style={[s.actionBtn, { backgroundColor: '#C9A84C' }]}
+                        onPress={() => notifyGuardian(g)}
+                      >
+                        <Text style={s.actionBtnText}>Notify</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 );
               })}

@@ -127,6 +127,7 @@ export default function SupportNetworkScreen() {
   const [tab, setTab] = useState<Tab>('well_wishers');
   const [addSheetVisible, setAddSheetVisible] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
+  const [invitePhone, setInvitePhone] = useState('');
   const [inviteRole, setInviteRole] = useState<CompanionRole>('well_wisher');
   const [sending, setSending] = useState(false);
 
@@ -166,6 +167,7 @@ export default function SupportNetworkScreen() {
         role: inviteRole,
         guardian_level: inviteRole === 'guardian' ? 'view_only' : null,
         invite_email: inviteEmail.trim().toLowerCase(),
+        phone: invitePhone.trim() || null,
         status: 'pending',
       })
       .select()
@@ -173,6 +175,7 @@ export default function SupportNetworkScreen() {
 
     if (data) setCompanions((prev) => [...prev, data as Companion]);
     setInviteEmail('');
+    setInvitePhone('');
     setSending(false);
     setAddSheetVisible(false);
   }
@@ -262,7 +265,7 @@ export default function SupportNetworkScreen() {
       {/* Invite sheet */}
       <Modal visible={addSheetVisible} transparent animationType="slide">
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-        <Pressable style={s.backdrop} onPress={() => setAddSheetVisible(false)}>
+        <Pressable style={s.backdrop} onPress={() => { setAddSheetVisible(false); setInvitePhone(''); }}>
           <Pressable style={s.sheet} onPress={() => {}}>
             <Text style={s.sheetTitle}>
               Invite {inviteRole === 'well_wisher' ? 'well-wisher' : 'guardian'}
@@ -279,6 +282,14 @@ export default function SupportNetworkScreen() {
               keyboardType="email-address"
               autoCapitalize="none"
               autoFocus
+            />
+            <TextInput
+              style={[s.emailInput, { marginBottom: 14 }]}
+              value={invitePhone}
+              onChangeText={setInvitePhone}
+              placeholder="Phone number (optional, for crisis call)"
+              placeholderTextColor="#3D393540"
+              keyboardType="phone-pad"
             />
             <TouchableOpacity
               style={[s.sendBtn, (!inviteEmail.trim() || sending) && s.sendBtnDisabled]}

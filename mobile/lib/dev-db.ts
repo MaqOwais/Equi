@@ -63,7 +63,7 @@ const MIGRATIONS: { version: number; statements: string[] }[] = [
       `CREATE TABLE IF NOT EXISTS relapse_signatures (id TEXT PRIMARY KEY, user_id TEXT, episode_type TEXT, warning_signs TEXT, days_before INTEGER, created_at TEXT DEFAULT (datetime('now')))`,
       `CREATE TABLE IF NOT EXISTS report_shares (id TEXT PRIMARY KEY, report_id TEXT, user_id TEXT, companion_id TEXT, share_url TEXT, expires_at TEXT, created_at TEXT DEFAULT (datetime('now')))`,
       `CREATE TABLE IF NOT EXISTS workbook_responses (id TEXT PRIMARY KEY, user_id TEXT, module_id TEXT, question_id TEXT, response TEXT, created_at TEXT DEFAULT (datetime('now')))`,
-      `CREATE TABLE IF NOT EXISTS companions (id TEXT PRIMARY KEY, user_id TEXT, companion_id TEXT, patient_id TEXT, role TEXT DEFAULT 'well_wisher', guardian_level TEXT, share_mood_summaries INTEGER DEFAULT 0, share_cycle_data INTEGER DEFAULT 0, share_ai_report INTEGER DEFAULT 0, share_medication INTEGER DEFAULT 0, invite_email TEXT, status TEXT DEFAULT 'pending', created_at TEXT DEFAULT (datetime('now')))`,
+      `CREATE TABLE IF NOT EXISTS companions (id TEXT PRIMARY KEY, user_id TEXT, companion_id TEXT, patient_id TEXT, role TEXT DEFAULT 'well_wisher', guardian_level TEXT, share_mood_summaries INTEGER DEFAULT 0, share_cycle_data INTEGER DEFAULT 0, share_ai_report INTEGER DEFAULT 0, share_medication INTEGER DEFAULT 0, share_journal INTEGER DEFAULT 0, share_activities INTEGER DEFAULT 0, share_sleep INTEGER DEFAULT 0, share_nutrition INTEGER DEFAULT 0, share_workbook INTEGER DEFAULT 0, access_expires_at TEXT, invite_email TEXT, phone TEXT, status TEXT DEFAULT 'pending', created_at TEXT DEFAULT (datetime('now')))`,
       `CREATE TABLE IF NOT EXISTS emergency_contacts (id TEXT PRIMARY KEY, user_id TEXT, name TEXT, phone TEXT, relationship TEXT, created_at TEXT DEFAULT (datetime('now')))`,
       `CREATE TABLE IF NOT EXISTS psychiatrist_connections (id TEXT PRIMARY KEY, user_id TEXT, psychiatrist_id TEXT, status TEXT DEFAULT 'pending', created_at TEXT DEFAULT (datetime('now')))`,
       `CREATE TABLE IF NOT EXISTS psychiatrists_public (id TEXT PRIMARY KEY, name TEXT, specialisation TEXT, bio TEXT, calendly_url TEXT, created_at TEXT DEFAULT (datetime('now')))`,
@@ -107,6 +107,20 @@ const MIGRATIONS: { version: number; statements: string[] }[] = [
       // Old schema used module_id/question_id — safe to drop since it's dev-only data
       `DROP TABLE IF EXISTS workbook_responses`,
       `CREATE TABLE IF NOT EXISTS workbook_responses (id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))), user_id TEXT NOT NULL, chapter INTEGER NOT NULL, prompt_index INTEGER NOT NULL, response TEXT NOT NULL, entry_date TEXT NOT NULL DEFAULT (date('now')), created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now')))`,
+    ],
+  },
+  {
+    version: 4,
+    statements: [
+      // Sync companions with manage_access.sql + phone column (migration 6)
+      // ALTER TABLE errors are caught and swallowed by the runner — safe on fresh DBs
+      `ALTER TABLE companions ADD COLUMN share_journal INTEGER DEFAULT 0`,
+      `ALTER TABLE companions ADD COLUMN share_activities INTEGER DEFAULT 0`,
+      `ALTER TABLE companions ADD COLUMN share_sleep INTEGER DEFAULT 0`,
+      `ALTER TABLE companions ADD COLUMN share_nutrition INTEGER DEFAULT 0`,
+      `ALTER TABLE companions ADD COLUMN share_workbook INTEGER DEFAULT 0`,
+      `ALTER TABLE companions ADD COLUMN access_expires_at TEXT`,
+      `ALTER TABLE companions ADD COLUMN phone TEXT`,
     ],
   },
 ];
