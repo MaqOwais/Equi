@@ -587,7 +587,7 @@ export default function ActivitiesScreen() {
             onPress={() => setShowCreate(true)}
             activeOpacity={0.8}
           >
-            <Text style={s.addBtnText}>＋</Text>
+            <Text style={s.addBtnText}>+</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -839,7 +839,7 @@ const s = StyleSheet.create({
   stateDot: { width: 8, height: 8, borderRadius: 4 },
   stateText: { fontSize: 12, fontWeight: '600' },
   addBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  addBtnText: { fontSize: 20, color: '#FFFFFF', lineHeight: 24, marginTop: -1 },
+  addBtnText: { fontSize: 22, color: '#FFFFFF', fontWeight: '400', includeFontPadding: false },
 
   tabs: {
     flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#F0EDE8',

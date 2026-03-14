@@ -1082,8 +1082,8 @@ const showRuminationPrompt = today.moodScore !== null && today.moodScore <= 3;
 
       {/* ── Customize Layout Modal ─────────────────────────────────────────── */}
       <Modal visible={customizeVisible} transparent animationType="slide">
-        <Pressable style={s.sheetBackdrop} onPress={() => setCustomizeVisible(false)}>
-          <Pressable style={[s.sheet, { paddingBottom: 48 }]} onPress={() => {}}>
+        <View style={[s.sheetBackdrop, { justifyContent: 'flex-end' }]}>
+          <Pressable style={[s.sheet, { paddingBottom: 48, maxHeight: '88%' }]} onPress={() => {}}>
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               <View style={s.customizeHeader}>
                 <Text style={s.sheetTitle}>Customise Home</Text>
@@ -1164,7 +1164,7 @@ const showRuminationPrompt = today.moodScore !== null && today.moodScore <= 3;
               </TouchableOpacity>
             </ScrollView>
           </Pressable>
-        </Pressable>
+        </View>
       </Modal>
     </SafeAreaView>
   );

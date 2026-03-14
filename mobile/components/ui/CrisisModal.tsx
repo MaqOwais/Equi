@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   Modal, View, Text, TouchableOpacity, StyleSheet,
-  ScrollView, Linking,
+  ScrollView, Linking, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCrisisStore } from '../../stores/crisis';
@@ -13,6 +13,13 @@ import { supabase } from '../../lib/supabase';
 interface Contact {
   name: string;
   phone: string;
+}
+
+interface Guardian {
+  id: string;
+  invite_email: string | null;
+  role: string;
+  guardian_level: string | null;
 }
 
 // ─── Breathing constants ──────────────────────────────────────────────────────
@@ -37,6 +44,7 @@ export function CrisisModal() {
   const { session } = useAuthStore();
 
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [guardians, setGuardians] = useState<Guardian[]>([]);
   const [showGrounding, setShowGrounding] = useState(false);
   const [showBreathing, setShowBreathing] = useState(false);
   const [groundStep, setGroundStep] = useState(0);
@@ -47,15 +55,24 @@ export function CrisisModal() {
   const breathPhaseRef = useRef(0);
   const breathCountRef = useRef(BREATH_SECONDS[0]);
 
-  // Load emergency contacts when modal opens
+  // Load emergency contacts + guardians/well-wishers when modal opens
   useEffect(() => {
     if (!visible || !session?.user.id) return;
+    const uid = session.user.id;
+
     supabase
       .from('emergency_contacts')
       .select('name, phone')
-      .eq('user_id', session.user.id)
+      .eq('user_id', uid)
       .order('created_at')
       .then(({ data }) => setContacts((data as Contact[]) ?? []));
+
+    supabase
+      .from('companions')
+      .select('id, invite_email, role, guardian_level')
+      .eq('patient_id', uid)
+      .eq('status', 'accepted')
+      .then(({ data }) => setGuardians((data as Guardian[]) ?? []));
   }, [visible, session?.user.id]);
 
   // Box breathing ticker
@@ -86,7 +103,23 @@ export function CrisisModal() {
     setShowGrounding(false);
     setShowBreathing(false);
     setGroundStep(0);
+    setGuardians([]);
+    setContacts([]);
     close();
+  }
+
+  function notifyGuardian(guardian: Guardian) {
+    if (!guardian.invite_email) {
+      Alert.alert('No contact info', 'This person has not provided an email address.');
+      return;
+    }
+    const subject = encodeURIComponent('Equi Crisis Alert — I need support');
+    const body = encodeURIComponent(
+      "Hi,\n\nI'm reaching out because I'm having a difficult moment and could use some support.\n\nSent via Equi",
+    );
+    Linking.openURL(`mailto:${guardian.invite_email}?subject=${subject}&body=${body}`).catch(() =>
+      Alert.alert('Could not open email', 'Please contact them directly.'),
+    );
   }
 
   return (
@@ -120,6 +153,33 @@ export function CrisisModal() {
                   </TouchableOpacity>
                 </View>
               ))}
+            </>
+          )}
+
+          {/* Well-wishers & guardians from support network */}
+          {guardians.length > 0 && (
+            <>
+              <Text style={s.sectionLabel}>YOUR SUPPORT NETWORK</Text>
+              {guardians.map((g) => {
+                const roleLabel = g.role === 'guardian' ? '🛡 Guardian'
+                  : g.role === 'well_wisher' ? '💛 Well-wisher'
+                  : g.role === 'therapist' ? '🩺 Therapist'
+                  : '👤 Companion';
+                return (
+                  <View key={g.id} style={s.card}>
+                    <View style={s.cardInfo}>
+                      <Text style={s.cardName}>{roleLabel}</Text>
+                      <Text style={s.cardPhone}>{g.invite_email ?? 'Connected via Equi'}</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={[s.actionBtn, { backgroundColor: '#C9A84C' }]}
+                      onPress={() => notifyGuardian(g)}
+                    >
+                      <Text style={s.actionBtnText}>Notify</Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
             </>
           )}
 

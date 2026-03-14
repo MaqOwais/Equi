@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform,
+  StyleSheet, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, Modal, Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Line as SvgLine, Rect } from 'react-native-svg';
@@ -71,6 +71,8 @@ const NUTRITION_CATEGORIES: { key: string; label: string; icon: string }[] = [
 const SUB_ICONS: Record<string, string> = {
   alcohol: '🍷', cannabis: '🌿', stimulant: '⚡', opioid: '💊', other: '🫙',
 };
+
+const SKIP_REASONS = ['Forgot', 'Side effects', 'Felt fine', 'Ran out', 'Other'];
 
 // ─── Interactive Cycle Bar Chart ───────────────────────────────────────────────
 
@@ -206,8 +208,9 @@ export default function TrackerScreen() {
   const [sleepSaving, setSleepSaving] = useState(false);
 
   // ── Meds tab state ───────────────────────────────────────────────────────
-  const [skipReason, setSkipReason] = useState('');
+  const [skipSheetVisible, setSkipSheetVisible] = useState(false);
   const [pendingMedStatus, setPendingMedStatus] = useState<MedicationStatus | null>(null);
+  const [selectedSkipReason, setSelectedSkipReason] = useState<string | null>(null);
 
   // ── Food tab state ────────────────────────────────────────────────────────
   const [nutritionCounts, setNutritionCounts] = useState<Record<string, number>>({});
@@ -296,19 +299,19 @@ export default function TrackerScreen() {
     if (!userId) return;
     if (status === 'skipped' || status === 'partial') {
       setPendingMedStatus(status);
-      setSkipReason('');
+      setSelectedSkipReason(null);
+      setSkipSheetVisible(true);
     } else {
       today.logMedication(userId, status);
-      setPendingMedStatus(null);
-      setSkipReason('');
     }
   }
 
-  function submitMedStatus() {
+  function confirmSkip() {
     if (!userId || !pendingMedStatus) return;
-    today.logMedication(userId, pendingMedStatus, skipReason.trim() || undefined);
+    today.logMedication(userId, pendingMedStatus, selectedSkipReason ?? undefined);
+    setSkipSheetVisible(false);
     setPendingMedStatus(null);
-    setSkipReason('');
+    setSelectedSkipReason(null);
   }
 
   function handleSubToggle(substanceId: string) {
@@ -727,45 +730,10 @@ export default function TrackerScreen() {
                   </View>
 
                   {/* Logged skip reason display */}
-                  {!pendingMedStatus && today.medicationSkipReason && (today.medicationStatus === 'skipped' || today.medicationStatus === 'partial') && (
+                  {today.medicationSkipReason && (today.medicationStatus === 'skipped' || today.medicationStatus === 'partial') && (
                     <Text style={{ fontSize: 12, color: theme.textSecondary, marginTop: 8, fontStyle: 'italic' }}>
                       Reason: {today.medicationSkipReason}
                     </Text>
-                  )}
-
-                  {/* Skip reason input */}
-                  {pendingMedStatus && (
-                    <View style={{ marginTop: 12, gap: 8 }}>
-                      <Text style={[s.medName, { color: theme.textSecondary, fontSize: 12 }]}>
-                        {pendingMedStatus === 'skipped' ? 'Why did you skip? (optional)' : 'What was partial? (optional)'}
-                      </Text>
-                      <TextInput
-                        style={[s.skipInput, { color: theme.textPrimary, borderColor: pendingMedStatus === 'skipped' ? '#C4A0B055' : '#C9A84C55', backgroundColor: theme.cardBg }]}
-                        placeholder="e.g. forgot, side effects, ran out..."
-                        placeholderTextColor={theme.textSecondary}
-                        value={skipReason}
-                        onChangeText={setSkipReason}
-                        maxLength={120}
-                        returnKeyType="done"
-                        onSubmitEditing={submitMedStatus}
-                      />
-                      <View style={{ flexDirection: 'row', gap: 8 }}>
-                        <TouchableOpacity
-                          style={[s.medBtn, { flex: 1, borderColor: pendingMedStatus === 'skipped' ? '#C4A0B0' : '#C9A84C', backgroundColor: (pendingMedStatus === 'skipped' ? '#C4A0B0' : '#C9A84C') + '18' }]}
-                          onPress={submitMedStatus}
-                        >
-                          <Text style={[s.medBtnText, { color: pendingMedStatus === 'skipped' ? '#C4A0B0' : '#C9A84C', fontWeight: '700' }]}>
-                            Confirm {pendingMedStatus === 'skipped' ? 'Skipped' : 'Partial'}
-                          </Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={[s.medBtn, { borderColor: '#E0DDD8' }]}
-                          onPress={() => { setPendingMedStatus(null); setSkipReason(''); }}
-                        >
-                          <Text style={[s.medBtnText, { color: theme.textSecondary }]}>Cancel</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
                   )}
                 </View>
               </>
@@ -829,6 +797,33 @@ export default function TrackerScreen() {
         <View style={{ height: 40 }} />
       </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* ── Med skip sheet ────────────────────────────────────────────── */}
+      <Modal visible={skipSheetVisible} transparent animationType="slide">
+        <Pressable style={s.sheetBackdrop} onPress={() => setSkipSheetVisible(false)}>
+          <Pressable style={s.sheet} onPress={() => {}}>
+            <Text style={s.sheetTitle}>
+              {pendingMedStatus === 'partial' ? 'What was partial?' : 'Why did you skip?'}
+            </Text>
+            {SKIP_REASONS.map((r) => (
+              <TouchableOpacity
+                key={r}
+                style={[s.sheetOption, selectedSkipReason === r && s.sheetOptionActive]}
+                onPress={() => setSelectedSkipReason(r)}
+              >
+                <Text style={[s.sheetOptionText, selectedSkipReason === r && s.sheetOptionTextActive]}>{r}</Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity
+              style={[s.sheetConfirm, !selectedSkipReason && s.sheetConfirmDisabled]}
+              onPress={confirmSkip}
+              disabled={!selectedSkipReason}
+            >
+              <Text style={s.sheetConfirmText}>Confirm</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -972,11 +967,18 @@ const s = StyleSheet.create({
     borderWidth: 1.5, borderColor: '#E0DDD8', alignItems: 'center',
   },
   medBtnText: { fontSize: 13, fontWeight: '500' },
-  skipInput: {
-    borderWidth: 1.5, borderRadius: 10,
-    paddingHorizontal: 12, paddingVertical: 10,
-    fontSize: 14,
-  },
+
+  // Skip sheet
+  sheetBackdrop: { flex: 1, backgroundColor: '#00000030', justifyContent: 'flex-end' },
+  sheet: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, paddingBottom: 40 },
+  sheetTitle: { fontSize: 17, fontWeight: '700', color: '#3D3935', marginBottom: 16 },
+  sheetOption: { paddingVertical: 13, paddingHorizontal: 14, borderRadius: 12, borderWidth: 1.5, borderColor: '#E0DDD8', marginBottom: 8 },
+  sheetOptionActive: { borderColor: '#A8C5A0', backgroundColor: '#A8C5A015' },
+  sheetOptionText: { fontSize: 15, color: '#3D3935', opacity: 0.5 },
+  sheetOptionTextActive: { color: '#3D3935', opacity: 1, fontWeight: '500' },
+  sheetConfirm: { backgroundColor: '#A8C5A0', borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 8 },
+  sheetConfirmDisabled: { opacity: 0.4 },
+  sheetConfirmText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF' },
 
   // Substances
   subGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

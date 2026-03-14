@@ -74,6 +74,7 @@ export const useHomeLayoutStore = create<HomeLayoutStore>((set, get) => ({
   isLoaded: false,
 
   async load() {
+    if (get().isLoaded) return;
     const raw = await AsyncStorage.getItem(STORAGE_KEY);
     if (raw) {
       const saved = JSON.parse(raw) as SectionId[];
@@ -118,7 +119,7 @@ export const useHomeLayoutStore = create<HomeLayoutStore>((set, get) => ({
   },
 
   async reset() {
-    set({ order: DEFAULT_ORDER });
+    set({ order: DEFAULT_ORDER, isLoaded: false });
     await AsyncStorage.removeItem(STORAGE_KEY);
   },
 }));
