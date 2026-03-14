@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  ActivityIndicator, Modal, Pressable, TextInput, Dimensions,
+  ActivityIndicator, Modal, Pressable, TextInput, Dimensions, Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 import { useAuthStore } from '../../stores/auth';
 import { useTodayStore } from '../../stores/today';
 import { useActivitiesStore } from '../../stores/activities';
@@ -12,6 +14,120 @@ import { useAIStore } from '../../stores/ai';
 import { useAmbientTheme } from '../../stores/ambient';
 import { supabase } from '../../lib/supabase';
 import type { Activity, ActivityCompletion, CycleState } from '../../types/database';
+
+// ─── Per-activity reminder storage (shared key with you/activities.tsx) ───────
+
+const IS_EXPO_GO = Constants.executionEnvironment === 'storeClient';
+
+interface ActivityReminder { time: string; ring: boolean; enabled: boolean; }
+type RemindersMap = Record<string, ActivityReminder>;
+const DEFAULT_REMINDER: ActivityReminder = { time: '15:00', ring: false, enabled: false };
+
+function remindersKey(userId: string) { return `equi_activity_reminders_${userId}`; }
+
+async function loadReminders(userId: string): Promise<RemindersMap> {
+  try {
+    const raw = await AsyncStorage.getItem(remindersKey(userId));
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+}
+
+async function saveReminders(userId: string, map: RemindersMap): Promise<void> {
+  await AsyncStorage.setItem(remindersKey(userId), JSON.stringify(map));
+}
+
+async function scheduleActivityReminder(activityId: string, title: string, reminder: ActivityReminder) {
+  if (IS_EXPO_GO) return;
+  const N = require('expo-notifications');
+  const id = `activity-reminder-${activityId}`;
+  await N.cancelScheduledNotificationAsync(id).catch(() => {});
+  if (!reminder.enabled) return;
+  const [h, m] = reminder.time.split(':').map(Number);
+  try {
+    await N.scheduleNotificationAsync({
+      identifier: id,
+      content: { title, body: 'Time for your wellbeing activity 🌿', sound: reminder.ring ? 'default' : false },
+      trigger: { type: 'daily', hour: h, minute: m, repeats: true },
+    });
+  } catch { /* silently ignore */ }
+}
+
+function fmt12(time: string) {
+  const [h, m] = time.split(':').map(Number);
+  const period = h < 12 ? 'AM' : 'PM';
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${h12}:${String(m).padStart(2, '0')} ${period}`;
+}
+
+// ─── Time picker modal ────────────────────────────────────────────────────────
+
+function TimePickerModal({ visible, value, onSave, onCancel }: {
+  visible: boolean; value: string; onSave: (v: string) => void; onCancel: () => void;
+}) {
+  const [val, setVal] = useState(value);
+  useEffect(() => { setVal(value); }, [visible]);
+  const [h, m] = val.split(':').map(Number);
+  const period = h < 12 ? 'AM' : 'PM';
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  function adj(field: 'h' | 'm', delta: number) {
+    if (field === 'h') {
+      const next = (h + delta + 24) % 24;
+      setVal(`${String(next).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+    } else {
+      const next = (m + delta + 60) % 60;
+      setVal(`${String(h).padStart(2, '0')}:${String(next).padStart(2, '0')}`);
+    }
+  }
+  return (
+    <Modal visible={visible} transparent animationType="fade" presentationStyle="overFullScreen">
+      <View style={tpm.overlay}>
+        <View style={tpm.sheet}>
+          <Text style={tpm.title}>Set reminder time</Text>
+          <View style={tpm.row}>
+            <View style={tpm.col}>
+              <TouchableOpacity onPress={() => adj('h', 1)} style={tpm.arrow}><Text style={tpm.arrowTxt}>▲</Text></TouchableOpacity>
+              <Text style={tpm.val}>{String(h12).padStart(2, '0')}</Text>
+              <TouchableOpacity onPress={() => adj('h', -1)} style={tpm.arrow}><Text style={tpm.arrowTxt}>▼</Text></TouchableOpacity>
+            </View>
+            <Text style={tpm.colon}>:</Text>
+            <View style={tpm.col}>
+              <TouchableOpacity onPress={() => adj('m', 15)} style={tpm.arrow}><Text style={tpm.arrowTxt}>▲</Text></TouchableOpacity>
+              <Text style={tpm.val}>{String(m).padStart(2, '0')}</Text>
+              <TouchableOpacity onPress={() => adj('m', -15)} style={tpm.arrow}><Text style={tpm.arrowTxt}>▼</Text></TouchableOpacity>
+            </View>
+            <Text style={tpm.period}>{period}</Text>
+          </View>
+          <View style={tpm.btnRow}>
+            <TouchableOpacity style={tpm.cancelBtn} onPress={onCancel}>
+              <Text style={tpm.cancelTxt}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={tpm.saveBtn} onPress={() => onSave(val)}>
+              <Text style={tpm.saveTxt}>Set</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+const tpm = StyleSheet.create({
+  overlay: { flex: 1, backgroundColor: '#00000050', justifyContent: 'center', alignItems: 'center' },
+  sheet: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 24, width: 260 },
+  title: { fontSize: 16, fontWeight: '700', color: '#3D3935', textAlign: 'center', marginBottom: 16 },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
+  col: { alignItems: 'center', width: 52 },
+  arrow: { padding: 8 },
+  arrowTxt: { fontSize: 14, color: '#A8C5A0', fontWeight: '600' },
+  val: { fontSize: 28, fontWeight: '700', color: '#3D3935' },
+  colon: { fontSize: 28, fontWeight: '700', color: '#3D3935', marginHorizontal: 4, marginBottom: 4 },
+  period: { fontSize: 15, fontWeight: '600', color: '#3D3935', opacity: 0.45, marginLeft: 10, marginTop: 4 },
+  btnRow: { flexDirection: 'row', gap: 10 },
+  cancelBtn: { flex: 1, backgroundColor: '#F0EDE8', borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
+  cancelTxt: { fontSize: 14, fontWeight: '600', color: '#3D393580' },
+  saveBtn: { flex: 1, backgroundColor: '#A8C5A0', borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
+  saveTxt: { fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
+});
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -108,12 +224,16 @@ const fy = StyleSheet.create({
 
 function ActivityCard({
   activity, completionCount, isBookmarked, lastNote, accentColor, onPress, theme,
+  reminder, onReminderChange,
 }: {
   activity: Activity; completionCount: number; isBookmarked: boolean;
   lastNote: string | null; accentColor: string; onPress: () => void;
   theme: ReturnType<typeof useAmbientTheme>;
+  reminder?: ActivityReminder; onReminderChange?: (r: ActivityReminder) => void;
 }) {
   const meta = CATEGORY_META[activity.category ?? 'other'] ?? CATEGORY_META.other;
+  const [timePickerOpen, setTimePickerOpen] = useState(false);
+
   return (
     <TouchableOpacity style={[s.card, theme.cardSurface]} onPress={onPress} activeOpacity={0.78}>
       <View style={[s.cardAccent, { backgroundColor: accentColor }]} />
@@ -154,7 +274,49 @@ function ActivityCard({
             restricted={activity.restricted_states ?? []}
           />
         </View>
+
+        {/* Reminder row */}
+        {reminder !== undefined && onReminderChange && (
+          <View style={s.reminderRow}>
+            <Switch
+              value={reminder.enabled}
+              onValueChange={(v) => onReminderChange({ ...reminder, enabled: v })}
+              trackColor={{ false: '#E0DDD8', true: '#A8C5A0' }}
+              thumbColor="#FFFFFF"
+              style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
+            />
+            <TouchableOpacity
+              onPress={() => setTimePickerOpen(true)}
+              style={[s.timePill, !reminder.enabled && s.timePillDisabled]}
+              disabled={!reminder.enabled}
+            >
+              <Text style={[s.timeTxt, { color: theme.textSecondary }, !reminder.enabled && s.timeTxtDisabled]}>
+                ⏰ {fmt12(reminder.time)}
+              </Text>
+            </TouchableOpacity>
+            <View style={s.ringRow}>
+              <Text style={[s.ringTxt, !reminder.enabled && s.timeTxtDisabled]}>🔔</Text>
+              <Switch
+                value={reminder.ring}
+                onValueChange={(v) => onReminderChange({ ...reminder, ring: v })}
+                disabled={!reminder.enabled}
+                trackColor={{ false: '#E0DDD8', true: '#C4A0B0' }}
+                thumbColor="#FFFFFF"
+                style={{ transform: [{ scaleX: 0.7 }, { scaleY: 0.7 }] }}
+              />
+            </View>
+          </View>
+        )}
       </View>
+
+      {reminder !== undefined && onReminderChange && (
+        <TimePickerModal
+          visible={timePickerOpen}
+          value={reminder.time}
+          onSave={(t) => { setTimePickerOpen(false); onReminderChange({ ...reminder, time: t, enabled: true }); }}
+          onCancel={() => setTimePickerOpen(false)}
+        />
+      )}
     </TouchableOpacity>
   );
 }
@@ -336,6 +498,7 @@ export default function ActivitiesScreen() {
   const [tab, setTab] = useState<Tab>('all');
   const [filterState, setFilterState] = useState<FilterState>('all');
   const [showCreate, setShowCreate] = useState(false);
+  const [reminders, setReminders] = useState<RemindersMap>({});
 
   const cycleState: CycleState = today.cycleState ?? 'stable';
   const accentColor = CYCLE_COLORS[cycleState];
@@ -344,8 +507,17 @@ export default function ActivitiesScreen() {
     if (userId) {
       store.load(userId);
       aiStore.loadLatest(userId);
+      loadReminders(userId).then(setReminders);
     }
   }, [userId]);
+
+  async function handleReminderChange(activityId: string, title: string, r: ActivityReminder) {
+    if (!userId) return;
+    const updated = { ...reminders, [activityId]: r };
+    setReminders(updated);
+    await saveReminders(userId, updated);
+    await scheduleActivityReminder(activityId, title, r);
+  }
 
   // ── Derived data ─────────────────────────────────────────────────────────────
 
@@ -549,6 +721,8 @@ export default function ActivitiesScreen() {
                         accentColor={CYCLE_COLORS[a.compatible_states?.[0] ?? cycleState] ?? accentColor}
                         onPress={() => navToActivity(a)}
                         theme={theme}
+                        reminder={reminders[a.id] ?? DEFAULT_REMINDER}
+                        onReminderChange={(r) => handleReminderChange(a.id, a.title, r)}
                       />
                     ))}
                   </View>
@@ -623,6 +797,8 @@ export default function ActivitiesScreen() {
                   accentColor={accentColor}
                   onPress={() => navToActivity(activity)}
                   theme={theme}
+                  reminder={reminders[activity.id] ?? DEFAULT_REMINDER}
+                  onReminderChange={(r) => handleReminderChange(activity.id, activity.title, r)}
                 />
               ))
             )
@@ -719,6 +895,21 @@ const s = StyleSheet.create({
   durationPill: { backgroundColor: '#F0EDE8', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
   durationText: { fontSize: 11, fontWeight: '500' },
   evidenceTag: { fontSize: 11, color: '#A8C5A0', fontWeight: '500' },
+
+  // Reminder row
+  reminderRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    borderTopWidth: 1, borderTopColor: '#F0EDE8', marginTop: 10, paddingTop: 10,
+  },
+  timePill: {
+    backgroundColor: '#F7F3EE', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5,
+    borderWidth: 1, borderColor: '#E8DCC8',
+  },
+  timePillDisabled: { opacity: 0.4 },
+  timeTxt: { fontSize: 12, fontWeight: '600' },
+  timeTxtDisabled: { opacity: 0.35 },
+  ringRow: { flexDirection: 'row', alignItems: 'center', marginLeft: 'auto' },
+  ringTxt: { fontSize: 14 },
 
   // AI suggested
   suggestCard: {

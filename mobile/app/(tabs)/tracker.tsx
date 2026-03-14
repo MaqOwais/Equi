@@ -205,6 +205,10 @@ export default function TrackerScreen() {
   const [sleepQuality, setSleepQuality] = useState<number | null>(null);
   const [sleepSaving, setSleepSaving] = useState(false);
 
+  // ── Meds tab state ───────────────────────────────────────────────────────
+  const [skipReason, setSkipReason] = useState('');
+  const [pendingMedStatus, setPendingMedStatus] = useState<MedicationStatus | null>(null);
+
   // ── Food tab state ────────────────────────────────────────────────────────
   const [nutritionCounts, setNutritionCounts] = useState<Record<string, number>>({});
   const [nutritionSaved, setNutritionSaved] = useState(false);
@@ -290,7 +294,21 @@ export default function TrackerScreen() {
   // ─── Meds handlers ───────────────────────────────────────────────────────
   function handleMedTap(status: MedicationStatus) {
     if (!userId) return;
-    today.logMedication(userId, status);
+    if (status === 'skipped' || status === 'partial') {
+      setPendingMedStatus(status);
+      setSkipReason('');
+    } else {
+      today.logMedication(userId, status);
+      setPendingMedStatus(null);
+      setSkipReason('');
+    }
+  }
+
+  function submitMedStatus() {
+    if (!userId || !pendingMedStatus) return;
+    today.logMedication(userId, pendingMedStatus, skipReason.trim() || undefined);
+    setPendingMedStatus(null);
+    setSkipReason('');
   }
 
   function handleSubToggle(substanceId: string) {
@@ -707,6 +725,48 @@ export default function TrackerScreen() {
                       );
                     })}
                   </View>
+
+                  {/* Logged skip reason display */}
+                  {!pendingMedStatus && today.medicationSkipReason && (today.medicationStatus === 'skipped' || today.medicationStatus === 'partial') && (
+                    <Text style={{ fontSize: 12, color: theme.textSecondary, marginTop: 8, fontStyle: 'italic' }}>
+                      Reason: {today.medicationSkipReason}
+                    </Text>
+                  )}
+
+                  {/* Skip reason input */}
+                  {pendingMedStatus && (
+                    <View style={{ marginTop: 12, gap: 8 }}>
+                      <Text style={[s.medName, { color: theme.textSecondary, fontSize: 12 }]}>
+                        {pendingMedStatus === 'skipped' ? 'Why did you skip? (optional)' : 'What was partial? (optional)'}
+                      </Text>
+                      <TextInput
+                        style={[s.skipInput, { color: theme.textPrimary, borderColor: pendingMedStatus === 'skipped' ? '#C4A0B055' : '#C9A84C55', backgroundColor: theme.cardBg }]}
+                        placeholder="e.g. forgot, side effects, ran out..."
+                        placeholderTextColor={theme.textSecondary}
+                        value={skipReason}
+                        onChangeText={setSkipReason}
+                        maxLength={120}
+                        returnKeyType="done"
+                        onSubmitEditing={submitMedStatus}
+                      />
+                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                        <TouchableOpacity
+                          style={[s.medBtn, { flex: 1, borderColor: pendingMedStatus === 'skipped' ? '#C4A0B0' : '#C9A84C', backgroundColor: (pendingMedStatus === 'skipped' ? '#C4A0B0' : '#C9A84C') + '18' }]}
+                          onPress={submitMedStatus}
+                        >
+                          <Text style={[s.medBtnText, { color: pendingMedStatus === 'skipped' ? '#C4A0B0' : '#C9A84C', fontWeight: '700' }]}>
+                            Confirm {pendingMedStatus === 'skipped' ? 'Skipped' : 'Partial'}
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[s.medBtn, { borderColor: '#E0DDD8' }]}
+                          onPress={() => { setPendingMedStatus(null); setSkipReason(''); }}
+                        >
+                          <Text style={[s.medBtnText, { color: theme.textSecondary }]}>Cancel</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  )}
                 </View>
               </>
             )}
@@ -912,6 +972,11 @@ const s = StyleSheet.create({
     borderWidth: 1.5, borderColor: '#E0DDD8', alignItems: 'center',
   },
   medBtnText: { fontSize: 13, fontWeight: '500' },
+  skipInput: {
+    borderWidth: 1.5, borderRadius: 10,
+    paddingHorizontal: 12, paddingVertical: 10,
+    fontSize: 14,
+  },
 
   // Substances
   subGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

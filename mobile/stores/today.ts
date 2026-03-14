@@ -18,6 +18,7 @@ interface TodayStore {
   cycleIntensity: number | null;
   cycleSymptoms: string[];
   medicationStatus: MedicationStatus | null;
+  medicationSkipReason: string | null;
   alcohol: boolean | null;
   cannabis: boolean | null;
   isLoading: boolean;
@@ -47,6 +48,7 @@ export const useTodayStore = create<TodayStore>((set, get) => ({
   cycleIntensity: null,
   cycleSymptoms: [],
   medicationStatus: null,
+  medicationSkipReason: null,
   alcohol: null,
   cannabis: null,
   isLoading: false,
@@ -66,6 +68,7 @@ export const useTodayStore = create<TodayStore>((set, get) => ({
         alcohol: local.alcohol ?? null,
         cannabis: local.cannabis ?? null,
         medicationStatus: (local.medicationStatus as MedicationStatus) ?? null,
+        medicationSkipReason: local.medicationSkipReason ?? null,
         isLoading: false,
       });
       return;
@@ -116,7 +119,7 @@ export const useTodayStore = create<TodayStore>((set, get) => ({
   },
 
   logMedication: async (userId, status, skipReason, sideEffects) => {
-    set({ medicationStatus: status });
+    set({ medicationStatus: status, medicationSkipReason: skipReason ?? null });
     await saveLocal(userId, get().date, {
       medicationStatus: status,
       medicationSkipReason: skipReason ?? null,

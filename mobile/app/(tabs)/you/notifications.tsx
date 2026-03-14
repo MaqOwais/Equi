@@ -436,6 +436,17 @@ export default function NotificationsScreen() {
           previewBody="Try a wellbeing activity matched to how you're feeling today."
         />
 
+        {/* Activity reminders — managed per-activity */}
+        <Text style={s.sectionLabel}>ACTIVITIES</Text>
+        <TouchableOpacity style={s.linkCard} onPress={() => router.push('/(tabs)/you/activities')} activeOpacity={0.7}>
+          <Text style={s.linkIcon}>🌿</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={s.linkTitle}>Per-activity reminders</Text>
+            <Text style={s.linkSub}>Set a daily reminder time for each activity individually</Text>
+          </View>
+          <Text style={s.linkChevron}>›</Text>
+        </TouchableOpacity>
+
         {/* Medication reminders — managed per-medication */}
         <Text style={s.sectionLabel}>MEDICATIONS</Text>
         <TouchableOpacity style={s.linkCard} onPress={() => router.push('/(tabs)/you/medications')} activeOpacity={0.7}>
