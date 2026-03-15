@@ -198,6 +198,7 @@ export default function TrackerScreen() {
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<string | null>(null);
+  const [cooldownSecsLeft, setCooldownSecsLeft] = useState(0);
   const [analyticsRange, setAnalyticsRange] = useState<30 | 90>(90);
   const [drillDate, setDrillDate] = useState<string | null>(null);
   const [drillEntries, setDrillEntries] = useState<CycleLogEntry[]>([]);
@@ -243,16 +244,29 @@ export default function TrackerScreen() {
     setSelectedSymptoms((prev) => prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]);
   }
 
+  const COOLDOWN_SECS = 10 * 60; // 10 minutes
+
   async function handleLogEntry() {
-    if (!userId) return;
+    if (!userId || cooldownSecsLeft > 0) return;
     setSaving(true);
     // Write new timestamped entry to Supabase
     await cycle.addEntry(userId, cycleState, intensity, selectedSymptoms, notes || undefined);
     // Keep today store in sync for home screen
     await today.logCycle(userId, cycleState, intensity, selectedSymptoms, notes || undefined);
     setNotes('');
-    setLastSaved(new Date().toISOString());
+    setSelectedSymptoms([]);
+    const savedAt = new Date().toISOString();
+    setLastSaved(savedAt);
     setSaving(false);
+
+    // Start 10-minute cooldown
+    setCooldownSecsLeft(COOLDOWN_SECS);
+    const interval = setInterval(() => {
+      setCooldownSecsLeft((prev) => {
+        if (prev <= 1) { clearInterval(interval); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
   }
 
   async function handleDrillDate(date: string | null) {
@@ -365,7 +379,7 @@ export default function TrackerScreen() {
                     s.stateBtn,
                     cycleState === st && { backgroundColor: STATE_COLORS[st], borderColor: STATE_COLORS[st] },
                   ]}
-                  onPress={() => { setCycleStateLocal(st); }}
+                  onPress={() => { setCycleStateLocal(st); setSelectedSymptoms([]); }}
                 >
                   <Text style={[
                     s.stateBtnText, { color: theme.textSecondary, opacity: 1 },
@@ -436,20 +450,25 @@ export default function TrackerScreen() {
 
             {/* Log Entry button */}
             <TouchableOpacity
-              style={[s.logBtn, { backgroundColor: accentColor }, saving && s.logBtnDisabled]}
+              style={[s.logBtn, { backgroundColor: accentColor }, (saving || cooldownSecsLeft > 0) && s.logBtnDisabled]}
               onPress={handleLogEntry}
-              disabled={saving}
+              disabled={saving || cooldownSecsLeft > 0}
               activeOpacity={0.8}
             >
               {saving
                 ? <ActivityIndicator color="#FFFFFF" size="small" />
                 : <Text style={s.logBtnText}>
-                    {lastSaved ? `+ Log Another Entry` : `+ Log Entry Now`}
+                    {cooldownSecsLeft > 0
+                      ? `Wait ${Math.floor(cooldownSecsLeft / 60)}:${String(cooldownSecsLeft % 60).padStart(2, '0')}`
+                      : lastSaved ? `+ Log Another Entry` : `+ Log Entry Now`}
                   </Text>
               }
             </TouchableOpacity>
-            {lastSaved && (
-              <Text style={s.savedHint}>Saved at {fmtTime(lastSaved)} · you can log again anytime</Text>
+            {lastSaved && cooldownSecsLeft > 0 && (
+              <Text style={s.savedHint}>Logged at {fmtTime(lastSaved)} · next entry available after cooldown</Text>
+            )}
+            {lastSaved && cooldownSecsLeft === 0 && (
+              <Text style={s.savedHint}>Last logged at {fmtTime(lastSaved)}</Text>
             )}
 
             {/* Today's entries */}
