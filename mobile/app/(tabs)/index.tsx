@@ -82,7 +82,7 @@ const EXPLORE_LINKS: { icon: string; label: string; sub: string; route: string }
   { icon: '🧠', label: 'AI Report',     sub: 'Weekly insights',     route: '/(tabs)/you/ai-report' },
   { icon: '📋', label: 'Workbook',      sub: 'Bipolar exercises',   route: '/workbook' },
   { icon: '🩺', label: 'Psychiatrists', sub: 'Find & book',         route: '/psychiatrists' },
-  { icon: '📊', label: '90-Day Cycle',  sub: 'View patterns',       route: '/(tabs)/tracker' },
+  { icon: '📊', label: '90-Day Mood Cycle', sub: 'View patterns',    route: '/(tabs)/tracker' },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -343,10 +343,9 @@ const showRuminationPrompt = today.moodScore !== null && today.moodScore <= 3;
 
   // Completion chips
   const checks = [
-    { label: 'Mood',    done: today.moodScore !== null },
-    { label: 'Sleep',   done: sleep.todayLog !== null },
-    { label: 'Meds',    done: today.medicationStatus !== null, hidden: !showMedSection },
-    { label: 'Cycle',   done: today.cycleState !== null },
+    { label: 'Sleep',       done: sleep.todayLog !== null },
+    { label: 'Meds',        done: today.medicationStatus !== null, hidden: !showMedSection },
+    { label: 'Mood Cycle',  done: today.cycleState !== null },
     { label: 'Journal', done: journalWordCount > 0 },
     { label: 'Subs',    done: Object.values(subLogs.logs).some(Boolean), hidden: !showSubSection },
   ].filter((c) => !c.hidden);
@@ -450,7 +449,7 @@ const showRuminationPrompt = today.moodScore !== null && today.moodScore <= 3;
       case 'cycle':
         return (
           <View key="cycle">
-            <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>CYCLE STATE</Text>
+            <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>MOOD CYCLE</Text>
             <View style={[s.card, theme.cardSurface]}>
               {today.cycleState !== null ? (
                 <View style={s.cycleLogged}>

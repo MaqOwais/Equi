@@ -344,7 +344,7 @@ export default function TrackerScreen() {
       <View style={[s.tabBar, { borderBottomColor: theme.cardBorder }]}>
         {(
           [
-            { id: 'cycle', label: '🔄 Cycle' },
+            { id: 'cycle', label: '🔄 Mood Cycle' },
             { id: 'sleep', label: '🌙 Sleep' },
             { id: 'food',  label: '🥗 Food' },
             { id: 'meds',  label: '💊 Meds' },
