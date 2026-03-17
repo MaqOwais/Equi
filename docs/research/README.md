@@ -13,6 +13,7 @@ This directory documents the clinical research behind every feature in Equi. All
 | [missing-features.md](missing-features.md) | Evidence-backed features not yet in Equi that research says should be added |
 | [safety-flags.md](safety-flags.md) | Documented clinical risks, contraindications, and required design mitigations |
 | [competitors.md](competitors.md) | Competitor analysis and Equi's unique selling points |
+| [nutrition.md](nutrition.md) | Nutrition apps competitive analysis (MyFitnessPal, Cronometer, Noom, etc.), UX patterns, gap analysis of Equi's current nutrition tab, and prioritized improvement roadmap |
 
 ---
 
