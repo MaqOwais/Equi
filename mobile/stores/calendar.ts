@@ -12,6 +12,7 @@ export interface DayData {
   cycleIntensity: number | null;
   cycleSymptoms: string[];
   cycleNotes: string | null;
+  cycleTimestamp: string | null; // ISO 8601 — most recent entry's logged_at
 
   // Mood
   moodScore: number | null;
@@ -104,6 +105,7 @@ export const useCalendarStore = create<CalendarStore>((set, get) => {
           cycleIntensity: local?.cycleIntensity ?? null,
           cycleSymptoms: local?.cycleSymptoms ?? [],
           cycleNotes: local?.cycleNotes ?? null,
+          cycleTimestamp: local?.cycleTimestamp ?? null,
           moodScore: local?.moodScore ?? null,
           sleepQuality: local?.sleepQuality ?? null,
           sleepDuration: local?.sleepDuration ?? null,
@@ -194,6 +196,7 @@ export const useCalendarStore = create<CalendarStore>((set, get) => {
             cycleIntensity: loc.cycleIntensity ?? (cycleMap[date]?.intensity ?? null),
             cycleSymptoms: loc.cycleSymptoms.length > 0 ? loc.cycleSymptoms : (cycleMap[date]?.symptoms ?? []),
             cycleNotes: loc.cycleNotes ?? (cycleMap[date]?.notes ?? null),
+            cycleTimestamp: loc.cycleTimestamp ?? (cycleMap[date]?.logged_at ?? null),
             moodScore: loc.moodScore ?? moodMap[date] ?? null,
             sleepQuality: loc.sleepQuality ?? sleepMap[date]?.quality_score ?? null,
             sleepDuration: loc.sleepDuration ?? sleepMap[date]?.duration_minutes ?? null,

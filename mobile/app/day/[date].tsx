@@ -265,17 +265,24 @@ export default function DayScreen() {
                   </View>
                 ))
               ) : (
-                // Fallback to calendar store data (offline / before Supabase loads)
-                <>
-                  <DataRow label="Cycle state" value={data.cycleState!} capitalize />
-                  <DataRow label="Intensity" value={`${data.cycleIntensity ?? '—'} / 10`} />
-                  {data.cycleSymptoms.length > 0 && (
-                    <DataRow label="Symptoms" value={data.cycleSymptoms.join(', ')} />
-                  )}
-                  {data.cycleNotes && (
-                    <DataRow label="Notes" value={data.cycleNotes} />
-                  )}
-                </>
+                // Fallback to calendar store data — same layout as Supabase path above
+                <View style={s.entryRow}>
+                  <Text style={s.entryTime}>
+                    {data.cycleTimestamp ? fmtTime(data.cycleTimestamp) : ''}
+                  </Text>
+                  <View style={[s.entryDot, { backgroundColor: CYCLE_COLORS[data.cycleState!] }]} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={[s.entryState, { color: CYCLE_COLORS[data.cycleState!] }]}>
+                      {data.cycleState!.charAt(0).toUpperCase() + data.cycleState!.slice(1)} · {data.cycleIntensity ?? '—'}/10
+                    </Text>
+                    {data.cycleSymptoms.length > 0 && (
+                      <Text style={s.entrySub}>{data.cycleSymptoms.join(', ')}</Text>
+                    )}
+                    {data.cycleNotes && (
+                      <Text style={s.entryNotes}>{data.cycleNotes}</Text>
+                    )}
+                  </View>
+                </View>
               )}
             </SectionCard>
           )}

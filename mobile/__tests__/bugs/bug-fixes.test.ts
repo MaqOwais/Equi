@@ -248,3 +248,88 @@ describe('Bug 5 — Crisis modal loads companions and shows Notify button', () =
     expect(src).toContain('setGuardians([])');
   });
 });
+
+// ─── Bug 6: Cycle entry timestamp missing in day detail fallback ───────────────
+//
+// Bug: day/[date].tsx showed the timestamp only when cycleStore.dayEntries was
+// populated from Supabase. When the fallback (calendar store DayData) was used
+// — e.g. offline or before Supabase loaded — no timestamp was shown at all.
+// Root cause: DayData had no cycleTimestamp field; logCycle() did not persist
+// the logged_at time to local storage.
+
+describe('Bug 6 — Cycle entry timestamp shown in all display paths', () => {
+  it('logCycle persists cycleTimestamp to local storage', async () => {
+    const { saveLocal } = require('../../lib/local-day-store');
+    const { useTodayStore } = require('../../stores/today');
+
+    useTodayStore.setState({ date: '2026-03-16', cycleState: null });
+
+    const before = Date.now();
+    await useTodayStore.getState().logCycle('user-1', 'mixed', 5, ['sleep disturbed'], 'Rough morning');
+    const after = Date.now();
+
+    expect(saveLocal).toHaveBeenCalled();
+    const savedArgs = saveLocal.mock.calls[saveLocal.mock.calls.length - 1];
+    const partial = savedArgs[2]; // third arg is the partial LocalDayData
+
+    expect(partial.cycleTimestamp).toBeDefined();
+    expect(partial.cycleTimestamp).not.toBeNull();
+
+    // Verify it's a valid ISO 8601 string within our test window
+    const ts = new Date(partial.cycleTimestamp).getTime();
+    expect(ts).toBeGreaterThanOrEqual(before);
+    expect(ts).toBeLessThanOrEqual(after);
+  });
+
+  it('DayData interface has cycleTimestamp field', () => {
+    // Verify the type exists at runtime via the calendar store skeleton build
+    const fs = require('fs');
+    const path = require('path');
+    const src = fs.readFileSync(
+      path.join(__dirname, '../../stores/calendar.ts'),
+      'utf8',
+    );
+    expect(src).toContain('cycleTimestamp');
+  });
+
+  it('LocalDayData interface has cycleTimestamp field', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const src = fs.readFileSync(
+      path.join(__dirname, '../../lib/local-day-store.ts'),
+      'utf8',
+    );
+    expect(src).toContain('cycleTimestamp');
+  });
+
+  it('day detail fallback renders cycleTimestamp with identical layout to Supabase path', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const src = fs.readFileSync(
+      path.join(__dirname, '../../app/day/[date].tsx'),
+      'utf8',
+    );
+    // The fallback path renders data.cycleTimestamp through fmtTime
+    expect(src).toContain('data.cycleTimestamp');
+    expect(src).toContain('fmtTime(data.cycleTimestamp)');
+    // entryTime must appear BEFORE entryDot in the fallback (same order as Supabase path)
+    const fallbackStart = src.indexOf('Fallback to calendar store data');
+    const fallbackSection = src.slice(fallbackStart, fallbackStart + 600);
+    const timePos = fallbackSection.indexOf('entryTime');
+    const dotPos  = fallbackSection.indexOf('entryDot');
+    expect(timePos).toBeGreaterThan(-1);
+    expect(dotPos).toBeGreaterThan(-1);
+    expect(timePos).toBeLessThan(dotPos); // time column must come before dot
+  });
+
+  it('calendar store Supabase merge maps logged_at to cycleTimestamp', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const src = fs.readFileSync(
+      path.join(__dirname, '../../stores/calendar.ts'),
+      'utf8',
+    );
+    // cycleTimestamp should be populated from cycleMap[date]?.logged_at
+    expect(src).toContain('cycleMap[date]?.logged_at');
+  });
+});

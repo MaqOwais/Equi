@@ -29,6 +29,7 @@ export interface LocalDayData {
   cycleIntensity?: number | null;
   cycleSymptoms?: string[] | null;
   cycleNotes?: string | null;
+  cycleTimestamp?: string | null; // ISO 8601 — when the entry was logged
 
   // Mood
   moodScore?: number | null;

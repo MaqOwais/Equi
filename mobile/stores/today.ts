@@ -104,12 +104,14 @@ export const useTodayStore = create<TodayStore>((set, get) => ({
   },
 
   logCycle: async (userId, state, intensity, symptoms, notes) => {
+    const cycleTimestamp = new Date().toISOString();
     set({ cycleState: state, cycleIntensity: intensity, cycleSymptoms: symptoms });
     await saveLocal(userId, get().date, {
       cycleState: state,
       cycleIntensity: intensity,
       cycleSymptoms: symptoms,
       cycleNotes: notes ?? null,
+      cycleTimestamp,
     });
   },
 

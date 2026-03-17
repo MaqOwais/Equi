@@ -79,6 +79,10 @@ export const useCycleStore = create<CycleStore>((set, get) => ({
   },
 
   loadDay: async (userId, date) => {
+    // Clear stale entries immediately so the previous day's data never bleeds
+    // into the new date while the async fetch is in-flight.
+    set({ dayEntries: [] });
+
     const { data } = await (supabase as any)
       .from('cycle_logs')
       .select('id, logged_at, state, intensity, symptoms, notes')
