@@ -1,11 +1,12 @@
 import { useEffect, useState, useCallback } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View, Text, ScrollView, TouchableOpacity,
   StyleSheet, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, Modal, Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Line as SvgLine, Rect } from 'react-native-svg';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuthStore } from '../../stores/auth';
 import { useTodayStore } from '../../stores/today';
 import { useCycleStore, buildDailyDominant, type CycleLogEntry } from '../../stores/cycle';
@@ -38,6 +39,15 @@ function fmtDuration(mins: number) {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 type TrackerTab = 'cycle' | 'sleep' | 'food' | 'meds';
+
+const DEFAULT_TAB_ORDER: TrackerTab[] = ['cycle', 'sleep', 'food', 'meds'];
+const TAB_FULL_LABELS: Record<TrackerTab, string> = {
+  cycle: '🔄 Mood Cycle', sleep: '🌙 Sleep', food: '🥗 Food', meds: '💊 Meds',
+};
+const TAB_SHORT_LABELS: Record<TrackerTab, string> = {
+  cycle: '🔄 Cycle', sleep: '🌙 Sleep', food: '🥗 Food', meds: '💊 Meds',
+};
+const TAB_ORDER_KEY = 'equi_tracker_tab_order';
 
 const STATES: CycleState[] = ['stable', 'manic', 'depressive', 'mixed'];
 const STATE_COLORS: Record<CycleState, string> = {
@@ -185,11 +195,41 @@ export default function TrackerScreen() {
   const router = useRouter();
   const theme = useAmbientTheme();
   const userId = session?.user.id;
+  const { tab: tabParam } = useLocalSearchParams<{ tab?: string }>();
 
   const todayDate = isoToday();
 
   // ── Tab ──────────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<TrackerTab>('cycle');
+  const [tabOrder, setTabOrder] = useState<TrackerTab[]>(DEFAULT_TAB_ORDER);
+  const [reorderMode, setReorderMode] = useState(false);
+
+  // Load saved tab order from AsyncStorage
+  useEffect(() => {
+    AsyncStorage.getItem(TAB_ORDER_KEY).then((raw) => {
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as TrackerTab[];
+      if (parsed.length === 4 && DEFAULT_TAB_ORDER.every((t) => parsed.includes(t))) {
+        setTabOrder(parsed);
+      }
+    });
+  }, []);
+
+  // Open to the requested tab when navigated via deep link (e.g. ?tab=meds)
+  useEffect(() => {
+    if (tabParam === 'meds' || tabParam === 'cycle' || tabParam === 'sleep' || tabParam === 'food') {
+      setActiveTab(tabParam as TrackerTab);
+    }
+  }, [tabParam]);
+
+  function moveTab(idx: number, dir: -1 | 1) {
+    const target = idx + dir;
+    if (target < 0 || target >= tabOrder.length) return;
+    const next = [...tabOrder];
+    [next[idx], next[target]] = [next[target], next[idx]];
+    setTabOrder(next);
+    AsyncStorage.setItem(TAB_ORDER_KEY, JSON.stringify(next));
+  }
 
   // ── Cycle tab state ───────────────────────────────────────────────────────
   const [cycleState, setCycleStateLocal] = useState<CycleState>(today.cycleState ?? 'stable');
@@ -209,6 +249,9 @@ export default function TrackerScreen() {
   const [sleepSaving, setSleepSaving] = useState(false);
 
   // ── Meds tab state ───────────────────────────────────────────────────────
+  const [perMedStatus, setPerMedStatus] = useState<Record<string, MedicationStatus | null>>({});
+  const [medLogging, setMedLogging] = useState(false);
+  const [medLastLogged, setMedLastLogged] = useState<string | null>(null);
   const [skipSheetVisible, setSkipSheetVisible] = useState(false);
   const [pendingMedStatus, setPendingMedStatus] = useState<MedicationStatus | null>(null);
   const [selectedSkipReason, setSelectedSkipReason] = useState<string | null>(null);
@@ -230,6 +273,10 @@ export default function TrackerScreen() {
     getLocal(userId, todayDate).then((local) => {
       if (local?.nutritionCategories) setNutritionCounts(local.nutritionCategories);
     });
+    // Load per-medication status from AsyncStorage
+    AsyncStorage.getItem(`equi_per_med_status_${userId}_${todayDate}`).then((raw) => {
+      if (raw) setPerMedStatus(JSON.parse(raw));
+    });
   }, [userId]);
 
   // Sync cycle form with today store on first load
@@ -238,6 +285,17 @@ export default function TrackerScreen() {
     setIntensity(today.cycleIntensity ?? 5);
     setSelectedSymptoms(today.cycleSymptoms ?? []);
   }, [today.cycleState, today.cycleIntensity]);
+
+  // Pre-fill per-med status from global status when meds load and no per-med data saved
+  useEffect(() => {
+    if (!userId || medsStore.medications.length === 0 || !today.medicationStatus) return;
+    const hasAny = medsStore.medications.some((m) => perMedStatus[m.id]);
+    if (!hasAny) {
+      const prefill: Record<string, MedicationStatus> = {};
+      medsStore.medications.forEach((m) => { prefill[m.id] = today.medicationStatus!; });
+      setPerMedStatus(prefill);
+    }
+  }, [medsStore.medications.length, today.medicationStatus]);
 
   // ─── Cycle handlers ─────────────────────────────────────────────────────
   function toggleSymptom(s: string) {
@@ -309,28 +367,58 @@ export default function TrackerScreen() {
   }
 
   // ─── Meds handlers ───────────────────────────────────────────────────────
-  function handleMedTap(status: MedicationStatus) {
-    if (!userId) return;
-    if (status === 'skipped' || status === 'partial') {
-      setPendingMedStatus(status);
+  function handlePerMedTap(medId: string, status: MedicationStatus) {
+    const updated = { ...perMedStatus, [medId]: perMedStatus[medId] === status ? null : status };
+    setPerMedStatus(updated);
+    if (userId) AsyncStorage.setItem(`equi_per_med_status_${userId}_${todayDate}`, JSON.stringify(updated));
+  }
+
+  async function handleLogMedications() {
+    if (!userId || medLogging) return;
+    const statuses = Object.values(perMedStatus).filter(Boolean) as MedicationStatus[];
+    if (statuses.length === 0) return;
+    // Compute aggregate status
+    const allTaken   = statuses.every((s) => s === 'taken');
+    const allSkipped = statuses.every((s) => s === 'skipped');
+    const aggregate: MedicationStatus = allTaken ? 'taken' : allSkipped ? 'skipped' : 'partial';
+    if (aggregate !== 'taken') {
+      setPendingMedStatus(aggregate);
       setSelectedSkipReason(null);
       setSkipSheetVisible(true);
     } else {
-      today.logMedication(userId, status);
+      setMedLogging(true);
+      await today.logMedication(userId, 'taken');
+      setMedLastLogged(new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }));
+      setMedLogging(false);
     }
   }
 
   function confirmSkip() {
     if (!userId || !pendingMedStatus) return;
     today.logMedication(userId, pendingMedStatus, selectedSkipReason ?? undefined);
+    setMedLastLogged(new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }));
     setSkipSheetVisible(false);
     setPendingMedStatus(null);
     setSelectedSkipReason(null);
   }
 
-  function handleSubToggle(substanceId: string) {
+  function syncSubsToCheckins(updatedLogs: typeof subLogs.logs) {
     if (!userId) return;
-    subLogs.toggle(userId, todayDate, substanceId);
+    const hasAlcohol  = medsStore.substances.some((s) => s.category === 'alcohol'  && updatedLogs[s.id]?.used);
+    const hasCannabis = medsStore.substances.some((s) => s.category === 'cannabis' && updatedLogs[s.id]?.used);
+    saveLocal(userId, todayDate, { alcohol: hasAlcohol, cannabis: hasCannabis });
+  }
+
+  async function handleSubToggle(substanceId: string) {
+    if (!userId) return;
+    await subLogs.toggle(userId, todayDate, substanceId);
+    syncSubsToCheckins(useSubstanceLogsStore.getState().logs);
+  }
+
+  async function handleSubAmount(substanceId: string, delta: number) {
+    if (!userId) return;
+    await subLogs.setAmount(userId, todayDate, substanceId, delta);
+    syncSubsToCheckins(useSubstanceLogsStore.getState().logs);
   }
 
   const accentColor = STATE_COLORS[cycleState];
@@ -342,26 +430,56 @@ export default function TrackerScreen() {
 
       {/* Tab bar */}
       <View style={[s.tabBar, { borderBottomColor: theme.cardBorder }]}>
-        {(
-          [
-            { id: 'cycle', label: '🔄 Mood Cycle' },
-            { id: 'sleep', label: '🌙 Sleep' },
-            { id: 'food',  label: '🥗 Food' },
-            { id: 'meds',  label: '💊 Meds' },
-          ] as { id: TrackerTab; label: string }[]
-        ).map((tab) => (
+        {tabOrder.map((id, idx) => (
           <TouchableOpacity
-            key={tab.id}
-            style={[s.tabBtn, activeTab === tab.id && { borderBottomColor: accentColor, borderBottomWidth: 2 }]}
-            onPress={() => setActiveTab(tab.id)}
+            key={id}
+            style={[
+              s.tabBtn,
+              !reorderMode && activeTab === id && { borderBottomColor: accentColor, borderBottomWidth: 2 },
+              reorderMode && { backgroundColor: accentColor + '10' },
+            ]}
+            onPress={() => { if (!reorderMode) setActiveTab(id); }}
+            onLongPress={() => setReorderMode(true)}
+            delayLongPress={400}
             activeOpacity={0.7}
           >
-            <Text style={[s.tabLabel, { color: activeTab === tab.id ? accentColor : theme.textSecondary }]}>
-              {tab.label}
-            </Text>
+            {reorderMode ? (
+              <View style={s.tabReorderRow}>
+                <TouchableOpacity
+                  onPress={() => moveTab(idx, -1)}
+                  disabled={idx === 0}
+                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                >
+                  <Text style={[s.tabArrow, idx === 0 && s.tabArrowDisabled]}>‹</Text>
+                </TouchableOpacity>
+                <Text style={[s.tabLabelShort, { color: accentColor }]} numberOfLines={1}>
+                  {TAB_SHORT_LABELS[id]}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => moveTab(idx, 1)}
+                  disabled={idx === tabOrder.length - 1}
+                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                >
+                  <Text style={[s.tabArrow, idx === tabOrder.length - 1 && s.tabArrowDisabled]}>›</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <Text style={[s.tabLabel, { color: activeTab === id ? accentColor : theme.textSecondary }]}>
+                {TAB_FULL_LABELS[id]}
+              </Text>
+            )}
           </TouchableOpacity>
         ))}
       </View>
+      {/* Reorder hint / done button */}
+      {reorderMode && (
+        <View style={[s.reorderBanner, { backgroundColor: accentColor + '12', borderBottomColor: accentColor + '30' }]}>
+          <Text style={[s.reorderHint, { color: accentColor }]}>Hold & use arrows to reorder tabs</Text>
+          <TouchableOpacity onPress={() => setReorderMode(false)} style={[s.reorderDoneBtn, { backgroundColor: accentColor }]}>
+            <Text style={s.reorderDoneText}>Done</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
@@ -717,43 +835,79 @@ export default function TrackerScreen() {
         {/* ══════════ MEDS TAB ══════════ */}
         {activeTab === 'meds' && (
           <>
-            {/* Medications */}
+            {/* Medications — per-medication status */}
             {medsStore.medications.length > 0 && (
               <>
-                <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>MEDICATIONS</Text>
+                <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>MEDICATIONS TODAY</Text>
                 <View style={[s.card, theme.cardSurface]}>
-                  {medsStore.medications.map((med) => (
-                    <View key={med.id} style={s.medNameRow}>
-                      <Text style={[s.medName, { color: theme.textPrimary }]}>
-                        {med.name}{med.dosage ? ` · ${med.dosage}` : ''}
-                      </Text>
-                      {med.ring_enabled && <Text style={s.medBell}>🔔</Text>}
-                    </View>
-                  ))}
-                  <View style={[s.medBtnRow, { marginTop: 12 }]}>
-                    {(['taken', 'skipped', 'partial'] as MedicationStatus[]).map((status) => {
-                      const active = today.medicationStatus === status;
-                      const color = status === 'taken' ? '#A8C5A0' : status === 'skipped' ? '#C4A0B0' : '#C9A84C';
+                  {medsStore.medications.map((med, idx) => {
+                    const medStatus = perMedStatus[med.id] ?? null;
+                    return (
+                      <View key={med.id}>
+                        {idx > 0 && <View style={s.perMedDivider} />}
+                        <View style={s.perMedRow}>
+                          <View style={s.perMedInfo}>
+                            <Text style={[s.perMedName, { color: theme.textPrimary }]}>{med.name}</Text>
+                            {med.dosage ? <Text style={[s.perMedDosage, { color: theme.textSecondary }]}>{med.dosage}</Text> : null}
+                          </View>
+                          <View style={s.perMedBtns}>
+                            {(['taken', 'skipped', 'partial'] as MedicationStatus[]).map((status) => {
+                              const active = medStatus === status;
+                              const color = status === 'taken' ? '#A8C5A0' : status === 'skipped' ? '#C4A0B0' : '#C9A84C';
+                              return (
+                                <TouchableOpacity
+                                  key={status}
+                                  style={[s.perMedBtn, active && { borderColor: color, backgroundColor: color + '18' }]}
+                                  onPress={() => handlePerMedTap(med.id, status)}
+                                  activeOpacity={0.7}
+                                >
+                                  <Text style={[s.perMedBtnText, { color: active ? color : theme.textSecondary }, active && { fontWeight: '700' }]}>
+                                    {status === 'taken' ? '✓' : status === 'skipped' ? '✗' : '~'}
+                                  </Text>
+                                </TouchableOpacity>
+                              );
+                            })}
+                          </View>
+                        </View>
+                        {/* Status label */}
+                        {medStatus && (
+                          <Text style={[s.perMedStatusLabel, {
+                            color: medStatus === 'taken' ? '#A8C5A0' : medStatus === 'skipped' ? '#C4A0B0' : '#C9A84C',
+                          }]}>
+                            {medStatus === 'taken' ? 'Taken' : medStatus === 'skipped' ? 'Skipped' : 'Partial'}
+                          </Text>
+                        )}
+                      </View>
+                    );
+                  })}
+
+                  {/* Log button */}
+                  <View style={s.medLogRow}>
+                    {medLastLogged && (
+                      <Text style={s.medLoggedAt}>Logged at {medLastLogged}</Text>
+                    )}
+                    {today.medicationSkipReason && (
+                      <Text style={[s.medLoggedAt, { fontStyle: 'italic' }]}>Reason: {today.medicationSkipReason}</Text>
+                    )}
+                    {(() => {
+                      const anySet = Object.values(perMedStatus).some(Boolean);
                       return (
                         <TouchableOpacity
-                          key={status}
-                          style={[s.medBtn, active && { borderColor: color, backgroundColor: color + '18' }]}
-                          onPress={() => handleMedTap(status)}
+                          style={[s.medLogBtn, { backgroundColor: anySet ? '#C4A0B0' : '#E0DDD8' }]}
+                          onPress={handleLogMedications}
+                          disabled={medLogging || !anySet}
+                          activeOpacity={0.8}
                         >
-                          <Text style={[s.medBtnText, { color: theme.textSecondary, opacity: 1 }, active && { color, fontWeight: '700', opacity: 1 }]}>
-                            {status.charAt(0).toUpperCase() + status.slice(1)}
-                          </Text>
+                          {medLogging
+                            ? <ActivityIndicator color="#FFFFFF" size="small" />
+                            : <Text style={s.medLogBtnText}>
+                                {today.medicationStatus ? '↺ Update Log' : 'Log Medications'}
+                              </Text>
+                          }
                         </TouchableOpacity>
                       );
-                    })}
+                    })()}
                   </View>
-
-                  {/* Logged skip reason display */}
-                  {today.medicationSkipReason && (today.medicationStatus === 'skipped' || today.medicationStatus === 'partial') && (
-                    <Text style={{ fontSize: 12, color: theme.textSecondary, marginTop: 8, fontStyle: 'italic' }}>
-                      Reason: {today.medicationSkipReason}
-                    </Text>
-                  )}
                 </View>
               </>
             )}
@@ -763,21 +917,48 @@ export default function TrackerScreen() {
               <>
                 <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>SUBSTANCES TODAY</Text>
                 <View style={[s.card, theme.cardSurface]}>
-                  <View style={s.subGrid}>
-                    {medsStore.substances.map((sub) => {
-                      const active = subLogs.logs[sub.id] === true;
+                  <View style={s.subList}>
+                    {medsStore.substances.map((sub, idx) => {
+                      const log = subLogs.logs[sub.id];
+                      const active = log?.used === true;
+                      const amount = log?.amount ?? 1;
                       return (
-                        <TouchableOpacity
-                          key={sub.id}
-                          style={[s.subChip, active && { borderColor: '#C4A0B0', backgroundColor: '#C4A0B015' }]}
-                          onPress={() => handleSubToggle(sub.id)}
-                        >
-                          <Text style={s.subChipIcon}>{SUB_ICONS[sub.category] ?? '🫙'}</Text>
-                          <Text style={[s.subChipText, { color: theme.textPrimary }, active && { color: '#C4A0B0', fontWeight: '700' }]}>
-                            {sub.name}
-                          </Text>
-                          {active && <Text style={s.subChipCheck}>✓</Text>}
-                        </TouchableOpacity>
+                        <View key={sub.id}>
+                          {idx > 0 && <View style={s.subDivider} />}
+                          <View style={[s.subRow, active && { backgroundColor: '#C4A0B008' }]}>
+                            <TouchableOpacity
+                              style={s.subToggle}
+                              onPress={() => handleSubToggle(sub.id)}
+                              activeOpacity={0.7}
+                            >
+                              <Text style={s.subChipIcon}>{SUB_ICONS[sub.category] ?? '🫙'}</Text>
+                              <Text style={[s.subChipText, { color: theme.textPrimary }, active && { color: '#C4A0B0', fontWeight: '700' }]}>
+                                {sub.name}
+                              </Text>
+                            </TouchableOpacity>
+                            {active ? (
+                              <View style={s.amountRow}>
+                                <TouchableOpacity
+                                  style={s.amountBtn}
+                                  onPress={() => handleSubAmount(sub.id, -1)}
+                                  activeOpacity={0.7}
+                                >
+                                  <Text style={s.amountBtnText}>−</Text>
+                                </TouchableOpacity>
+                                <Text style={s.amountCount}>{amount}</Text>
+                                <TouchableOpacity
+                                  style={s.amountBtn}
+                                  onPress={() => handleSubAmount(sub.id, 1)}
+                                  activeOpacity={0.7}
+                                >
+                                  <Text style={s.amountBtnText}>+</Text>
+                                </TouchableOpacity>
+                              </View>
+                            ) : (
+                              <Text style={s.subChipCheck}> </Text>
+                            )}
+                          </View>
+                        </View>
                       );
                     })}
                   </View>
@@ -863,6 +1044,17 @@ const s = StyleSheet.create({
     borderBottomWidth: 2, borderBottomColor: 'transparent',
   },
   tabLabel: { fontSize: 12, fontWeight: '700', letterSpacing: 0.2 },
+  tabLabelShort: { fontSize: 10, fontWeight: '700', flex: 1, textAlign: 'center' },
+  tabReorderRow: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingHorizontal: 2 },
+  tabArrow: { fontSize: 18, fontWeight: '700', color: '#3D3935', lineHeight: 22 },
+  tabArrowDisabled: { opacity: 0.2 },
+  reorderBanner: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingVertical: 6, borderBottomWidth: 1,
+  },
+  reorderHint: { fontSize: 11, fontStyle: 'italic', opacity: 0.8 },
+  reorderDoneBtn: { borderRadius: 8, paddingHorizontal: 12, paddingVertical: 4 },
+  reorderDoneText: { fontSize: 12, fontWeight: '700', color: '#FFFFFF' },
 
   sectionLabel: {
     fontSize: 11, fontWeight: '700', color: '#3D3935',
@@ -987,6 +1179,27 @@ const s = StyleSheet.create({
   },
   medBtnText: { fontSize: 13, fontWeight: '500' },
 
+  // Per-medication rows
+  perMedDivider: { height: 1, backgroundColor: '#F0EDE8', marginVertical: 10 },
+  perMedRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  perMedInfo: { flex: 1 },
+  perMedName: { fontSize: 14, fontWeight: '600' },
+  perMedDosage: { fontSize: 11, marginTop: 1, opacity: 0.6 },
+  perMedBtns: { flexDirection: 'row', gap: 6 },
+  perMedBtn: {
+    width: 38, height: 38, borderRadius: 10,
+    borderWidth: 1.5, borderColor: '#E0DDD8',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  perMedBtnText: { fontSize: 16, fontWeight: '700' },
+  perMedStatusLabel: { fontSize: 10, fontWeight: '700', marginTop: 4, marginLeft: 2, letterSpacing: 0.4 },
+  medLogRow: { marginTop: 16, gap: 6 },
+  medLoggedAt: { fontSize: 11, color: '#3D393560', fontStyle: 'italic', textAlign: 'center' },
+  medLogBtn: {
+    paddingVertical: 14, borderRadius: 14, alignItems: 'center',
+  },
+  medLogBtnText: { fontSize: 15, fontWeight: '700', color: '#FFFFFF' },
+
   // Skip sheet
   sheetBackdrop: { flex: 1, backgroundColor: '#00000030', justifyContent: 'flex-end' },
   sheet: { backgroundColor: '#FFFFFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, paddingBottom: 40 },
@@ -1000,15 +1213,29 @@ const s = StyleSheet.create({
   sheetConfirmText: { fontSize: 15, fontWeight: '600', color: '#FFFFFF' },
 
   // Substances
-  subGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  subChip: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 12, paddingVertical: 8,
-    borderRadius: 12, borderWidth: 1.5, borderColor: '#E0DDD8',
+  subList: { gap: 0 },
+  subDivider: { height: 1, backgroundColor: '#F0EDE8' },
+  subRow: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 4, paddingVertical: 10, borderRadius: 10,
   },
-  subChipIcon: { fontSize: 15 },
-  subChipText: { fontSize: 13, fontWeight: '500' },
-  subChipCheck: { fontSize: 11, color: '#C4A0B0', fontWeight: '700' },
+  subToggle: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
+  subChipIcon: { fontSize: 16 },
+  subChipText: { fontSize: 14, fontWeight: '500' },
+  subChipCheck: { fontSize: 11, color: '#C4A0B0', fontWeight: '700', width: 20 },
+  amountRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 2,
+  },
+  amountBtn: {
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: '#C4A0B022', borderWidth: 1, borderColor: '#C4A0B055',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  amountBtnText: { fontSize: 16, fontWeight: '700', color: '#C4A0B0', lineHeight: 20 },
+  amountCount: {
+    fontSize: 14, fontWeight: '700', color: '#C4A0B0',
+    minWidth: 28, textAlign: 'center',
+  },
 
   // Link buttons
   linkBtn: {

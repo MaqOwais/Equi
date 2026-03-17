@@ -6,6 +6,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCalendarStore } from '../../stores/calendar';
 import { useAuthStore } from '../../stores/auth';
 import { useTasksStore, type EnergyLevel } from '../../stores/tasks';
@@ -14,7 +15,12 @@ import { callGroq } from '../../lib/groq';
 import { supabase } from '../../lib/supabase';
 import type { DayData } from '../../stores/calendar';
 import type { WorkbookResponse } from '../../types/database';
+import type { SubLog } from '../../stores/substanceLogs';
 import { fmtTime } from '../../utils/timestamps';
+
+const SUB_ICONS: Record<string, string> = {
+  alcohol: '🍷', cannabis: '🌿', stimulant: '⚡', opioid: '💊', other: '🫙',
+};
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -70,6 +76,9 @@ export default function DayScreen() {
 
   const [journalExpanded, setJournalExpanded] = useState(false);
   const [workbookEntries, setWorkbookEntries] = useState<WorkbookResponse[]>([]);
+  const [userMeds, setUserMeds] = useState<{ name: string; dosage: string | null }[]>([]);
+  const [userSubstances, setUserSubstances] = useState<{ id: string; name: string; category: string }[]>([]);
+  const [substanceLogs, setSubstanceLogs] = useState<Record<string, SubLog>>({});
   const [detailData, setDetailData] = useState<{
     activities: { title: string; completed_at: string }[];
     journalCreatedAt: string | null;
@@ -118,6 +127,25 @@ export default function DayScreen() {
       .then(({ data: rows }: { data: WorkbookResponse[] | null }) => {
         if (rows) setWorkbookEntries(rows);
       });
+    // Fetch user's active medications for per-med display
+    db.from('medications').select('name, dosage').eq('user_id', user.id).eq('active', true)
+      .then(({ data: meds }: { data: { name: string; dosage: string | null }[] | null }) => {
+        if (meds) setUserMeds(meds);
+      });
+    // Fetch user's tracked substances + their logs for this date
+    db.from('user_substances').select('id, name, category').eq('user_id', user.id).eq('active', true)
+      .then(({ data: subs }: { data: { id: string; name: string; category: string }[] | null }) => {
+        if (subs) setUserSubstances(subs);
+      });
+    AsyncStorage.getItem(`equi_sub_logs_${user.id}_${date}`).then((raw) => {
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as Record<string, boolean | SubLog>;
+      const logs: Record<string, SubLog> = {};
+      for (const [id, val] of Object.entries(parsed)) {
+        logs[id] = typeof val === 'boolean' ? { used: val, amount: 1 } : val;
+      }
+      setSubstanceLogs(logs);
+    });
     // Timestamped details
     Promise.all([
       db.from('activity_completions').select('completed_at, activity:activities(title)')
@@ -274,9 +302,29 @@ export default function DayScreen() {
           {/* ── Medication ── */}
           {data.medicationStatus && (
             <SectionCard title="Medication" icon="medkit-outline" color="#C4A0B0">
-              <DataRow label="Status" value={data.medicationStatus} capitalize
-                accent={data.medicationStatus === 'taken' ? '#A8C5A0' : data.medicationStatus === 'skipped' ? '#C4A0B0' : undefined}
-              />
+              {userMeds.length > 0 ? (
+                userMeds.map((med, i) => {
+                  const taken = data.medicationStatus === 'taken';
+                  const skipped = data.medicationStatus === 'skipped';
+                  const statusColor = taken ? '#A8C5A0' : skipped ? '#C4A0B0' : '#C9A84C';
+                  const statusIcon = taken ? '✓' : skipped ? '✗' : '~';
+                  return (
+                    <View key={i} style={s.medRow}>
+                      <View style={[s.medBadge, { backgroundColor: statusColor + '22', borderColor: statusColor + '55' }]}>
+                        <Text style={[s.medBadgeText, { color: statusColor }]}>{statusIcon}</Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={s.medName}>{med.name}</Text>
+                        {med.dosage ? <Text style={s.medDosage}>{med.dosage}</Text> : null}
+                      </View>
+                    </View>
+                  );
+                })
+              ) : (
+                <DataRow label="Status" value={data.medicationStatus} capitalize
+                  accent={data.medicationStatus === 'taken' ? '#A8C5A0' : data.medicationStatus === 'skipped' ? '#C4A0B0' : undefined}
+                />
+              )}
               {data.medicationSkipReason && (
                 <DataRow label="Skip reason" value={data.medicationSkipReason} />
               )}
@@ -389,24 +437,54 @@ export default function DayScreen() {
           )}
 
           {/* ── Substances ── */}
-          {(data.alcohol !== null || data.cannabis !== null) && (
-            <SectionCard title="Substances" icon="alert-circle-outline" color="#E8B87A">
-              {data.alcohol !== null && (
-                <DataRow
-                  label="Alcohol"
-                  value={data.alcohol ? 'Yes' : 'No'}
-                  accent={data.alcohol ? '#C4A0B0' : '#A8C5A0'}
-                />
-              )}
-              {data.cannabis !== null && (
-                <DataRow
-                  label="Cannabis"
-                  value={data.cannabis ? 'Yes' : 'No'}
-                  accent={data.cannabis ? '#C4A0B0' : '#A8C5A0'}
-                />
-              )}
-            </SectionCard>
-          )}
+          {(() => {
+            // Per-substance detail from AsyncStorage (more accurate than daily_checkins booleans)
+            const usedSubs = userSubstances.filter((s) => substanceLogs[s.id]?.used);
+            // Fall back to daily_checkins booleans if no per-substance data loaded yet
+            const showFallback = usedSubs.length === 0 && (data.alcohol || data.cannabis);
+            if (usedSubs.length === 0 && !showFallback) return null;
+            return (
+              <SectionCard title="Substances" icon="alert-circle-outline" color="#D4826A">
+                {usedSubs.length > 0 ? (
+                  usedSubs.map((sub) => {
+                    const log = substanceLogs[sub.id];
+                    const amount = log?.amount ?? 1;
+                    return (
+                      <View key={sub.id} style={s.substanceRow}>
+                        <View style={[s.substanceBadge, { backgroundColor: '#D4826A22', borderColor: '#D4826A55' }]}>
+                          <Text style={s.substanceBadgeText}>{SUB_ICONS[sub.category] ?? '🫙'}</Text>
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={[s.substanceName, { color: '#D4826A', fontWeight: '600' }]}>{sub.name}</Text>
+                          <Text style={s.substanceAmount}>{amount} {amount === 1 ? 'time' : 'times'}</Text>
+                        </View>
+                      </View>
+                    );
+                  })
+                ) : (
+                  // Fallback: only know alcohol/cannabis were used but not which specific ones
+                  <>
+                    {data.alcohol && (
+                      <View style={s.substanceRow}>
+                        <View style={[s.substanceBadge, { backgroundColor: '#D4826A22', borderColor: '#D4826A55' }]}>
+                          <Text style={s.substanceBadgeText}>🍷</Text>
+                        </View>
+                        <Text style={[s.substanceName, { color: '#D4826A', fontWeight: '600' }]}>Alcohol consumed</Text>
+                      </View>
+                    )}
+                    {data.cannabis && (
+                      <View style={s.substanceRow}>
+                        <View style={[s.substanceBadge, { backgroundColor: '#D4826A22', borderColor: '#D4826A55' }]}>
+                          <Text style={s.substanceBadgeText}>🌿</Text>
+                        </View>
+                        <Text style={[s.substanceName, { color: '#D4826A', fontWeight: '600' }]}>Cannabis consumed</Text>
+                      </View>
+                    )}
+                  </>
+                )}
+              </SectionCard>
+            );
+          })()}
 
           {/* ── Social Rhythm ── */}
           {data.socialRhythmScore !== null && (
@@ -830,6 +908,26 @@ const s = StyleSheet.create({
   taskDelete: { fontSize: 13, color: '#3D393550' },
   taskEmpty: { backgroundColor: '#F7F3EE', borderRadius: 14, padding: 16, alignItems: 'center' },
   taskEmptyText: { fontSize: 13, color: '#3D393560', fontStyle: 'italic' },
+
+  // Per-medication rows
+  medRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 3 },
+  medBadge: {
+    width: 26, height: 26, borderRadius: 7, borderWidth: 1,
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  },
+  medBadgeText: { fontSize: 13, fontWeight: '800' },
+  medName: { fontSize: 14, color: '#3D3935', fontWeight: '500' },
+  medDosage: { fontSize: 11, color: '#3D393560', marginTop: 1 },
+
+  // Substance rows
+  substanceRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 3 },
+  substanceBadge: {
+    width: 26, height: 26, borderRadius: 7, borderWidth: 1,
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  },
+  substanceBadgeText: { fontSize: 15 },
+  substanceName: { fontSize: 14, color: '#3D393580' },
+  substanceAmount: { fontSize: 11, color: '#D4826A', marginTop: 1, opacity: 0.8 },
 
   // Cycle entry timeline
   entryRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 6 },

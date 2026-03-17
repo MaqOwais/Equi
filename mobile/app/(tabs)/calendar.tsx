@@ -117,7 +117,8 @@ export default function CalendarScreen() {
               const cycleColor = data?.cycleState ? CYCLE_COLORS[data.cycleState] : null;
               const isToday = date === today;
               const hasData = !!(data?.cycleState || data?.hasJournal ||
-                data?.activityNames?.length || data?.hasWorkbook);
+                data?.activityNames?.length || data?.hasWorkbook ||
+                data?.medicationStatus || data?.alcohol || data?.cannabis);
               const dayTasks = tasksStore.byDate[date] ?? [];
               const tasksDone = dayTasks.filter((t) => t.completed_at !== null).length;
               const tasksTotal = dayTasks.length;
@@ -129,7 +130,7 @@ export default function CalendarScreen() {
                   style={[
                     s.dayCell,
                     cycleColor
-                      ? { backgroundColor: cycleColor + '35', borderColor: cycleColor + '60' }
+                      ? { backgroundColor: cycleColor + '22', borderColor: cycleColor + '50' }
                       : hasData
                         ? { backgroundColor: '#F7F3EE', borderColor: '#E8E4DF' }
                         : s.dayCellEmpty,
@@ -138,6 +139,10 @@ export default function CalendarScreen() {
                   onPress={() => router.push(`/day/${date}`)}
                   activeOpacity={0.65}
                 >
+                  {/* Cycle state — rounded square bar at top of cell */}
+                  {cycleColor && (
+                    <View style={[s.cycleBar, { backgroundColor: cycleColor }]} />
+                  )}
                   <Text style={[
                     s.dayNum,
                     { color: isToday ? theme.accent : theme.textPrimary },
@@ -157,7 +162,10 @@ export default function CalendarScreen() {
                   <View style={s.dotRow}>
                     {data?.hasJournal && <View style={[s.dot, { backgroundColor: '#89B4CC' }]} />}
                     {data?.activityNames?.length > 0 && <View style={[s.dot, { backgroundColor: '#A8C5A0' }]} />}
-                    {data?.medicationStatus === 'taken' && <View style={[s.dot, { backgroundColor: '#C4A0B0' }]} />}
+                    {data?.medicationStatus === 'taken'    && <View style={[s.dot, { backgroundColor: '#A8C5A0' }]} />}
+                    {data?.medicationStatus === 'skipped'  && <View style={[s.dot, { backgroundColor: '#C4A0B0' }]} />}
+                    {data?.medicationStatus === 'partial'  && <View style={[s.dot, { backgroundColor: '#C9A84C' }]} />}
+                    {(data?.alcohol || data?.cannabis)     && <View style={[s.dot, { backgroundColor: '#D4826A' }]} />}
                     {data?.hasWorkbook && <View style={[s.dot, { backgroundColor: '#C9A84C' }]} />}
                   </View>
                 </TouchableOpacity>
@@ -187,9 +195,10 @@ export default function CalendarScreen() {
           <View style={s.legendRow}>
             {[
               { color: '#89B4CC', label: 'Journal' },
-              { color: '#A8C5A0', label: 'Activity' },
-              { color: '#C4A0B0', label: 'Meds' },
-              { color: '#C9A84C', label: 'Workbook' },
+              { color: '#A8C5A0', label: 'Activity / Meds taken' },
+              { color: '#C4A0B0', label: 'Meds skipped' },
+              { color: '#C9A84C', label: 'Partial / Workbook' },
+              { color: '#D4826A', label: 'Substance' },
             ].map(({ color, label }) => (
               <View key={label} style={s.legendItem}>
                 <View style={[s.dot, { backgroundColor: color }]} />
@@ -254,8 +263,12 @@ const s = StyleSheet.create({
   },
   dayNum: { fontSize: 14, fontWeight: '600' },
   dayNumToday: { fontWeight: '900' },
+  cycleBar: {
+    position: 'absolute', top: 0, left: 0, right: 0,
+    height: 4, borderTopLeftRadius: 13, borderTopRightRadius: 13,
+  },
   dotRow: { flexDirection: 'row', gap: 2, marginTop: 2 },
-  dot: { width: 4, height: 4, borderRadius: 2 },
+  dot: { width: 6, height: 6, borderRadius: 3 },
 
   taskBadge: { borderRadius: 4, paddingHorizontal: 3, paddingVertical: 0.5, marginTop: 1 },
   taskBadgeText: { fontSize: 7, fontWeight: '800' },
@@ -279,7 +292,7 @@ const s = StyleSheet.create({
   },
   legendRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  legendSwatch: { width: 9, height: 9, borderRadius: 4.5 },
+  legendSwatch: { width: 10, height: 10, borderRadius: 3 },
   legendText: { fontSize: 12, textTransform: 'capitalize', opacity: 0.7 },
   legendDivider: { height: 1, marginVertical: 2 },
 });

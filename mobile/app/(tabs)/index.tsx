@@ -17,7 +17,7 @@ import { useRouter } from 'expo-router';
 import { useMedicationsStore } from '../../stores/medications';
 import { useTasksStore, type EnergyLevel } from '../../stores/tasks';
 import { useHomeLayoutStore, SECTION_META, ALL_SECTIONS, type SectionId } from '../../stores/homeLayout';
-import type { CycleState, MedicationStatus } from '../../types/database';
+import type { CycleState } from '../../types/database';
 import { useAmbientTheme } from '../../stores/ambient';
 import { useSubstanceLogsStore } from '../../stores/substanceLogs';
 import { useCompanionStore, abstractCycleLabel, abstractCycleColor } from '../../stores/companion';
@@ -67,7 +67,6 @@ const QUICK_ACTS: Record<CycleState, { icon: string; title: string; dur: string 
   mixed:      [{ icon: '🌬️', title: 'Box Breathing', dur: '5 min' },   { icon: '🌊', title: '5-4-3-2-1 Grounding', dur: '5 min' }],
 };
 
-const SKIP_REASONS = ['Forgot', 'Side effects', 'Felt fine', 'Ran out', 'Other'];
 const SLEEP_OPTIONS = [
   { label: 'Poor',  sub: '< 5h', score: 1 },
   { label: 'Light', sub: '5–6h', score: 2 },
@@ -244,9 +243,6 @@ export default function TodayScreen() {
   const [taskInputVisible, setTaskInputVisible] = useState(false);
   const [customizeVisible, setCustomizeVisible] = useState(false);
 
-  const [skipSheetVisible, setSkipSheetVisible] = useState(false);
-  const [pendingMedStatus, setPendingMedStatus] = useState<MedicationStatus | null>(null);
-  const [selectedSkipReason, setSelectedSkipReason] = useState<string | null>(null);
 
   // Medication settings sheet
   const [medSettingsVisible, setMedSettingsVisible] = useState(false);
@@ -288,28 +284,6 @@ export default function TodayScreen() {
     today.logCycle(userId, state, today.cycleIntensity ?? 5, today.cycleSymptoms ?? []);
   }
 
-  function handleMedTap(status: MedicationStatus) {
-    if (!userId) return;
-    if (status === 'taken') {
-      today.logMedication(userId, 'taken');
-    } else {
-      setPendingMedStatus(status);
-      setSkipSheetVisible(true);
-    }
-  }
-
-  function confirmSkip() {
-    if (!userId || !pendingMedStatus) return;
-    today.logMedication(userId, pendingMedStatus, selectedSkipReason ?? undefined);
-    setSkipSheetVisible(false);
-    setPendingMedStatus(null);
-    setSelectedSkipReason(null);
-  }
-
-  function toggleUserSubstance(substanceId: string) {
-    if (!userId) return;
-    subLogs.toggle(userId, todayDate, substanceId);
-  }
 
   const theme = useAmbientTheme();
   const { updateProfile } = useAuthStore();
@@ -347,7 +321,7 @@ const showRuminationPrompt = today.moodScore !== null && today.moodScore <= 3;
     { label: 'Meds',        done: today.medicationStatus !== null, hidden: !showMedSection },
     { label: 'Mood Cycle',  done: today.cycleState !== null },
     { label: 'Journal', done: journalWordCount > 0 },
-    { label: 'Subs',    done: Object.values(subLogs.logs).some(Boolean), hidden: !showSubSection },
+    { label: 'Subs',    done: Object.values(subLogs.logs).some((v) => v?.used), hidden: !showSubSection },
   ].filter((c) => !c.hidden);
 
   const doneCount = checks.filter((c) => c.done).length;
@@ -668,71 +642,57 @@ const showRuminationPrompt = today.moodScore !== null && today.moodScore <= 3;
             <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>CHECK-INS</Text>
             <View style={[s.card, theme.cardSurface]}>
               {showMedSection && (
-                <View style={s.checkinBlock}>
+                <TouchableOpacity
+                  style={s.checkinBlock}
+                  onPress={() => router.push('/(tabs)/tracker?tab=meds')}
+                  activeOpacity={0.7}
+                >
                   <View style={s.checkinLabelRow}>
                     <Text style={s.checkinBlockLabel}>💊  Medications</Text>
-                    <TouchableOpacity onPress={openMedSettings} hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}>
-                      <Text style={s.settingsGear}>⚙</Text>
-                    </TouchableOpacity>
+                    <Text style={s.checkinNavArrow}>›</Text>
                   </View>
-                  {meds.length > 0 ? (
-                    <View style={{ gap: 4, marginBottom: 8 }}>
-                      {meds.map((med) => (
-                        <View key={med.id} style={s.medNameRow}>
-                          <Text style={s.medNameText}>{med.name}{med.dosage ? ` · ${med.dosage}` : ''}</Text>
-                          {med.ring_enabled && <Text style={s.medRingBadge}>🔔</Text>}
-                        </View>
-                      ))}
-                    </View>
-                  ) : (
-                    <TouchableOpacity onPress={openMedSettings}>
-                      <Text style={s.addMedHint}>+ Add your medications</Text>
-                    </TouchableOpacity>
-                  )}
-                  <View style={s.medButtons}>
-                    {(['taken', 'skipped', 'partial'] as MedicationStatus[]).map((status) => {
-                      const active = today.medicationStatus === status;
-                      const color = status === 'taken' ? '#A8C5A0' : status === 'skipped' ? '#C4A0B0' : '#C9A84C';
+                  {today.medicationStatus ? (
+                    (() => {
+                      const color = today.medicationStatus === 'taken' ? '#A8C5A0' : today.medicationStatus === 'skipped' ? '#C4A0B0' : '#C9A84C';
+                      const label = today.medicationStatus === 'taken' ? 'Taken ✓' : today.medicationStatus === 'skipped' ? 'Skipped' : 'Partial';
                       return (
-                        <TouchableOpacity
-                          key={status}
-                          style={[s.medBtn, active && { borderColor: color, backgroundColor: color + '18' }]}
-                          onPress={() => handleMedTap(status)}
-                        >
-                          <Text style={[s.medBtnText, active && { color, opacity: 1, fontWeight: '700' }]}>
-                            {status.charAt(0).toUpperCase() + status.slice(1)}
-                          </Text>
-                        </TouchableOpacity>
+                        <View style={[s.medStatusChip, { backgroundColor: color + '18', borderColor: color + '55' }]}>
+                          <Text style={[s.medStatusChipText, { color }]}>{label}</Text>
+                        </View>
                       );
-                    })}
-                  </View>
-                </View>
+                    })()
+                  ) : (
+                    <Text style={s.checkinTapHint}>Tap to log in Tracker</Text>
+                  )}
+                </TouchableOpacity>
               )}
               {showSubSection && (
-                <View style={[s.checkinBlock, showMedSection && s.checkinDivider]}>
+                <TouchableOpacity
+                  style={[s.checkinBlock, showMedSection && s.checkinDivider]}
+                  onPress={() => router.push('/(tabs)/tracker?tab=meds')}
+                  activeOpacity={0.7}
+                >
                   <View style={s.checkinLabelRow}>
                     <Text style={s.checkinBlockLabel}>🍃  Substances today</Text>
-                    <TouchableOpacity onPress={() => router.push('/(tabs)/you/substances')} hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}>
-                      <Text style={s.settingsGear}>⚙</Text>
-                    </TouchableOpacity>
+                    <Text style={s.checkinNavArrow}>›</Text>
                   </View>
-                  <View style={s.substanceRow}>
-                    {userSubstances.map((sub) => {
-                      const active = subLogs.logs[sub.id] === true;
-                      return (
-                        <TouchableOpacity
-                          key={sub.id}
-                          style={[s.subBtn, active && { borderColor: '#C4A0B0', backgroundColor: '#C4A0B015' }]}
-                          onPress={() => toggleUserSubstance(sub.id)}
-                        >
-                          <Text style={[s.subBtnText, active && { color: '#C4A0B0', opacity: 1, fontWeight: '600' }]}>
-                            {SUB_ICONS[sub.category] ?? '🫙'} {sub.name}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                </View>
+                  {(() => {
+                    const used = userSubstances.filter((s) => subLogs.logs[s.id]?.used);
+                    return used.length > 0 ? (
+                      <View style={s.substanceRow}>
+                        {used.map((sub) => (
+                          <View key={sub.id} style={s.subStatusChip}>
+                            <Text style={s.subStatusChipText}>
+                              {SUB_ICONS[sub.category] ?? '🫙'} {sub.name}
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+                    ) : (
+                      <Text style={s.checkinTapHint}>Tap to track in Tracker</Text>
+                    );
+                  })()}
+                </TouchableOpacity>
               )}
               {!showSubSection && !showMedSection && (
                 <View style={s.checkinBlock}>
@@ -1054,31 +1014,6 @@ const showRuminationPrompt = today.moodScore !== null && today.moodScore <= 3;
       </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Medication skip sheet */}
-      <Modal visible={skipSheetVisible} transparent animationType="slide">
-        <Pressable style={s.sheetBackdrop} onPress={() => setSkipSheetVisible(false)}>
-          <Pressable style={s.sheet} onPress={() => {}}>
-            <Text style={s.sheetTitle}>Why did you skip?</Text>
-            {SKIP_REASONS.map((r) => (
-              <TouchableOpacity
-                key={r}
-                style={[s.sheetOption, selectedSkipReason === r && s.sheetOptionActive]}
-                onPress={() => setSelectedSkipReason(r)}
-              >
-                <Text style={[s.sheetOptionText, selectedSkipReason === r && s.sheetOptionTextActive]}>{r}</Text>
-              </TouchableOpacity>
-            ))}
-            <TouchableOpacity
-              style={[s.sheetConfirm, !selectedSkipReason && s.sheetConfirmDisabled]}
-              onPress={confirmSkip}
-              disabled={!selectedSkipReason}
-            >
-              <Text style={s.sheetConfirmText}>Confirm</Text>
-            </TouchableOpacity>
-          </Pressable>
-        </Pressable>
-      </Modal>
-
       {/* ── Customize Layout Modal ─────────────────────────────────────────── */}
       <Modal visible={customizeVisible} transparent animationType="slide">
         <View style={[s.sheetBackdrop, { justifyContent: 'flex-end' }]}>
@@ -1308,12 +1243,20 @@ const s = StyleSheet.create({
   medNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   medNameText: { fontSize: 13, fontWeight: '600', color: '#3D3935', flex: 1 },
   medRingBadge: { fontSize: 12, opacity: 0.6 },
-  medButtons: { flexDirection: 'row', gap: 8 },
-  medBtn: { flex: 1, paddingVertical: 9, borderRadius: 10, borderWidth: 1.5, borderColor: '#E0DDD8', alignItems: 'center' },
-  medBtnText: { fontSize: 13, color: '#3D3935', opacity: 0.45, fontWeight: '500' },
-  substanceRow: { flexDirection: 'row', gap: 10 },
-  subBtn: { paddingVertical: 9, paddingHorizontal: 16, borderRadius: 10, borderWidth: 1.5, borderColor: '#E0DDD8' },
-  subBtnText: { fontSize: 13, color: '#3D3935', opacity: 0.4, fontWeight: '500' },
+  checkinNavArrow: { fontSize: 18, color: '#3D393540', fontWeight: '300' },
+  checkinTapHint: { fontSize: 12, color: '#3D393545', fontStyle: 'italic', marginTop: 4 },
+  medStatusChip: {
+    alignSelf: 'flex-start', marginTop: 6,
+    paddingHorizontal: 10, paddingVertical: 4,
+    borderRadius: 8, borderWidth: 1,
+  },
+  medStatusChipText: { fontSize: 13, fontWeight: '700' },
+  substanceRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 },
+  subStatusChip: {
+    paddingHorizontal: 10, paddingVertical: 4,
+    borderRadius: 8, backgroundColor: '#C4A0B015', borderWidth: 1, borderColor: '#C4A0B055',
+  },
+  subStatusChipText: { fontSize: 13, color: '#C4A0B0', fontWeight: '600' },
   rhythmRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   rhythmSub: { fontSize: 12, color: '#3D3935', opacity: 0.4, marginTop: 2 },
   rhythmRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
