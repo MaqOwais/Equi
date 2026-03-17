@@ -24,13 +24,16 @@ export interface DayData {
   // Medication
   medicationStatus: MedicationStatus | null;
   medicationSkipReason: string | null;
+  medTimestamp: string | null; // ISO 8601 — when medication was logged
 
   // Activities
   activityNames: string[];
+  activityEntries: { name: string; completedAt: string }[]; // full entries with timestamps
 
   // Journal
   hasJournal: boolean;
   journalText: string | null; // full text — displayed locally to user, NOT sent to AI
+  journalTimestamp: string | null; // ISO 8601 — when journal was last saved
 
   // Workbook
   hasWorkbook: boolean;
@@ -38,6 +41,10 @@ export interface DayData {
 
   // Nutrition (category key → count)
   nutritionCategories: Record<string, number> | null;
+  nutritionTimestamp: string | null; // ISO 8601 — when nutrition was last updated
+
+  // Sleep
+  sleepTimestamp: string | null; // ISO 8601 — when sleep was logged
 
   // Substances
   alcohol: boolean | null;
@@ -111,10 +118,15 @@ export const useCalendarStore = create<CalendarStore>((set, get) => {
           sleepDuration: local?.sleepDuration ?? null,
           medicationStatus: (local?.medicationStatus as MedicationStatus) ?? null,
           medicationSkipReason: local?.medicationSkipReason ?? null,
+          medTimestamp: local?.medTimestamp ?? null,
           activityNames: local?.activityCompletions?.map((c) => c.name) ?? [],
+          activityEntries: local?.activityCompletions?.map((c) => ({ name: c.name, completedAt: c.completedAt })) ?? [],
           hasJournal: !!(local?.journalText),
           journalText: local?.journalText ? blocksToPlainText(local.journalText) : null,
+          journalTimestamp: local?.journalTimestamp ?? null,
           nutritionCategories: local?.nutritionCategories ?? null,
+          nutritionTimestamp: local?.nutritionTimestamp ?? null,
+          sleepTimestamp: local?.sleepTimestamp ?? null,
           alcohol: local?.alcohol ?? null,
           cannabis: local?.cannabis ?? null,
           socialRhythmScore: local?.socialRhythmScore ?? null,
@@ -202,10 +214,19 @@ export const useCalendarStore = create<CalendarStore>((set, get) => {
             sleepDuration: loc.sleepDuration ?? sleepMap[date]?.duration_minutes ?? null,
             medicationStatus: loc.medicationStatus ?? (medMap[date]?.status as MedicationStatus) ?? null,
             medicationSkipReason: loc.medicationSkipReason ?? medMap[date]?.skip_reason ?? null,
+            medTimestamp: loc.medTimestamp ?? null,
             activityNames: loc.activityNames.length > 0 ? loc.activityNames : (activityMap[date] ?? []),
+            activityEntries: loc.activityEntries.length > 0
+              ? loc.activityEntries
+              : (activityLogs.data ?? [])
+                  .filter((r: any) => r.completed_at?.startsWith(date))
+                  .map((r: any) => ({ name: r.activity?.title ?? 'Activity', completedAt: r.completed_at })),
             hasJournal: loc.hasJournal || !!journalMap[date],
             journalText: loc.journalText ?? journalMap[date] ?? null,
+            journalTimestamp: loc.journalTimestamp ?? null,
             nutritionCategories: loc.nutritionCategories ?? nutritionMap[date] ?? null,
+            nutritionTimestamp: loc.nutritionTimestamp ?? null,
+            sleepTimestamp: loc.sleepTimestamp ?? null,
             alcohol: loc.alcohol ?? checkinMap[date]?.alcohol ?? null,
             cannabis: loc.cannabis ?? checkinMap[date]?.cannabis ?? null,
             socialRhythmScore: loc.socialRhythmScore ?? socialMap[date]?.score ?? null,

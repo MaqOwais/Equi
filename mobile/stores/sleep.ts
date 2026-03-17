@@ -91,6 +91,7 @@ export const useSleepStore = create<SleepStore>((set, get) => ({
     await saveLocal(userId, date, {
       sleepQuality: qualityScore,
       sleepDuration: duration,
+      sleepTimestamp: new Date().toISOString(),
     });
 
     // Also write to Supabase (HealthKit sync depends on server data)
@@ -150,6 +151,7 @@ export const useSleepStore = create<SleepStore>((set, get) => ({
     await saveLocal(userId, sample.date, {
       sleepQuality: sample.quality_score,
       sleepDuration: sample.duration_minutes,
+      sleepTimestamp: new Date().toISOString(),
     });
 
     const isToday = sample.date === isoToday();

@@ -38,6 +38,7 @@ export interface LocalDayData {
   medicationStatus?: string | null;
   medicationSkipReason?: string | null;
   medicationSideEffects?: string[] | null;
+  medTimestamp?: string | null; // ISO 8601 — when medication was logged
 
   // Substances
   alcohol?: boolean | null;
@@ -45,13 +46,16 @@ export interface LocalDayData {
 
   // Journal (full text — never sent to AI)
   journalText?: string | null;
+  journalTimestamp?: string | null; // ISO 8601 — when journal was last saved
 
   // Nutrition
   nutritionCategories?: Record<string, number> | null;
+  nutritionTimestamp?: string | null; // ISO 8601 — when nutrition was last updated
 
   // Sleep
   sleepQuality?: number | null;
   sleepDuration?: number | null; // minutes
+  sleepTimestamp?: string | null; // ISO 8601 — when sleep was logged
 
   // Social Rhythm
   socialRhythmScore?: number | null;
@@ -121,7 +125,7 @@ export async function syncDayToCloud(userId: string, date: string): Promise<void
     writes.push(
       db.from('cycle_logs').upsert({
         user_id: userId,
-        logged_at: date,
+        logged_at: local.cycleTimestamp ?? date,
         state: local.cycleState,
         intensity: local.cycleIntensity ?? null,
         symptoms: local.cycleSymptoms ?? [],

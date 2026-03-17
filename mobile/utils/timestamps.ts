@@ -28,8 +28,10 @@ export function fmtLocalTime(d: Date): string {
   return `${hour}:${String(m).padStart(2, '0')} ${ampm}`;
 }
 
-/** Format an ISO string as just "H:MM AM/PM". Used in detail views. */
+/** Format an ISO string as just "H:MM AM/PM". Used in detail views.
+ *  Returns '' for date-only strings (no time component) to avoid showing midnight. */
 export function fmtTime(iso: string): string {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(iso.trim())) return '';
   return fmtLocalTime(parseSupabaseTs(iso));
 }
 

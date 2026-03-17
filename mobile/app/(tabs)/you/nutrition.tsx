@@ -91,7 +91,7 @@ export default function NutritionScreen() {
     const t = setTimeout(async () => {
       if (!userId) return;
       // Save locally first — Supabase sync deferred
-      await saveLocal(userId, isoToday(), { nutritionCategories: nextCounts });
+      await saveLocal(userId, isoToday(), { nutritionCategories: nextCounts, nutritionTimestamp: new Date().toISOString() });
       setSaved(true);
     }, 1200);
     setSaveTimer(t);

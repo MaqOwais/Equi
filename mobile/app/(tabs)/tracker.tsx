@@ -360,7 +360,7 @@ export default function TrackerScreen() {
     setNutritionSaved(false);
     if (nutritionTimer) clearTimeout(nutritionTimer);
     const t = setTimeout(async () => {
-      await saveLocal(userId, todayDate, { nutritionCategories: updated });
+      await saveLocal(userId, todayDate, { nutritionCategories: updated, nutritionTimestamp: new Date().toISOString() });
       setNutritionSaved(true);
     }, 600);
     setNutritionTimer(t);

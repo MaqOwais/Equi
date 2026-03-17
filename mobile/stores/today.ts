@@ -121,11 +121,13 @@ export const useTodayStore = create<TodayStore>((set, get) => ({
   },
 
   logMedication: async (userId, status, skipReason, sideEffects) => {
+    const medTimestamp = new Date().toISOString();
     set({ medicationStatus: status, medicationSkipReason: skipReason ?? null });
     await saveLocal(userId, get().date, {
       medicationStatus: status,
       medicationSkipReason: skipReason ?? null,
       medicationSideEffects: sideEffects ?? [],
+      medTimestamp,
     });
   },
 }));

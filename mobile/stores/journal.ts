@@ -105,7 +105,7 @@ export const useJournalStore = create<JournalStore>((set, get) => ({
     }));
 
     // Save locally — Supabase sync deferred
-    await saveLocal(userId, date, { journalText: text });
+    await saveLocal(userId, date, { journalText: text, journalTimestamp: new Date().toISOString() });
 
     set({ savingDate: null });
   },

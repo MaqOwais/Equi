@@ -300,9 +300,9 @@ export default function DayScreen() {
               {data.sleepQuality !== null && (
                 <DataRow label="Quality" value={`${data.sleepQuality} / 10`} />
               )}
-              {detailData?.sleepLoggedAt && (
-                <DataRow label="Logged at" value={fmtTime(detailData.sleepLoggedAt)} />
-              )}
+              {(detailData?.sleepLoggedAt ?? data.sleepTimestamp) ? (
+                <DataRow label="Logged at" value={fmtTime(detailData?.sleepLoggedAt ?? data.sleepTimestamp!)} />
+              ) : null}
             </SectionCard>
           )}
 
@@ -335,16 +335,21 @@ export default function DayScreen() {
               {data.medicationSkipReason && (
                 <DataRow label="Skip reason" value={data.medicationSkipReason} />
               )}
-              {detailData?.medLoggedAt && (
-                <DataRow label="Logged at" value={fmtTime(detailData.medLoggedAt)} />
-              )}
+              {(detailData?.medLoggedAt ?? data.medTimestamp) ? (
+                <DataRow label="Logged at" value={fmtTime(detailData?.medLoggedAt ?? data.medTimestamp!)} />
+              ) : null}
             </SectionCard>
           )}
 
           {/* ── Activities ── */}
           {data.activityNames.length > 0 && (
             <SectionCard title="Activities" icon="leaf-outline" color="#A8C5A0">
-              {(detailData?.activities.length ? detailData.activities : data.activityNames.map((title) => ({ title, completed_at: '' }))).map((act, i) => (
+              {(detailData?.activities.length
+                ? detailData.activities
+                : data.activityEntries.length > 0
+                  ? data.activityEntries.map((e) => ({ title: e.name, completed_at: e.completedAt }))
+                  : data.activityNames.map((title) => ({ title, completed_at: '' }))
+              ).map((act, i) => (
                 <View key={i} style={s.activityRow}>
                   <View style={[s.activityBullet, { backgroundColor: '#A8C5A022' }]}>
                     <Text style={s.activityBulletText}>{i + 1}</Text>
@@ -365,9 +370,9 @@ export default function DayScreen() {
             <SectionCard title="Journal" icon="book-outline" color="#89B4CC"
               badge="Private · not shared with AI"
             >
-              {detailData?.journalCreatedAt && (
-                <Text style={s.taskCompletedAt}>Written at {fmtTime(detailData.journalCreatedAt)}</Text>
-              )}
+              {(detailData?.journalCreatedAt ?? data.journalTimestamp) ? (
+                <Text style={s.taskCompletedAt}>Written at {fmtTime(detailData?.journalCreatedAt ?? data.journalTimestamp!)}</Text>
+              ) : null}
               <Text style={s.journalBody}>
                 {journalExpanded || data.journalText.length <= 300
                   ? data.journalText
@@ -423,9 +428,9 @@ export default function DayScreen() {
           {data.nutritionCategories &&
             Object.values(data.nutritionCategories).some((v) => v > 0) && (
             <SectionCard title="Nutrition" icon="nutrition-outline" color="#C9A84C">
-              {detailData?.nutritionLoggedAt && (
-                <Text style={s.taskCompletedAt}>Last updated at {fmtTime(detailData.nutritionLoggedAt)}</Text>
-              )}
+              {(detailData?.nutritionLoggedAt ?? data.nutritionTimestamp) ? (
+                <Text style={s.taskCompletedAt}>Last updated at {fmtTime(detailData?.nutritionLoggedAt ?? data.nutritionTimestamp!)}</Text>
+              ) : null}
               {Object.entries(data.nutritionCategories)
                 .filter(([, count]) => count > 0)
                 .map(([key, count]) => {
