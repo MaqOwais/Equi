@@ -98,6 +98,7 @@ export const useSocialRhythmStore = create<SocialRhythmStore>((set, get) => ({
       socialRhythmScore: score,
       socialAnchorsHit: hit,
       socialAnchorsTotal: total,
+      socialRhythmTimestamp: new Date().toISOString(),
     });
 
     set({ todayAnchorLogs: allLogs, todayScore: score, todayAnchorsHit: hit, todayAnchorsTotal: total });

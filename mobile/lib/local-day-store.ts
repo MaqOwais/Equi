@@ -33,6 +33,7 @@ export interface LocalDayData {
 
   // Mood
   moodScore?: number | null;
+  moodTimestamp?: string | null; // ISO 8601 — when mood was logged
 
   // Medication
   medicationStatus?: string | null;
@@ -43,6 +44,7 @@ export interface LocalDayData {
   // Substances
   alcohol?: boolean | null;
   cannabis?: boolean | null;
+  checkinTimestamp?: string | null; // ISO 8601 — when substances were logged
 
   // Journal (full text — never sent to AI)
   journalText?: string | null;
@@ -61,6 +63,7 @@ export interface LocalDayData {
   socialRhythmScore?: number | null;
   socialAnchorsHit?: number | null;
   socialAnchorsTotal?: number | null;
+  socialRhythmTimestamp?: string | null; // ISO 8601 — when social rhythm was calculated
 
   // Activities
   activityCompletions?: LocalActivityCompletion[];

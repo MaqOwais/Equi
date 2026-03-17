@@ -96,9 +96,11 @@ export const useTodayStore = create<TodayStore>((set, get) => ({
   },
 
   logMood: async (userId, score) => {
+    const moodTimestamp = new Date().toISOString();
     set({ moodScore: score });
     await saveLocal(userId, get().date, {
       moodScore: score,
+      moodTimestamp,
       cycleState: get().cycleState,
     });
   },
@@ -116,8 +118,9 @@ export const useTodayStore = create<TodayStore>((set, get) => ({
   },
 
   logCheckin: async (userId, alcohol, cannabis) => {
+    const checkinTimestamp = new Date().toISOString();
     set({ alcohol, cannabis });
-    await saveLocal(userId, get().date, { alcohol, cannabis });
+    await saveLocal(userId, get().date, { alcohol, cannabis, checkinTimestamp });
   },
 
   logMedication: async (userId, status, skipReason, sideEffects) => {

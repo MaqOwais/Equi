@@ -85,6 +85,8 @@ export default function DayScreen() {
     sleepLoggedAt: string | null;
     nutritionLoggedAt: string | null;
     medLoggedAt: string | null;
+    checkinLoggedAt: string | null;
+    socialRhythmLoggedAt: string | null;
   } | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiText, setAiText] = useState<string | null>(null);
@@ -156,7 +158,9 @@ export default function DayScreen() {
       db.from('sleep_logs').select('created_at').eq('user_id', user.id).eq('date', date).single(),
       db.from('nutrition_logs').select('updated_at').eq('user_id', user.id).eq('log_date', date).single(),
       db.from('medication_logs').select('created_at').eq('user_id', user.id).eq('log_date', date).single(),
-    ]).then(([acts, jour, slp, nut, med]: any[]) => {
+      db.from('daily_checkins').select('created_at').eq('user_id', user.id).eq('checkin_date', date).single(),
+      db.from('social_rhythm_logs').select('created_at').eq('user_id', user.id).eq('date', date).single(),
+    ]).then(([acts, jour, slp, nut, med, checkin, rhythm]: any[]) => {
       setDetailData({
         activities: (acts.data ?? []).map((r: any) => ({
           title: r.activity?.title ?? 'Activity',
@@ -166,6 +170,8 @@ export default function DayScreen() {
         sleepLoggedAt: slp.data?.created_at ?? null,
         nutritionLoggedAt: nut.data?.updated_at ?? null,
         medLoggedAt: med.data?.created_at ?? null,
+        checkinLoggedAt: checkin.data?.created_at ?? null,
+        socialRhythmLoggedAt: rhythm.data?.created_at ?? null,
       });
     });
   }, [date, user?.id]);
@@ -286,13 +292,6 @@ export default function DayScreen() {
               )}
             </SectionCard>
           )}
-          {/* ── Mood score (optional, only if logged) ── */}
-          {data.moodScore !== null && (
-            <SectionCard title="Mood" icon="happy-outline" color="#C9A84C">
-              <DataRow label="Mood score" value={`${data.moodScore} / 10`} accent="#C9A84C" />
-            </SectionCard>
-          )}
-
           {/* ── Sleep ── */}
           {data.sleepDuration !== null && (
             <SectionCard title="Sleep" icon="moon-outline" color="#89B4CC">
@@ -482,6 +481,7 @@ export default function DayScreen() {
                     )}
                   </>
                 )}
+                <LoggedAt iso={detailData?.checkinLoggedAt ?? data.checkinTimestamp} />
               </SectionCard>
             );
           })()}
@@ -496,11 +496,12 @@ export default function DayScreen() {
                   value={`${data.socialAnchorsHit} of ${data.socialAnchorsTotal}`}
                 />
               )}
+              <LoggedAt iso={detailData?.socialRhythmLoggedAt ?? data.socialRhythmTimestamp} />
             </SectionCard>
           )}
 
           {/* Empty state */}
-          {!data.cycleState && data.moodScore === null && !data.hasJournal &&
+          {!data.cycleState && !data.hasJournal &&
             data.sleepDuration === null && !data.medicationStatus &&
             data.activityNames.length === 0 && !data.nutritionCategories &&
             data.alcohol === null && data.socialRhythmScore === null && (

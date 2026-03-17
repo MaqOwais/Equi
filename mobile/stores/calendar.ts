@@ -49,11 +49,13 @@ export interface DayData {
   // Substances
   alcohol: boolean | null;
   cannabis: boolean | null;
+  checkinTimestamp: string | null; // ISO 8601 — when substances were logged
 
   // Social Rhythm
   socialRhythmScore: number | null;
   socialAnchorsHit: number | null;
   socialAnchorsTotal: number | null;
+  socialRhythmTimestamp: string | null; // ISO 8601 — when social rhythm was calculated
 }
 
 interface CalendarStore {
@@ -129,9 +131,11 @@ export const useCalendarStore = create<CalendarStore>((set, get) => {
           sleepTimestamp: local?.sleepTimestamp ?? null,
           alcohol: local?.alcohol ?? null,
           cannabis: local?.cannabis ?? null,
+          checkinTimestamp: local?.checkinTimestamp ?? null,
           socialRhythmScore: local?.socialRhythmScore ?? null,
           socialAnchorsHit: local?.socialAnchorsHit ?? null,
           socialAnchorsTotal: local?.socialAnchorsTotal ?? null,
+          socialRhythmTimestamp: local?.socialRhythmTimestamp ?? null,
           hasWorkbook: false,
           workbookCount: 0,
         };
@@ -152,9 +156,9 @@ export const useCalendarStore = create<CalendarStore>((set, get) => {
           db.from('medication_logs').select('log_date, status, skip_reason').eq('user_id', userId).gte('log_date', startDate).lte('log_date', endDate),
           db.from('activity_completions').select('completed_at, activity:activities(title)').eq('user_id', userId).gte('completed_at', startDate + 'T00:00:00').lte('completed_at', endDate + 'T23:59:59'),
           db.from('journal_entries').select('entry_date, blocks').eq('user_id', userId).gte('entry_date', startDate).lte('entry_date', endDate),
-          db.from('social_rhythm_logs').select('date, score, anchors_hit, anchors_total').eq('user_id', userId).gte('date', startDate).lte('date', endDate),
+          db.from('social_rhythm_logs').select('date, score, anchors_hit, anchors_total, created_at').eq('user_id', userId).gte('date', startDate).lte('date', endDate),
           db.from('nutrition_logs').select('log_date, categories').eq('user_id', userId).gte('log_date', startDate).lte('log_date', endDate),
-          db.from('daily_checkins').select('checkin_date, alcohol, cannabis').eq('user_id', userId).gte('checkin_date', startDate).lte('checkin_date', endDate),
+          db.from('daily_checkins').select('checkin_date, alcohol, cannabis, created_at').eq('user_id', userId).gte('checkin_date', startDate).lte('checkin_date', endDate),
           db.from('workbook_responses').select('entry_date, created_at').eq('user_id', userId).gte('entry_date', startDate).lte('entry_date', endDate),
         ]);
 
@@ -229,9 +233,11 @@ export const useCalendarStore = create<CalendarStore>((set, get) => {
             sleepTimestamp: loc.sleepTimestamp ?? null,
             alcohol: loc.alcohol ?? checkinMap[date]?.alcohol ?? null,
             cannabis: loc.cannabis ?? checkinMap[date]?.cannabis ?? null,
+            checkinTimestamp: loc.checkinTimestamp ?? checkinMap[date]?.created_at ?? null,
             socialRhythmScore: loc.socialRhythmScore ?? socialMap[date]?.score ?? null,
             socialAnchorsHit: loc.socialAnchorsHit ?? socialMap[date]?.anchors_hit ?? null,
             socialAnchorsTotal: loc.socialAnchorsTotal ?? socialMap[date]?.anchors_total ?? null,
+            socialRhythmTimestamp: loc.socialRhythmTimestamp ?? socialMap[date]?.created_at ?? null,
             hasWorkbook: (workbookMap[date] ?? 0) > 0,
             workbookCount: workbookMap[date] ?? 0,
           };

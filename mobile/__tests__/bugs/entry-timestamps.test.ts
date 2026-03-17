@@ -26,6 +26,10 @@
  *   13. activities — completedAt preserved end-to-end from LocalActivityCompletion
  *   14. Integration — logMedication → getLocal → medTimestamp is an ISO string
  *   15. Integration — logCycle → getLocal → cycleTimestamp is an ISO string
+ *   16. Substances (checkinTimestamp) — full pipeline: store → local → DayData → display
+ *   17. Social Rhythm (socialRhythmTimestamp) — full pipeline: store → local → DayData → display
+ *   18. Integration — logCheckin → getLocal → checkinTimestamp is an ISO string
+ *   19. Integration — checkIn → getLocal → socialRhythmTimestamp is an ISO string
  */
 
 import * as fs from 'fs';
@@ -44,6 +48,7 @@ const TRACKER_SCREEN = path.join(ROOT, 'app/(tabs)/tracker.tsx');
 const NUTRITION_SCREEN = path.join(ROOT, 'app/(tabs)/you/nutrition.tsx');
 const DAY_SCREEN     = path.join(ROOT, 'app/day/[date].tsx');
 const TIMESTAMPS_UTIL = path.join(ROOT, 'utils/timestamps.ts');
+const SOCIAL_RHYTHM_STORE = path.join(ROOT, 'stores/socialRhythm.ts');
 
 const localSrc    = fs.readFileSync(LOCAL_STORE, 'utf8');
 const calendarSrc = fs.readFileSync(CALENDAR_STORE, 'utf8');
@@ -54,6 +59,7 @@ const trackerSrc  = fs.readFileSync(TRACKER_SCREEN, 'utf8');
 const nutritionSrc = fs.readFileSync(NUTRITION_SCREEN, 'utf8');
 const daySrc      = fs.readFileSync(DAY_SCREEN, 'utf8');
 const tsSrc       = fs.readFileSync(TIMESTAMPS_UTIL, 'utf8');
+const socialRhythmSrc = fs.readFileSync(SOCIAL_RHYTHM_STORE, 'utf8');
 
 // ─── Shared mocks ─────────────────────────────────────────────────────────────
 
@@ -369,17 +375,21 @@ describe('day/[date].tsx — timestamp fallback chain (local ?? Supabase)', () =
     expect(daySrc).toContain('completedAt');
   });
 
-  it('all timestamp displays pass through fmtTime', () => {
-    // Each fallback chain must appear inside a fmtTime() call in the source
+  it('all timestamp displays use the LoggedAt component with the fallback chain', () => {
+    // Timestamps are now rendered via <LoggedAt iso={...} /> which internally calls fmtTime.
+    // Verify each section passes the correct fallback chain as the iso prop.
     const wrappedChains = [
-      'fmtTime(detailData?.sleepLoggedAt ?? data.sleepTimestamp',
-      'fmtTime(detailData?.medLoggedAt ?? data.medTimestamp',
-      'fmtTime(detailData?.journalCreatedAt ?? data.journalTimestamp',
-      'fmtTime(detailData?.nutritionLoggedAt ?? data.nutritionTimestamp',
+      'LoggedAt iso={detailData?.sleepLoggedAt ?? data.sleepTimestamp',
+      'LoggedAt iso={detailData?.medLoggedAt ?? data.medTimestamp',
+      'LoggedAt iso={detailData?.journalCreatedAt ?? data.journalTimestamp',
+      'LoggedAt iso={detailData?.nutritionLoggedAt ?? data.nutritionTimestamp',
     ];
     for (const chain of wrappedChains) {
       expect(daySrc).toContain(chain);
     }
+    // LoggedAt component must call fmtTime internally
+    expect(daySrc).toContain('function LoggedAt');
+    expect(daySrc).toContain('fmtTime(iso)');
   });
 });
 
@@ -442,9 +452,9 @@ describe('activityEntries — completedAt flows from LocalActivityCompletion →
     expect(daySrc).toContain('e.completedAt');
   });
 
-  it('day/[date].tsx shows Completed at {time} for activities with timestamps', () => {
-    expect(daySrc).toContain('Completed at');
-    expect(daySrc).toContain('fmtTime(act.completed_at)');
+  it('day/[date].tsx renders LoggedAt for activities with timestamps', () => {
+    // Activities now use the unified LoggedAt component instead of inline "Completed at" text
+    expect(daySrc).toContain('LoggedAt iso={act.completed_at}');
   });
 });
 
@@ -546,38 +556,40 @@ describe('Integration — logCycle → local storage saves cycleTimestamp', () =
 // ─── 16. All sections have a non-empty timestamp or graceful absence ──────────
 
 describe('day/[date].tsx — no section shows wrong/missing timestamps', () => {
-  it('sleep: fmtTime wraps the fallback expression (no raw date shown)', () => {
+  // All sections now use the unified LoggedAt component — fmtTime lives inside LoggedAt, not inline.
+
+  it('sleep: LoggedAt renders the fallback expression (no raw date shown)', () => {
     const sleepSection = daySrc.slice(daySrc.indexOf('── Sleep ──'), daySrc.indexOf('── Medication ──'));
-    expect(sleepSection).toContain('fmtTime');
-    expect(sleepSection).not.toContain('sleepLoggedAt}'); // not rendered raw
+    expect(sleepSection).toContain('LoggedAt iso={detailData?.sleepLoggedAt');
+    expect(sleepSection).not.toContain('sleepLoggedAt}'); // not rendered raw without LoggedAt
   });
 
-  it('medication: fmtTime wraps the fallback expression', () => {
+  it('medication: LoggedAt renders the fallback expression', () => {
     const medSection = daySrc.slice(daySrc.indexOf('── Medication ──'), daySrc.indexOf('── Activities ──'));
-    expect(medSection).toContain('fmtTime');
-    expect(medSection).not.toContain('medLoggedAt}'); // not rendered raw
+    expect(medSection).toContain('LoggedAt iso={detailData?.medLoggedAt');
+    expect(medSection).not.toContain('medLoggedAt}'); // not rendered raw without LoggedAt
   });
 
-  it('journal: fmtTime wraps the fallback expression', () => {
+  it('journal: LoggedAt renders the fallback expression', () => {
     const journalSection = daySrc.slice(daySrc.indexOf('── Journal ──'), daySrc.indexOf('── Workbook ──'));
-    expect(journalSection).toContain('fmtTime');
-    expect(journalSection).not.toContain('journalCreatedAt}'); // not rendered raw
+    expect(journalSection).toContain('LoggedAt iso={detailData?.journalCreatedAt');
+    expect(journalSection).not.toContain('journalCreatedAt}'); // not rendered raw without LoggedAt
   });
 
-  it('nutrition: fmtTime wraps the fallback expression', () => {
+  it('nutrition: LoggedAt renders the fallback expression', () => {
     const nutritionSection = daySrc.slice(daySrc.indexOf('── Nutrition ──'), daySrc.indexOf('── Substances ──'));
-    expect(nutritionSection).toContain('fmtTime');
-    expect(nutritionSection).not.toContain('nutritionLoggedAt}'); // not rendered raw
+    expect(nutritionSection).toContain('LoggedAt iso={detailData?.nutritionLoggedAt');
+    expect(nutritionSection).not.toContain('nutritionLoggedAt}'); // not rendered raw without LoggedAt
   });
 
-  it('activities: fmtTime wraps completed_at', () => {
+  it('activities: LoggedAt renders completed_at', () => {
     const actSection = daySrc.slice(daySrc.indexOf('── Activities ──'), daySrc.indexOf('── Journal ──'));
-    expect(actSection).toContain('fmtTime(act.completed_at)');
+    expect(actSection).toContain('LoggedAt iso={act.completed_at}');
   });
 
-  it('workbook entries use fmtTime on created_at', () => {
+  it('workbook entries use LoggedAt on created_at', () => {
     const workbookSection = daySrc.slice(daySrc.indexOf('── Workbook ──'), daySrc.indexOf('── Nutrition ──'));
-    expect(workbookSection).toContain('fmtTime(e.created_at)');
+    expect(workbookSection).toContain('LoggedAt iso={e.created_at}');
   });
 });
 
@@ -598,5 +610,186 @@ describe('fmtTime guard — date-only strings never render as timestamps', () =>
     const { fmtTime } = require('../../utils/timestamps');
     const result = fmtTime('2026-01-15T09:30:00.000Z');
     expect(result).toMatch(/^\d+:\d{2}\s*(AM|PM)$/);
+  });
+});
+
+// ─── 18. Substances — checkinTimestamp full pipeline ─────────────────────────
+
+describe('Substances — checkinTimestamp full pipeline', () => {
+  it('LocalDayData has checkinTimestamp field', () => {
+    expect(localSrc).toContain('checkinTimestamp');
+    expect(localSrc).toMatch(/checkinTimestamp\?:\s*string\s*\|\s*null/);
+  });
+
+  it('DayData (calendar store) has checkinTimestamp: string | null', () => {
+    const interfaceBlock = calendarSrc.slice(
+      calendarSrc.indexOf('export interface DayData'),
+      calendarSrc.indexOf('interface CalendarStore'),
+    );
+    expect(interfaceBlock).toContain('checkinTimestamp');
+    expect(interfaceBlock).toMatch(/checkinTimestamp:\s*string\s*\|\s*null/);
+  });
+
+  it('calendar skeleton populates checkinTimestamp from local storage', () => {
+    expect(calendarSrc).toContain('checkinTimestamp: local?.checkinTimestamp');
+  });
+
+  it('calendar Supabase merge falls back to checkinMap created_at', () => {
+    expect(calendarSrc).toContain('checkinMap[date]?.created_at');
+  });
+
+  it('today.ts logCheckin generates checkinTimestamp with new Date().toISOString()', () => {
+    // Skip the interface declaration; find the async implementation
+    const implStart = todaySrc.indexOf('logCheckin: async');
+    expect(implStart).toBeGreaterThan(-1);
+    const impl = todaySrc.slice(implStart, implStart + 400);
+    expect(impl).toContain('checkinTimestamp');
+    expect(impl).toContain('new Date().toISOString()');
+  });
+
+  it('today.ts logCheckin passes checkinTimestamp to saveLocal', () => {
+    const implStart = todaySrc.indexOf('logCheckin: async');
+    expect(implStart).toBeGreaterThan(-1);
+    const impl = todaySrc.slice(implStart, implStart + 400);
+    expect(impl).toContain('checkinTimestamp');
+    expect(impl).toContain('saveLocal');
+  });
+
+  it('day/[date].tsx substances section uses LoggedAt with fallback chain', () => {
+    const substancesSection = daySrc.slice(
+      daySrc.indexOf('── Substances ──'),
+      daySrc.indexOf('── Social Rhythm ──'),
+    );
+    expect(substancesSection).toContain('LoggedAt iso={detailData?.checkinLoggedAt ?? data.checkinTimestamp}');
+  });
+
+  it('day/[date].tsx fetches checkin created_at from daily_checkins', () => {
+    expect(daySrc).toContain('daily_checkins');
+    expect(daySrc).toContain('checkinLoggedAt');
+  });
+
+  it('day/[date].tsx detailData state declares checkinLoggedAt field', () => {
+    const stateDecl = daySrc.slice(daySrc.indexOf('useState<{'), daySrc.indexOf('| null>(null)'));
+    expect(stateDecl).toContain('checkinLoggedAt');
+  });
+});
+
+// ─── 19. Social Rhythm — socialRhythmTimestamp full pipeline ─────────────────
+
+describe('Social Rhythm — socialRhythmTimestamp full pipeline', () => {
+  it('LocalDayData has socialRhythmTimestamp field', () => {
+    expect(localSrc).toContain('socialRhythmTimestamp');
+    expect(localSrc).toMatch(/socialRhythmTimestamp\?:\s*string\s*\|\s*null/);
+  });
+
+  it('DayData (calendar store) has socialRhythmTimestamp: string | null', () => {
+    const interfaceBlock = calendarSrc.slice(
+      calendarSrc.indexOf('export interface DayData'),
+      calendarSrc.indexOf('interface CalendarStore'),
+    );
+    expect(interfaceBlock).toContain('socialRhythmTimestamp');
+    expect(interfaceBlock).toMatch(/socialRhythmTimestamp:\s*string\s*\|\s*null/);
+  });
+
+  it('calendar skeleton populates socialRhythmTimestamp from local storage', () => {
+    expect(calendarSrc).toContain('socialRhythmTimestamp: local?.socialRhythmTimestamp');
+  });
+
+  it('calendar Supabase merge falls back to socialMap created_at', () => {
+    expect(calendarSrc).toContain('socialMap[date]?.created_at');
+  });
+
+  it('socialRhythm.ts checkIn saves socialRhythmTimestamp with new Date().toISOString()', () => {
+    expect(socialRhythmSrc).toContain('socialRhythmTimestamp');
+    expect(socialRhythmSrc).toContain('new Date().toISOString()');
+  });
+
+  it('socialRhythm.ts checkIn passes socialRhythmTimestamp to saveLocal', () => {
+    const saveLocalStart = socialRhythmSrc.indexOf('saveLocal(');
+    expect(saveLocalStart).toBeGreaterThan(-1);
+    const saveLocalBlock = socialRhythmSrc.slice(saveLocalStart, saveLocalStart + 300);
+    expect(saveLocalBlock).toContain('socialRhythmTimestamp');
+  });
+
+  it('day/[date].tsx social rhythm section uses LoggedAt with fallback chain', () => {
+    const socialSection = daySrc.slice(
+      daySrc.indexOf('── Social Rhythm ──'),
+      daySrc.indexOf('── Cycle ──') !== -1
+        ? daySrc.indexOf('── Cycle ──')
+        : daySrc.indexOf('── Tasks ──'),
+    );
+    expect(socialSection).toContain('LoggedAt iso={detailData?.socialRhythmLoggedAt ?? data.socialRhythmTimestamp}');
+  });
+
+  it('day/[date].tsx fetches social rhythm created_at from social_rhythm_logs', () => {
+    expect(daySrc).toContain('social_rhythm_logs');
+    expect(daySrc).toContain('socialRhythmLoggedAt');
+  });
+
+  it('day/[date].tsx detailData state declares socialRhythmLoggedAt field', () => {
+    const stateDecl = daySrc.slice(daySrc.indexOf('useState<{'), daySrc.indexOf('| null>(null)'));
+    expect(stateDecl).toContain('socialRhythmLoggedAt');
+  });
+});
+
+// ─── 20. Integration — logCheckin → local storage saves checkinTimestamp ──────
+
+describe('Integration — logCheckin → local storage saves checkinTimestamp', () => {
+  beforeEach(() => {
+    jest.resetModules();
+    jest.mock('@react-native-async-storage/async-storage', () => ({
+      getItem:    jest.fn().mockResolvedValue(null),
+      setItem:    jest.fn().mockResolvedValue(undefined),
+      removeItem: jest.fn().mockResolvedValue(undefined),
+    }));
+    jest.mock('../../lib/supabase', () => ({ supabase: {} }));
+  });
+
+  it('logCheckin passes a valid ISO checkinTimestamp to saveLocal', async () => {
+    const mockSaveLocal = jest.fn().mockResolvedValue(undefined);
+    jest.mock('../../lib/local-day-store', () => ({
+      saveLocal:      mockSaveLocal,
+      getLocal:       jest.fn().mockResolvedValue(null),
+      getPendingDates: jest.fn().mockResolvedValue([]),
+    }));
+
+    const { useTodayStore } = require('../../stores/today');
+    useTodayStore.setState({ date: '2026-03-17' });
+
+    const before = Date.now();
+    await useTodayStore.getState().logCheckin('user-1', false, true);
+    const after = Date.now();
+
+    expect(mockSaveLocal).toHaveBeenCalled();
+    const partial = mockSaveLocal.mock.calls[mockSaveLocal.mock.calls.length - 1][2];
+    expect(partial.checkinTimestamp).toBeDefined();
+    expect(partial.alcohol).toBe(false);
+    expect(partial.cannabis).toBe(true);
+
+    const ts = new Date(partial.checkinTimestamp).getTime();
+    expect(ts).toBeGreaterThanOrEqual(before);
+    expect(ts).toBeLessThanOrEqual(after);
+  });
+});
+
+// ─── 21. Integration — checkIn → local storage saves socialRhythmTimestamp ───
+
+describe('Integration — checkIn (socialRhythm) → local storage saves socialRhythmTimestamp', () => {
+  it('socialRhythm.ts checkIn calls saveLocal with socialRhythmTimestamp', () => {
+    // Static source analysis: verify the saveLocal call is present and contains the field
+    const saveLocalIdx = socialRhythmSrc.indexOf('saveLocal(');
+    expect(saveLocalIdx).toBeGreaterThan(-1);
+    const block = socialRhythmSrc.slice(saveLocalIdx, saveLocalIdx + 300);
+    expect(block).toContain('socialRhythmTimestamp');
+    expect(block).toContain('new Date().toISOString()');
+  });
+
+  it('socialRhythmTimestamp appears AFTER score calculation (not before)', () => {
+    const scorePos = socialRhythmSrc.indexOf('const { score');
+    const tsPos = socialRhythmSrc.indexOf('socialRhythmTimestamp');
+    expect(scorePos).toBeGreaterThan(-1);
+    expect(tsPos).toBeGreaterThan(-1);
+    // Timestamp is generated after the score is computed (correct ordering)
+    expect(tsPos).toBeGreaterThan(scorePos);
   });
 });

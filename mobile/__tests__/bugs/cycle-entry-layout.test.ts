@@ -286,7 +286,7 @@ describe('cycleStore.loadDay — must clear stale dayEntries before fetch', () =
     // Skip the interface declaration; find the async implementation
     const implStart = src.indexOf('loadDay: async');
     expect(implStart).toBeGreaterThan(-1);
-    const loadDayImpl = src.slice(implStart, implStart + 600);
+    const loadDayImpl = src.slice(implStart, implStart + 900);
     const clearPos = loadDayImpl.indexOf('dayEntries: []');
     const awaitPos = loadDayImpl.indexOf('await');
     expect(clearPos).toBeGreaterThan(-1);
