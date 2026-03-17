@@ -53,6 +53,7 @@ export interface LocalDayData {
   // Nutrition
   nutritionCategories?: Record<string, number> | null;
   nutritionTimestamp?: string | null; // ISO 8601 — when nutrition was last updated
+  nutritionNotes?: string | null;     // freeform daily diet note
 
   // Sleep
   sleepQuality?: number | null;

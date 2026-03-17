@@ -16,6 +16,7 @@ import { useSubstanceLogsStore } from '../../stores/substanceLogs';
 import { useAmbientTheme } from '../../stores/ambient';
 import { fmtTime } from '../../utils/timestamps';
 import { getLocal, saveLocal } from '../../lib/local-day-store';
+import { calcNutritionScore, CUSTOM_EMOJIS, CUSTOM_SUGGESTIONS, CATEGORY_WHY } from './you/nutrition';
 import type { CycleState, MedicationStatus } from '../../types/database';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -66,17 +67,24 @@ const SYMPTOMS: Record<CycleState, string[]> = {
 const SLEEP_Q_LABELS = ['', 'Poor', 'OK', 'Good', 'Great', 'Excellent'];
 const SLEEP_Q_COLORS = ['', '#C4A0B0', '#E8DCC8', '#A8C5A0', '#89B4CC', '#C9A84C'];
 
-const NUTRITION_CATEGORIES: { key: string; label: string; icon: string }[] = [
-  { key: 'anti_inflammatory', label: 'Anti-inflam.',  icon: '🫐' },
-  { key: 'whole_grains',      label: 'Whole Grains',  icon: '🌾' },
-  { key: 'lean_protein',      label: 'Lean Protein',  icon: '🥚' },
-  { key: 'healthy_fats',      label: 'Healthy Fats',  icon: '🥑' },
-  { key: 'fermented',         label: 'Fermented',     icon: '🥛' },
-  { key: 'caffeine',          label: 'Caffeine',      icon: '☕' },
-  { key: 'ultra_processed',   label: 'Processed',     icon: '🍟' },
-  { key: 'sugar_heavy',       label: 'Sugar',         icon: '🍬' },
-  { key: 'hydration',         label: 'Hydration',     icon: '💧' },
+type NutrCat = { key: string; label: string; icon: string };
+const NUTR_BENEFIT: NutrCat[] = [
+  { key: 'anti_inflammatory', label: 'Anti-inflammatory', icon: '🫐' },
+  { key: 'whole_grains',      label: 'Whole Grains',      icon: '🌾' },
+  { key: 'lean_protein',      label: 'Lean Protein',      icon: '🥚' },
+  { key: 'healthy_fats',      label: 'Healthy Fats',      icon: '🥑' },
+  { key: 'fermented',         label: 'Fermented / Gut',   icon: '🥛' },
 ];
+const NUTR_HARM: NutrCat[] = [
+  { key: 'caffeine',        label: 'Caffeine',        icon: '☕' },
+  { key: 'ultra_processed', label: 'Ultra-Processed', icon: '🍟' },
+  { key: 'sugar_heavy',     label: 'Sugar-Heavy',     icon: '🍬' },
+  { key: 'alcohol',         label: 'Alcohol',         icon: '🍷' },
+];
+const NUTR_OTHER: NutrCat[] = [
+  { key: 'hydration', label: 'Hydration', icon: '💧' },
+];
+const nutrCustomKey = (uid: string) => `equi_nutrition_custom_${uid}`;
 
 const SUB_ICONS: Record<string, string> = {
   alcohol: '🍷', cannabis: '🌿', stimulant: '⚡', opioid: '💊', other: '🫙',
@@ -261,9 +269,16 @@ export default function TrackerScreen() {
   const [subLastLogged, setSubLastLogged] = useState<string | null>(null);
 
   // ── Food tab state ────────────────────────────────────────────────────────
-  const [nutritionCounts, setNutritionCounts] = useState<Record<string, number>>({});
-  const [nutritionSaved, setNutritionSaved] = useState(false);
-  const [nutritionTimer, setNutritionTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const [nutritionCounts, setNutritionCounts]         = useState<Record<string, number>>({});
+  const [nutritionTimer, setNutritionTimer]           = useState<ReturnType<typeof setTimeout> | null>(null);
+  const [nutritionLogging, setNutritionLogging]       = useState(false);
+  const [nutritionLastLogged, setNutritionLastLogged] = useState<string | null>(null);
+  const [nutrCustomItems, setNutrCustomItems]           = useState<{ key: string; label: string; emoji: string }[]>([]);
+  const [nutrModalVisible, setNutrModalVisible]         = useState(false);
+  const [nutrNewLabel, setNutrNewLabel]                 = useState('');
+  const [nutrSelectedEmoji, setNutrSelectedEmoji]       = useState('🍽️');
+  const [nutritionNote, setNutritionNote]               = useState('');
+  const [nutrOpenTip, setNutrOpenTip]                   = useState<string | null>(null);
 
   // ─── Load ───────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -276,6 +291,17 @@ export default function TrackerScreen() {
     // Load today's nutrition from local store
     getLocal(userId, todayDate).then((local) => {
       if (local?.nutritionCategories) setNutritionCounts(local.nutritionCategories);
+      if (local?.nutritionTimestamp) {
+        const d = new Date(local.nutritionTimestamp);
+        setNutritionLastLogged(d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }));
+      }
+      if (local?.nutritionNotes) setNutritionNote(local.nutritionNotes);
+    });
+    AsyncStorage.getItem(nutrCustomKey(userId)).then((raw) => {
+      if (raw) {
+        const items = JSON.parse(raw) as { key: string; label: string; emoji?: string }[];
+        setNutrCustomItems(items.map((c) => ({ ...c, emoji: c.emoji ?? '🍽️' })));
+      }
     });
     // Load per-medication status from AsyncStorage
     AsyncStorage.getItem(`equi_per_med_status_${userId}_${todayDate}`).then((raw) => {
@@ -361,13 +387,47 @@ export default function TrackerScreen() {
     const next = Math.max(0, (nutritionCounts[key] ?? 0) + delta);
     const updated = { ...nutritionCounts, [key]: next };
     setNutritionCounts(updated);
-    setNutritionSaved(false);
     if (nutritionTimer) clearTimeout(nutritionTimer);
     const t = setTimeout(async () => {
       await saveLocal(userId, todayDate, { nutritionCategories: updated, nutritionTimestamp: new Date().toISOString() });
-      setNutritionSaved(true);
     }, 600);
     setNutritionTimer(t);
+  }
+
+  async function handleNutritionLog() {
+    if (!userId || nutritionLogging) return;
+    if (nutritionTimer) clearTimeout(nutritionTimer);
+    setNutritionLogging(true);
+    const ts = new Date().toISOString();
+    await saveLocal(userId, todayDate, { nutritionCategories: nutritionCounts, nutritionTimestamp: ts });
+    const db = (await import('../../lib/supabase')).supabase as any;
+    await db.from('nutrition_logs').upsert(
+      { user_id: userId, log_date: todayDate, categories: nutritionCounts },
+      { onConflict: 'user_id,log_date' },
+    );
+    setNutritionLastLogged(new Date(ts).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }));
+    setNutritionLogging(false);
+  }
+
+  function addNutrCustomItem() {
+    const label = nutrNewLabel.trim();
+    if (!label || !userId) return;
+    const key = `custom_${label.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '')}`;
+    if (nutrCustomItems.some((c) => c.key === key)) {
+      setNutrNewLabel(''); setNutrSelectedEmoji('🍽️'); setNutrModalVisible(false); return;
+    }
+    const updated = [...nutrCustomItems, { key, label, emoji: nutrSelectedEmoji }];
+    setNutrCustomItems(updated);
+    AsyncStorage.setItem(nutrCustomKey(userId), JSON.stringify(updated));
+    setNutrNewLabel(''); setNutrSelectedEmoji('🍽️'); setNutrModalVisible(false);
+  }
+
+  function removeNutrCustomItem(key: string) {
+    if (!userId) return;
+    const updated = nutrCustomItems.filter((c) => c.key !== key);
+    setNutrCustomItems(updated);
+    AsyncStorage.setItem(nutrCustomKey(userId), JSON.stringify(updated));
+    setNutritionCounts((prev) => { const n = { ...prev }; delete n[key]; return n; });
   }
 
   // ─── Meds handlers ───────────────────────────────────────────────────────
@@ -805,49 +865,164 @@ export default function TrackerScreen() {
         )}
 
         {/* ══════════ FOOD TAB ══════════ */}
-        {activeTab === 'food' && (
-          <>
-            <View style={s.foodHeader}>
-              <Text style={[s.sectionLabel, theme.sectionLabelStyle, { marginTop: 0, marginBottom: 0 }]}>TODAY'S FOOD</Text>
-              {nutritionSaved && <Text style={s.savedBadge}>✓ Saved</Text>}
-            </View>
-            <View style={[s.card, theme.cardSurface]}>
-              {NUTRITION_CATEGORIES.map((cat) => {
-                const count = nutritionCounts[cat.key] ?? 0;
-                return (
-                  <View key={cat.key} style={s.nutriRow}>
-                    <Text style={s.nutriIcon}>{cat.icon}</Text>
-                    <Text style={[s.nutriLabel, { color: theme.textPrimary, flex: 1 }]}>{cat.label}</Text>
-                    <View style={s.nutriCounter}>
-                      <TouchableOpacity
-                        style={s.counterBtn}
-                        onPress={() => adjustNutrition(cat.key, -1)}
-                        disabled={count === 0}
-                      >
-                        <Text style={[s.counterBtnText, count === 0 && { opacity: 0.2 }]}>−</Text>
-                      </TouchableOpacity>
-                      <Text style={[s.counterVal, { color: theme.textPrimary }]}>{count}</Text>
-                      <TouchableOpacity
-                        style={s.counterBtn}
-                        onPress={() => adjustNutrition(cat.key, 1)}
-                      >
-                        <Text style={s.counterBtnText}>+</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                );
-              })}
-            </View>
+        {activeTab === 'food' && (() => {
+          const totalLogged = Object.values(nutritionCounts).reduce((a, b) => a + b, 0);
+          const score = calcNutritionScore(nutritionCounts);
+          const scoreColor = totalLogged === 0 ? '#3D393540'
+            : score >= 7 ? '#A8C5A0' : score >= 4 ? '#C9A84C' : '#C4A0B0';
+          const scoreLabel = totalLogged === 0 ? 'Nothing logged'
+            : score >= 7 ? 'Anti-inflammatory' : score >= 4 ? 'Mixed day' : 'Needs attention';
 
-            <TouchableOpacity
-              style={[s.linkBtn, { borderColor: '#C9A84C55' }]}
-              onPress={() => router.push('/(tabs)/you/nutrition')}
-              activeOpacity={0.7}
-            >
-              <Text style={[s.linkBtnText, { color: '#C9A84C' }]}>Full nutrition log with all categories →</Text>
-            </TouchableOpacity>
-          </>
-        )}
+          const renderNutrRow = (cat: NutrCat) => {
+            const count = nutritionCounts[cat.key] ?? 0;
+            const tipOpen = nutrOpenTip === cat.key;
+            const why = CATEGORY_WHY[cat.key];
+            return (
+              <View key={cat.key}>
+                <View style={s.nutriRow}>
+                  <Text style={s.nutriIcon}>{cat.icon}</Text>
+                  <Text style={[s.nutriLabel, { color: theme.textPrimary, flex: 1 }]}>{cat.label}</Text>
+                  {why && (
+                    <TouchableOpacity
+                      style={s.nutrInfoBtn}
+                      onPress={() => setNutrOpenTip(tipOpen ? null : cat.key)}
+                      activeOpacity={0.7}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Text style={[s.nutrInfoBtnText, tipOpen && s.nutrInfoBtnOpen]}>ⓘ</Text>
+                    </TouchableOpacity>
+                  )}
+                  <View style={s.nutriCounter}>
+                    <TouchableOpacity style={s.counterBtn} onPress={() => adjustNutrition(cat.key, -1)} disabled={count === 0}>
+                      <Text style={[s.counterBtnText, count === 0 && { opacity: 0.2 }]}>−</Text>
+                    </TouchableOpacity>
+                    <Text style={[s.counterVal, { color: theme.textPrimary }]}>{count}</Text>
+                    <TouchableOpacity style={s.counterBtn} onPress={() => adjustNutrition(cat.key, 1)}>
+                      <Text style={s.counterBtnText}>+</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+                {tipOpen && why && (
+                  <View style={s.nutrTipPanel}>
+                    <Text style={s.nutrTipText}>{why}</Text>
+                  </View>
+                )}
+              </View>
+            );
+          };
+
+          return (
+            <>
+              {/* Score card */}
+              <View style={[s.nutrScoreCard, theme.cardSurface, { borderLeftColor: scoreColor }]}>
+                <View style={s.nutrScoreLeft}>
+                  <Text style={[s.nutrScoreNum, { color: scoreColor }]}>{totalLogged > 0 ? score : '–'}</Text>
+                  <Text style={s.nutrScoreDenom}>/10</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[s.nutrScoreLabel, { color: scoreColor }]}>{scoreLabel}</Text>
+                  <Text style={s.nutrScoreSub}>
+                    {totalLogged > 0 ? 'Food quality score today' : 'Tap + to start logging'}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Anti-inflammatory */}
+              <Text style={[s.sectionLabel, theme.sectionLabelStyle, s.nutrSectionLabel]}>ANTI-INFLAMMATORY</Text>
+              <View style={[s.card, theme.cardSurface]}>
+                {NUTR_BENEFIT.map(renderNutrRow)}
+              </View>
+
+              {/* May destabilize */}
+              <Text style={[s.sectionLabel, theme.sectionLabelStyle, s.nutrSectionLabel]}>MAY DESTABILIZE</Text>
+              <View style={[s.card, theme.cardSurface]}>
+                {NUTR_HARM.map(renderNutrRow)}
+              </View>
+
+              {/* Other */}
+              <Text style={[s.sectionLabel, theme.sectionLabelStyle, s.nutrSectionLabel]}>OTHER</Text>
+              <View style={[s.card, theme.cardSurface]}>
+                {NUTR_OTHER.map(renderNutrRow)}
+                {nutrCustomItems.map((cat) => {
+                  const count = nutritionCounts[cat.key] ?? 0;
+                  return (
+                    <View key={cat.key} style={s.nutriRow}>
+                      <Text style={s.nutriIcon}>{cat.emoji}</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[s.nutriLabel, { color: theme.textPrimary }]}>{cat.label}</Text>
+                        <TouchableOpacity onPress={() => removeNutrCustomItem(cat.key)}>
+                          <Text style={s.nutrRemoveText}>Remove</Text>
+                        </TouchableOpacity>
+                      </View>
+                      <View style={s.nutriCounter}>
+                        <TouchableOpacity style={s.counterBtn} onPress={() => adjustNutrition(cat.key, -1)} disabled={count === 0}>
+                          <Text style={[s.counterBtnText, count === 0 && { opacity: 0.2 }]}>−</Text>
+                        </TouchableOpacity>
+                        <Text style={[s.counterVal, { color: theme.textPrimary }]}>{count}</Text>
+                        <TouchableOpacity style={s.counterBtn} onPress={() => adjustNutrition(cat.key, 1)}>
+                          <Text style={s.counterBtnText}>+</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+
+              {/* Add custom food */}
+              <TouchableOpacity
+                style={s.nutrAddBtn}
+                onPress={() => { setNutrNewLabel(''); setNutrSelectedEmoji('🍽️'); setNutrModalVisible(true); }}
+                activeOpacity={0.7}
+              >
+                <Text style={s.nutrAddText}>+ Add food to track</Text>
+              </TouchableOpacity>
+
+              {/* Diet note */}
+              <View style={[s.card, theme.cardSurface, { marginBottom: 4 }]}>
+                <Text style={s.nutrNoteLabel}>DIET NOTE  (optional)</Text>
+                <TextInput
+                  style={[s.nutrNoteInput, { color: theme.textPrimary }]}
+                  placeholder="Anything notable about today's food..."
+                  placeholderTextColor="#3D393540"
+                  value={nutritionNote}
+                  onChangeText={(t) => {
+                    setNutritionNote(t);
+                    if (nutritionTimer) clearTimeout(nutritionTimer);
+                    const tt = setTimeout(async () => {
+                      if (!userId) return;
+                      await saveLocal(userId, todayDate, { nutritionNotes: t || null });
+                    }, 800);
+                    setNutritionTimer(tt);
+                  }}
+                  multiline
+                  numberOfLines={2}
+                  textAlignVertical="top"
+                  maxLength={300}
+                />
+              </View>
+
+              {/* Log button */}
+              <View style={s.medLogRow}>
+                {nutritionLastLogged && (
+                  <Text style={s.medLoggedAt}>Logged at {nutritionLastLogged}</Text>
+                )}
+                <TouchableOpacity
+                  style={[s.medLogBtn, { backgroundColor: totalLogged > 0 ? '#A8C5A0' : '#E0DDD8' }]}
+                  onPress={handleNutritionLog}
+                  disabled={nutritionLogging || totalLogged === 0}
+                  activeOpacity={0.8}
+                >
+                  {nutritionLogging
+                    ? <ActivityIndicator color="#FFFFFF" size="small" />
+                    : <Text style={s.medLogBtnText}>
+                        {nutritionLastLogged ? '↺  Update Log' : 'Save Nutrition Log'}
+                      </Text>
+                  }
+                </TouchableOpacity>
+              </View>
+            </>
+          );
+        })()}
 
         {/* ══════════ MEDS TAB ══════════ */}
         {activeTab === 'meds' && (
@@ -1066,6 +1241,80 @@ export default function TrackerScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      {/* ── Nutrition custom food modal ── */}
+      <Modal
+        visible={nutrModalVisible} transparent animationType="fade"
+        onRequestClose={() => { setNutrModalVisible(false); setNutrNewLabel(''); setNutrSelectedEmoji('🍽️'); }}
+      >
+        <Pressable
+          style={s.nutrOverlay}
+          onPress={() => { setNutrModalVisible(false); setNutrNewLabel(''); setNutrSelectedEmoji('🍽️'); }}
+        >
+          <Pressable style={s.nutrModalCard} onPress={() => {}}>
+            <Text style={s.nutrModalTitle}>Add food to track</Text>
+
+            {/* Quick suggestions */}
+            <Text style={s.nutrModalSectionLabel}>QUICK ADD</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 4 }} contentContainerStyle={{ gap: 6, paddingRight: 4 }}>
+              {CUSTOM_SUGGESTIONS.map((sg) => (
+                <TouchableOpacity
+                  key={sg.label}
+                  style={[s.nutrSuggestChip, nutrNewLabel === sg.label && { backgroundColor: '#A8C5A022', borderColor: '#A8C5A0' }]}
+                  onPress={() => { setNutrNewLabel(sg.label); setNutrSelectedEmoji(sg.emoji); }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={s.nutrSuggestText}>{sg.emoji}  {sg.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            {/* Name input */}
+            <Text style={[s.nutrModalSectionLabel, { marginTop: 12 }]}>NAME</Text>
+            <TextInput
+              style={s.nutrModalInput}
+              placeholder="Or type your own..."
+              placeholderTextColor="#3D393550"
+              value={nutrNewLabel}
+              onChangeText={setNutrNewLabel}
+              maxLength={40}
+              onSubmitEditing={addNutrCustomItem}
+              returnKeyType="done"
+            />
+
+            {/* Emoji picker */}
+            <Text style={s.nutrModalSectionLabel}>EMOJI</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }} contentContainerStyle={{ gap: 4, paddingRight: 4 }}>
+              {CUSTOM_EMOJIS.map((em) => (
+                <TouchableOpacity
+                  key={em}
+                  style={[s.nutrEmojiBtn, nutrSelectedEmoji === em && s.nutrEmojiBtnSelected]}
+                  onPress={() => setNutrSelectedEmoji(em)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={s.nutrEmojiChar}>{em}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <View style={s.nutrModalBtns}>
+              <TouchableOpacity
+                style={s.nutrModalCancel}
+                onPress={() => { setNutrModalVisible(false); setNutrNewLabel(''); setNutrSelectedEmoji('🍽️'); }}
+              >
+                <Text style={s.nutrModalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[s.nutrModalAdd, { backgroundColor: nutrNewLabel.trim() ? '#A8C5A0' : '#E0DDD8' }]}
+                onPress={addNutrCustomItem}
+                disabled={!nutrNewLabel.trim()}
+              >
+                <Text style={s.nutrModalAddText}>{nutrSelectedEmoji}  Add</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -1197,8 +1446,73 @@ const s = StyleSheet.create({
   sleepQLabel: { fontSize: 9, fontWeight: '600', color: '#3D3935', opacity: 0.4, marginTop: 2 },
 
   // Food / nutrition
-  foodHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 0 },
-  savedBadge: { fontSize: 11, color: '#A8C5A0', fontWeight: '700' },
+  nutrSectionLabel: { marginTop: 4 },
+  nutrScoreCard: {
+    flexDirection: 'row', alignItems: 'center',
+    borderRadius: 16, padding: 14, marginBottom: 4,
+    borderLeftWidth: 4,
+    shadowColor: '#3D3935', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04, shadowRadius: 2, elevation: 1,
+  },
+  nutrScoreLeft:  { flexDirection: 'row', alignItems: 'baseline', marginRight: 14 },
+  nutrScoreNum:   { fontSize: 30, fontWeight: '700' },
+  nutrScoreDenom: { fontSize: 14, color: '#3D393560', fontWeight: '500', marginLeft: 2 },
+  nutrScoreLabel: { fontSize: 14, fontWeight: '700', marginBottom: 2 },
+  nutrScoreSub:   { fontSize: 11, color: '#3D3935', opacity: 0.45 },
+  nutrRemoveText: { fontSize: 10, color: '#C4A0B0', marginTop: 2, fontWeight: '500' },
+  nutrAddBtn: {
+    borderWidth: 1.5, borderColor: '#A8C5A040', borderStyle: 'dashed',
+    borderRadius: 14, paddingVertical: 12, alignItems: 'center', marginBottom: 4,
+  },
+  nutrAddText: { fontSize: 13, color: '#A8C5A0', fontWeight: '600' },
+  // Nutrition modal
+  nutrOverlay: {
+    flex: 1, backgroundColor: '#00000040',
+    alignItems: 'center', justifyContent: 'center', padding: 24,
+  },
+  nutrModalCard: {
+    backgroundColor: '#FFFFFF', borderRadius: 18, padding: 24, width: '100%',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12, shadowRadius: 20, elevation: 10,
+  },
+  nutrModalTitle:      { fontSize: 17, fontWeight: '700', color: '#3D3935', marginBottom: 4 },
+  nutrModalSub:        { fontSize: 12, color: '#3D3935', opacity: 0.45, marginBottom: 16, lineHeight: 18 },
+  nutrModalInput: {
+    borderWidth: 1, borderColor: '#E8DCC8', borderRadius: 10,
+    paddingHorizontal: 14, paddingVertical: 12,
+    fontSize: 15, color: '#3D3935', marginBottom: 20,
+  },
+  nutrModalBtns:       { flexDirection: 'row', gap: 10 },
+  nutrModalCancel:     { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center', backgroundColor: '#F7F3EE' },
+  nutrModalCancelText: { fontSize: 14, fontWeight: '600', color: '#3D393580' },
+  nutrModalAdd:        { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center' },
+  nutrModalAddText:    { fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
+  nutrModalSectionLabel: { fontSize: 10, fontWeight: '700', color: '#3D393566', letterSpacing: 1, marginBottom: 8 },
+  nutrSuggestChip: {
+    paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20,
+    borderWidth: 1.5, borderColor: '#E8DCC8', backgroundColor: '#F7F3EE', marginRight: 8,
+  },
+  nutrSuggestText: { fontSize: 13, fontWeight: '500', color: '#3D3935' },
+  nutrEmojiBtn: {
+    width: 38, height: 38, borderRadius: 10, borderWidth: 1.5, borderColor: '#E8DCC8',
+    alignItems: 'center', justifyContent: 'center', marginRight: 8,
+  },
+  nutrEmojiBtnSelected: { borderColor: '#A8C5A0', backgroundColor: '#A8C5A015' },
+  nutrEmojiChar: { fontSize: 20 },
+  nutrInfoBtn:     { paddingHorizontal: 6, paddingVertical: 2, marginRight: 4 },
+  nutrInfoBtnText: { fontSize: 14, color: '#3D393540', fontWeight: '500' },
+  nutrInfoBtnOpen: { color: '#A8C5A0' },
+  nutrTipPanel: {
+    paddingHorizontal: 12, paddingBottom: 10, paddingTop: 6,
+    borderTopWidth: 1, borderTopColor: '#F0EDE8',
+  },
+  nutrTipText: { fontSize: 12, color: '#3D393599', lineHeight: 18 },
+  nutrNoteLabel: { fontSize: 10, fontWeight: '700', color: '#3D393566', letterSpacing: 1, marginBottom: 8 },
+  nutrNoteInput: {
+    borderWidth: 1, borderColor: '#E8DCC8', borderRadius: 10,
+    paddingHorizontal: 14, paddingVertical: 12,
+    fontSize: 14, minHeight: 72, textAlignVertical: 'top',
+  },
   nutriRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
   nutriIcon: { fontSize: 20, width: 28 },
   nutriLabel: { fontSize: 14, fontWeight: '500' },

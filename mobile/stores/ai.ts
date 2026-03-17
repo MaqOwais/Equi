@@ -84,7 +84,7 @@ async function collectReportData(
     .order('logged_at', { ascending: false }).limit(1).maybeSingle();
   const currentState: string = (latestCycleRaw as { state?: string } | null)?.state ?? 'stable';
 
-  const [moodRes, cycleRes, actRes, checkinRes, sigRes, sleepRes, socialRes, compatRes] =
+  const [moodRes, cycleRes, actRes, checkinRes, sigRes, sleepRes, socialRes, compatRes, nutritionRes] =
     await Promise.all([
       db.from('mood_logs').select('logged_at, score').eq('user_id', userId)
         .gte('logged_at', start).lte('logged_at', end),
@@ -103,20 +103,36 @@ async function collectReportData(
         .eq('user_id', userId).gte('date', start).lte('date', end),
       db.from('activities').select('title')
         .contains('compatible_states', [currentState]),
+      db.from('nutrition_logs').select('log_date, categories')
+        .eq('user_id', userId).gte('log_date', start).lte('log_date', end),
     ]) as { data: any[] | null }[];
 
-  const mood: any[]    = moodRes.data ?? [];
-  const cycle: any[]   = cycleRes.data ?? [];
-  const acts: any[]    = actRes.data ?? [];
-  const checkins: any[]= checkinRes.data ?? [];
-  const sigs: any[]    = sigRes.data ?? [];
-  const sleep: any[]   = sleepRes.data ?? [];
-  const social: any[]  = socialRes.data ?? [];
-  const compat: any[]  = compatRes.data ?? [];
+  const mood: any[]      = moodRes.data ?? [];
+  const cycle: any[]     = cycleRes.data ?? [];
+  const acts: any[]      = actRes.data ?? [];
+  const checkins: any[]  = checkinRes.data ?? [];
+  const sigs: any[]      = sigRes.data ?? [];
+  const sleep: any[]     = sleepRes.data ?? [];
+  const social: any[]    = socialRes.data ?? [];
+  const compat: any[]    = compatRes.data ?? [];
+  const nutrition: any[] = nutritionRes.data ?? [];
 
   const completedTitles = acts
     .map((r) => (r.activity as { title?: string } | null)?.title)
     .filter((t): t is string => !!t);
+
+  const BENEFIT_KEYS = ['anti_inflammatory', 'whole_grains', 'lean_protein', 'healthy_fats', 'fermented'];
+  const HARM_KEYS    = ['ultra_processed', 'sugar_heavy', 'alcohol'];
+  // Count days where any anti-inflammatory food was logged
+  const nutritionDays = nutrition.filter((r) => {
+    const cats: Record<string, number> = r.categories ?? {};
+    return BENEFIT_KEYS.some((k) => (cats[k] ?? 0) > 0);
+  }).length;
+  // Count days with any destabilizing food logged
+  const destabilizingDays = nutrition.filter((r) => {
+    const cats: Record<string, number> = r.categories ?? {};
+    return HARM_KEYS.some((k) => (cats[k] ?? 0) > 0) || (cats['caffeine'] ?? 0) >= 3;
+  }).length;
 
   return {
     period: { start, end },
@@ -134,6 +150,8 @@ async function collectReportData(
     ),
     sleepLogs: sleep.map((r) => ({ date: r.date, duration_minutes: r.duration_minutes, quality_score: r.quality_score })),
     socialRhythmLogs: social.map((r) => ({ date: r.date, score: r.score, anchors_hit: r.anchors_hit, anchors_total: r.anchors_total })),
+    nutritionDays:     nutritionDays     > 0 ? nutritionDays     : undefined,
+    destabilizingDays: destabilizingDays > 0 ? destabilizingDays : undefined,
   };
 }
 

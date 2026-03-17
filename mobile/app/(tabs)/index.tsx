@@ -21,6 +21,8 @@ import type { CycleState } from '../../types/database';
 import { useAmbientTheme } from '../../stores/ambient';
 import { useSubstanceLogsStore } from '../../stores/substanceLogs';
 import { useCompanionStore, abstractCycleLabel, abstractCycleColor } from '../../stores/companion';
+import { getLocal } from '../../lib/local-day-store';
+import { calcNutritionScore } from './you/nutrition';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -250,6 +252,7 @@ export default function TodayScreen() {
   const [medDosageDraft, setMedDosageDraft] = useState('');
 
   const todayDate = isoToday();
+  const [todayNutrition, setTodayNutrition] = useState<{ score: number; logged: boolean } | null>(null);
 
   useEffect(() => {
     layout.load();
@@ -263,6 +266,14 @@ export default function TodayScreen() {
       medsStore.load(userId);
       tasksStore.loadDate(userId, todayDate);
       subLogs.load(userId, todayDate);
+      // Load today's nutrition for home card summary
+      getLocal(userId, todayDate).then((local) => {
+        if (local?.nutritionCategories) {
+          const cats = local.nutritionCategories;
+          const score = calcNutritionScore(cats);
+          setTodayNutrition({ score, logged: true });
+        }
+      });
     }
   }, [userId]);
 
@@ -802,10 +813,24 @@ const showRuminationPrompt = today.moodScore !== null && today.moodScore <= 3;
             >
               <Text style={{ fontSize: 30 }}>🥗</Text>
               <View style={{ flex: 1 }}>
-                <Text style={[{ fontSize: 14, fontWeight: '600', marginBottom: 3 }, { color: theme.textPrimary }]}>Food Quality Log</Text>
-                <Text style={[{ fontSize: 12, lineHeight: 17 }, { color: theme.textSecondary, opacity: 1 }]}>
-                  Track what you ate today across 11 quality categories
+                <Text style={[{ fontSize: 14, fontWeight: '600', marginBottom: 3 }, { color: theme.textPrimary }]}>
+                  Food Quality Log
                 </Text>
+                {todayNutrition?.logged ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={{
+                      fontSize: 18, fontWeight: '700',
+                      color: todayNutrition.score >= 7 ? '#A8C5A0' : todayNutrition.score >= 4 ? '#C9A84C' : '#C4A0B0',
+                    }}>
+                      {todayNutrition.score}
+                    </Text>
+                    <Text style={[{ fontSize: 12 }, { color: theme.textSecondary, opacity: 1 }]}>/10 today</Text>
+                  </View>
+                ) : (
+                  <Text style={[{ fontSize: 12, lineHeight: 17 }, { color: theme.textSecondary, opacity: 1 }]}>
+                    Nothing logged yet — tap to track
+                  </Text>
+                )}
               </View>
               <Text style={[s.heroArrow, { color: '#A8C5A0' }]}>›</Text>
             </TouchableOpacity>

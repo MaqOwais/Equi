@@ -50,7 +50,8 @@ export interface ReportData {
   compatibleActivities?: string[];  // activity names compatible with current cycle state
   substanceDays: { alcohol: boolean; cannabis: boolean }[];
   medicationAdherence?: string[];
-  nutritionDays?: number;
+  nutritionDays?: number;         // days with ≥1 anti-inflammatory food logged
+  destabilizingDays?: number;     // days with ≥1 destabilizing food or 3+ caffeine
   relapseSignatures?: {
     manic?: { warning_signs: string[]; days_before: number };
     depressive?: { warning_signs: string[]; days_before: number };
