@@ -256,6 +256,10 @@ export default function TrackerScreen() {
   const [pendingMedStatus, setPendingMedStatus] = useState<MedicationStatus | null>(null);
   const [selectedSkipReason, setSelectedSkipReason] = useState<string | null>(null);
 
+  // ── Substances tab state ──────────────────────────────────────────────────
+  const [subLogging, setSubLogging] = useState(false);
+  const [subLastLogged, setSubLastLogged] = useState<string | null>(null);
+
   // ── Food tab state ────────────────────────────────────────────────────────
   const [nutritionCounts, setNutritionCounts] = useState<Record<string, number>>({});
   const [nutritionSaved, setNutritionSaved] = useState(false);
@@ -406,7 +410,8 @@ export default function TrackerScreen() {
     if (!userId) return;
     const hasAlcohol  = medsStore.substances.some((s) => s.category === 'alcohol'  && updatedLogs[s.id]?.used);
     const hasCannabis = medsStore.substances.some((s) => s.category === 'cannabis' && updatedLogs[s.id]?.used);
-    saveLocal(userId, todayDate, { alcohol: hasAlcohol, cannabis: hasCannabis });
+    // Use logCheckin so checkinTimestamp is saved alongside alcohol/cannabis
+    today.logCheckin(userId, hasAlcohol, hasCannabis);
   }
 
   async function handleSubToggle(substanceId: string) {
@@ -419,6 +424,18 @@ export default function TrackerScreen() {
     if (!userId) return;
     await subLogs.setAmount(userId, todayDate, substanceId, delta);
     syncSubsToCheckins(useSubstanceLogsStore.getState().logs);
+  }
+
+  async function handleLogSubstances() {
+    if (!userId || subLogging) return;
+    const anyActive = medsStore.substances.some((s) => subLogs.logs[s.id]?.used);
+    if (!anyActive) return;
+    setSubLogging(true);
+    const hasAlcohol  = medsStore.substances.some((s) => s.category === 'alcohol'  && subLogs.logs[s.id]?.used);
+    const hasCannabis = medsStore.substances.some((s) => s.category === 'cannabis' && subLogs.logs[s.id]?.used);
+    await today.logCheckin(userId, hasAlcohol, hasCannabis);
+    setSubLastLogged(new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }));
+    setSubLogging(false);
   }
 
   const accentColor = STATE_COLORS[cycleState];
@@ -961,6 +978,31 @@ export default function TrackerScreen() {
                         </View>
                       );
                     })}
+                  </View>
+
+                  {/* Log button */}
+                  <View style={s.medLogRow}>
+                    {subLastLogged && (
+                      <Text style={s.medLoggedAt}>Logged at {subLastLogged}</Text>
+                    )}
+                    {(() => {
+                      const anyActive = medsStore.substances.some((s) => subLogs.logs[s.id]?.used);
+                      return (
+                        <TouchableOpacity
+                          style={[s.medLogBtn, { backgroundColor: anyActive ? '#C4A0B0' : '#E0DDD8' }]}
+                          onPress={handleLogSubstances}
+                          disabled={subLogging || !anyActive}
+                          activeOpacity={0.8}
+                        >
+                          {subLogging
+                            ? <ActivityIndicator color="#FFFFFF" size="small" />
+                            : <Text style={s.medLogBtnText}>
+                                {today.alcohol !== null || today.cannabis !== null ? '↺ Update Log' : 'Log Substances'}
+                              </Text>
+                          }
+                        </TouchableOpacity>
+                      );
+                    })()}
                   </View>
                 </View>
               </>

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
-import { saveLocal } from '../lib/local-day-store';
+import { saveLocal, getLocal } from '../lib/local-day-store';
 import { fetchLastNightSleep, requestSleepPermissions } from '../lib/healthkit';
 import type { SleepLog, WearableConnection, WearableProvider } from '../types/database';
 
@@ -47,14 +47,38 @@ export const useSleepStore = create<SleepStore>((set, get) => ({
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const since = `${thirtyDaysAgo.getFullYear()}-${String(thirtyDaysAgo.getMonth() + 1).padStart(2, '0')}-${String(thirtyDaysAgo.getDate()).padStart(2, '0')}`;
 
-    const [todayRes, historyRes, connectionsRes] = await Promise.all([
+    // Read local store in parallel — used as fallback if Supabase has no entry yet
+    const [todayRes, historyRes, connectionsRes, local] = await Promise.all([
       db.from('sleep_logs').select('*').eq('user_id', userId).eq('date', today).maybeSingle(),
       db.from('sleep_logs').select('*').eq('user_id', userId).gte('date', since).order('date', { ascending: false }),
       db.from('wearable_connections').select('*').eq('user_id', userId),
+      getLocal(userId, today),
     ]);
 
+    // If Supabase has no record but local store does, reconstruct a minimal SleepLog
+    // so the home screen reflects what the user already logged (prevents data appearing
+    // to disappear on refresh before the Supabase write has been confirmed)
+    const localFallback: SleepLog | null =
+      !todayRes.data && local?.sleepQuality
+        ? ({
+            id: 'local',
+            user_id: userId,
+            date: today,
+            quality_score: local.sleepQuality,
+            duration_minutes: local.sleepDuration ?? null,
+            source: 'manual',
+            bedtime: null,
+            wake_time: null,
+            deep_minutes: null,
+            rem_minutes: null,
+            awakenings: null,
+            raw_healthkit: null,
+            created_at: local.sleepTimestamp ?? today,
+          } as unknown as SleepLog)
+        : null;
+
     set({
-      todayLog: (todayRes.data as SleepLog) ?? null,
+      todayLog: (todayRes.data as SleepLog) ?? localFallback,
       history: (historyRes.data as SleepLog[]) ?? [],
       wearableConnections: (connectionsRes.data as WearableConnection[]) ?? [],
       isLoading: false,
