@@ -300,9 +300,7 @@ export default function DayScreen() {
               {data.sleepQuality !== null && (
                 <DataRow label="Quality" value={`${data.sleepQuality} / 10`} />
               )}
-              {(detailData?.sleepLoggedAt ?? data.sleepTimestamp) ? (
-                <DataRow label="Logged at" value={fmtTime(detailData?.sleepLoggedAt ?? data.sleepTimestamp!)} />
-              ) : null}
+              <LoggedAt iso={detailData?.sleepLoggedAt ?? data.sleepTimestamp} />
             </SectionCard>
           )}
 
@@ -335,9 +333,7 @@ export default function DayScreen() {
               {data.medicationSkipReason && (
                 <DataRow label="Skip reason" value={data.medicationSkipReason} />
               )}
-              {(detailData?.medLoggedAt ?? data.medTimestamp) ? (
-                <DataRow label="Logged at" value={fmtTime(detailData?.medLoggedAt ?? data.medTimestamp!)} />
-              ) : null}
+              <LoggedAt iso={detailData?.medLoggedAt ?? data.medTimestamp} />
             </SectionCard>
           )}
 
@@ -356,9 +352,7 @@ export default function DayScreen() {
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={s.activityName}>{act.title}</Text>
-                    {act.completed_at ? (
-                      <Text style={s.activityTime}>Completed at {fmtTime(act.completed_at)}</Text>
-                    ) : null}
+                    <LoggedAt iso={act.completed_at} />
                   </View>
                 </View>
               ))}
@@ -370,9 +364,7 @@ export default function DayScreen() {
             <SectionCard title="Journal" icon="book-outline" color="#89B4CC"
               badge="Private · not shared with AI"
             >
-              {(detailData?.journalCreatedAt ?? data.journalTimestamp) ? (
-                <Text style={s.taskCompletedAt}>Written at {fmtTime(detailData?.journalCreatedAt ?? data.journalTimestamp!)}</Text>
-              ) : null}
+              <LoggedAt iso={detailData?.journalCreatedAt ?? data.journalTimestamp} />
               <Text style={s.journalBody}>
                 {journalExpanded || data.journalText.length <= 300
                   ? data.journalText
@@ -413,9 +405,7 @@ export default function DayScreen() {
                 return (
                   <View key={e.id} style={s.workbookEntry}>
                     <Text style={s.workbookChapter}>{chapterTitles[chapterIdx] ?? `Chapter ${e.chapter}`}</Text>
-                    {e.created_at && (
-                      <Text style={s.taskCompletedAt}>Written at {fmtTime(e.created_at)}</Text>
-                    )}
+                    <LoggedAt iso={e.created_at} />
                     <Text style={[s.workbookPrompt, { marginTop: 4 }]}>{prompt}</Text>
                     <Text style={s.workbookResponse}>{e.response}</Text>
                   </View>
@@ -428,9 +418,7 @@ export default function DayScreen() {
           {data.nutritionCategories &&
             Object.values(data.nutritionCategories).some((v) => v > 0) && (
             <SectionCard title="Nutrition" icon="nutrition-outline" color="#C9A84C">
-              {(detailData?.nutritionLoggedAt ?? data.nutritionTimestamp) ? (
-                <Text style={s.taskCompletedAt}>Last updated at {fmtTime(detailData?.nutritionLoggedAt ?? data.nutritionTimestamp!)}</Text>
-              ) : null}
+              <LoggedAt iso={detailData?.nutritionLoggedAt ?? data.nutritionTimestamp} />
               {Object.entries(data.nutritionCategories)
                 .filter(([, count]) => count > 0)
                 .map(([key, count]) => {
@@ -607,9 +595,7 @@ export default function DayScreen() {
                             </View>
                             <View style={{ flex: 1 }}>
                               <Text style={[s.taskTitle, done && s.taskTitleDone]} numberOfLines={2}>{task.title}</Text>
-                              {done && task.completed_at && (
-                                <Text style={s.taskCompletedAt}>Done at {fmtTime(task.completed_at)}</Text>
-                              )}
+                              {done && <LoggedAt iso={task.completed_at} />}
                             </View>
                             <View style={[s.taskEnergyPip, { backgroundColor: ec + '22', borderColor: ec + '55' }]}>
                               <Text style={[s.taskEnergyPipText, { color: ec }]}>{task.energy_level}</Text>
@@ -732,6 +718,18 @@ function DataRow({
   );
 }
 
+function LoggedAt({ iso }: { iso: string | null | undefined }) {
+  if (!iso) return null;
+  const t = fmtTime(iso);
+  if (!t) return null;
+  return (
+    <View style={sc.loggedAtRow}>
+      <Ionicons name="time-outline" size={10} color="#3D393550" />
+      <Text style={sc.loggedAtText}>{t}</Text>
+    </View>
+  );
+}
+
 const sc = StyleSheet.create({
   card: {
     marginHorizontal: 16,
@@ -788,6 +786,17 @@ const sc = StyleSheet.create({
     fontWeight: '600',
     flex: 2,
     textAlign: 'right',
+  },
+  loggedAtRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 8,
+  },
+  loggedAtText: {
+    fontSize: 11,
+    color: '#3D393550',
+    fontVariant: ['tabular-nums'],
   },
 });
 
