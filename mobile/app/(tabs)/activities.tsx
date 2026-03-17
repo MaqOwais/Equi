@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  ActivityIndicator, Modal, Pressable, TextInput, Dimensions, Switch,
+  ActivityIndicator, Modal, Pressable, TextInput, Dimensions, Switch, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -13,6 +13,7 @@ import { useActivitiesStore } from '../../stores/activities';
 import { useAIStore } from '../../stores/ai';
 import { useAmbientTheme } from '../../stores/ambient';
 import { supabase } from '../../lib/supabase';
+import { ACTIVITY_REFS } from '../../lib/evidence-refs';
 import type { Activity, ActivityCompletion, CycleState } from '../../types/database';
 
 // ─── Per-activity reminder storage (shared key with you/activities.tsx) ───────
@@ -233,6 +234,8 @@ function ActivityCard({
 }) {
   const meta = CATEGORY_META[activity.category ?? 'other'] ?? CATEGORY_META.other;
   const [timePickerOpen, setTimePickerOpen] = useState(false);
+  const [tipOpen, setTipOpen] = useState(false);
+  const evidence = ACTIVITY_REFS[activity.category ?? 'other'] ?? ACTIVITY_REFS.other;
 
   return (
     <TouchableOpacity style={[s.card, theme.cardSurface]} onPress={onPress} activeOpacity={0.78}>
@@ -251,6 +254,14 @@ function ActivityCard({
             {completionCount > 0 && (
               <Text style={[s.completionCount, { color: theme.textSecondary }]}>{completionCount}×</Text>
             )}
+            <TouchableOpacity
+              style={s.actInfoBtn}
+              onPress={(e) => { e.stopPropagation(); setTipOpen((v) => !v); }}
+              activeOpacity={0.7}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={[s.actInfoBtnText, tipOpen && s.actInfoBtnOpen]}>ⓘ</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -308,6 +319,19 @@ function ActivityCard({
           </View>
         )}
       </View>
+
+      {/* Evidence tip panel */}
+      {tipOpen && evidence && (
+        <View style={s.actTipPanel}>
+          <Text style={s.actTipText}>{evidence.why}</Text>
+          <View style={s.actRefRow}>
+            <Text style={s.actRefCitation} numberOfLines={3}>{evidence.ref.citation}</Text>
+            <TouchableOpacity onPress={() => Linking.openURL(evidence.ref.url)} activeOpacity={0.7}>
+              <Text style={s.actLearnMore}>Learn more →</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
       {reminder !== undefined && onReminderChange && (
         <TimePickerModal
@@ -895,6 +919,21 @@ const s = StyleSheet.create({
   durationPill: { backgroundColor: '#F0EDE8', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
   durationText: { fontSize: 11, fontWeight: '500' },
   evidenceTag: { fontSize: 11, color: '#A8C5A0', fontWeight: '500' },
+
+  // ⓘ info button
+  actInfoBtn:     { paddingLeft: 6, paddingVertical: 2 },
+  actInfoBtnText: { fontSize: 14, color: '#3D393540', fontWeight: '500' },
+  actInfoBtnOpen: { color: '#A8C5A0' },
+
+  // Evidence tip panel
+  actTipPanel: {
+    marginTop: 10, paddingTop: 10,
+    borderTopWidth: 1, borderTopColor: '#F0EDE8',
+  },
+  actTipText: { fontSize: 12, color: '#3D393599', lineHeight: 18, marginBottom: 8 },
+  actRefRow: { gap: 2 },
+  actRefCitation: { fontSize: 11, color: '#3D393555', lineHeight: 16, fontStyle: 'italic' },
+  actLearnMore: { fontSize: 12, color: '#89B4CC', fontWeight: '600', marginTop: 4 },
 
   // Reminder row
   reminderRow: {

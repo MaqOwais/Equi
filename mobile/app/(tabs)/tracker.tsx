@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, Modal, Pressable,
+  StyleSheet, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, Modal, Pressable, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Line as SvgLine, Rect } from 'react-native-svg';
@@ -17,6 +17,7 @@ import { useAmbientTheme } from '../../stores/ambient';
 import { fmtTime } from '../../utils/timestamps';
 import { getLocal, saveLocal } from '../../lib/local-day-store';
 import { calcNutritionScore, CUSTOM_EMOJIS, CUSTOM_SUGGESTIONS, CATEGORY_WHY } from './you/nutrition';
+import { NUTRITION_REFS } from '../../lib/evidence-refs';
 import type { CycleState, MedicationStatus } from '../../types/database';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -905,6 +906,14 @@ export default function TrackerScreen() {
                 {tipOpen && why && (
                   <View style={s.nutrTipPanel}>
                     <Text style={s.nutrTipText}>{why}</Text>
+                    {NUTRITION_REFS[cat.key] && (
+                      <View style={s.nutrRefRow}>
+                        <Text style={s.nutrRefCitation} numberOfLines={2}>{NUTRITION_REFS[cat.key].citation}</Text>
+                        <TouchableOpacity onPress={() => Linking.openURL(NUTRITION_REFS[cat.key].url)} activeOpacity={0.7}>
+                          <Text style={s.nutrLearnMore}>Learn more →</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
                   </View>
                 )}
               </View>
@@ -1506,7 +1515,10 @@ const s = StyleSheet.create({
     paddingHorizontal: 12, paddingBottom: 10, paddingTop: 6,
     borderTopWidth: 1, borderTopColor: '#F0EDE8',
   },
-  nutrTipText: { fontSize: 12, color: '#3D393599', lineHeight: 18 },
+  nutrTipText: { fontSize: 12, color: '#3D393599', lineHeight: 18, marginBottom: 8 },
+  nutrRefRow: { gap: 2 },
+  nutrRefCitation: { fontSize: 11, color: '#3D393555', lineHeight: 16, fontStyle: 'italic' },
+  nutrLearnMore: { fontSize: 12, color: '#89B4CC', fontWeight: '600', marginTop: 4 },
   nutrNoteLabel: { fontSize: 10, fontWeight: '700', color: '#3D393566', letterSpacing: 1, marginBottom: 8 },
   nutrNoteInput: {
     borderWidth: 1, borderColor: '#E8DCC8', borderRadius: 10,

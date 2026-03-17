@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, TextInput, Modal, Pressable, ActivityIndicator, FlatList,
+  StyleSheet, TextInput, Modal, Pressable, ActivityIndicator, FlatList, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -9,6 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '../../../stores/auth';
 import { supabase } from '../../../lib/supabase';
 import { saveLocal, getLocal } from '../../../lib/local-day-store';
+import { NUTRITION_REFS } from '../../../lib/evidence-refs';
 import type { Diagnosis } from '../../../types/database';
 
 const db = supabase as any;
@@ -144,6 +145,7 @@ function CategoryRow({
   onInc: () => void; onDec: () => void;
 }) {
   const tipOpen = openTip === catKey;
+  const ref = NUTRITION_REFS[catKey];
   return (
     <View style={s.categoryRow}>
       {/* Main row */}
@@ -177,6 +179,14 @@ function CategoryRow({
       {tipOpen && why && (
         <View style={s.tipPanel}>
           <Text style={s.tipText}>{why}</Text>
+          {ref && (
+            <View style={s.refRow}>
+              <Text style={s.refCitation} numberOfLines={2}>{ref.citation}</Text>
+              <TouchableOpacity onPress={() => Linking.openURL(ref.url)} activeOpacity={0.7}>
+                <Text style={s.learnMore}>Learn more →</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       )}
     </View>
@@ -605,7 +615,10 @@ const s = StyleSheet.create({
     marginTop: 10, paddingTop: 10,
     borderTopWidth: 1, borderTopColor: '#F0EDE8',
   },
-  tipText: { fontSize: 12, color: '#3D393599', lineHeight: 18 },
+  tipText: { fontSize: 12, color: '#3D393599', lineHeight: 18, marginBottom: 8 },
+  refRow: { gap: 2 },
+  refCitation: { fontSize: 11, color: '#3D393555', lineHeight: 16, fontStyle: 'italic' },
+  learnMore: { fontSize: 12, color: '#89B4CC', fontWeight: '600', marginTop: 4 },
 
   counter:            { flexDirection: 'row', alignItems: 'center', gap: 2 },
   counterBtn:         { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },

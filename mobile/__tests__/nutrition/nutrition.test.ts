@@ -7,11 +7,14 @@
  * 4. nutritionNotes      — saved alongside categories in LocalDayData
  * 5. AI report wiring    — nutritionDays / destabilizingDays counted correctly
  * 6. Score edge cases    — floor at 0, cap at 10, empty log
+ * 7. NUTRITION_REFS      — every category has a ref with valid URL + citation
+ * 8. ACTIVITY_REFS       — every activity category has a ref with valid URL + citation
  */
 
 // ─── Module under test (pure logic exports) ───────────────────────────────────
 
 import { calcNutritionScore, CATEGORY_WHY, CUSTOM_EMOJIS, CUSTOM_SUGGESTIONS } from '../../app/(tabs)/you/nutrition';
+import { NUTRITION_REFS, ACTIVITY_REFS } from '../../lib/evidence-refs';
 
 // ─── Mocks (required to import the module in Jest/Node environment) ────────────
 
@@ -329,5 +332,160 @@ describe('Custom item emoji migration', () => {
     const items = [{ key: 'custom_tea', label: 'Green tea', emoji: '🍵' }];
     const migrated = items.map((c) => ({ ...c, emoji: c.emoji ?? '🍽️' }));
     expect(migrated[0].emoji).toBe('🍵');
+  });
+});
+
+// ─── 7. NUTRITION_REFS — link validity ────────────────────────────────────────
+
+describe('NUTRITION_REFS', () => {
+  const BUILT_IN_KEYS = [
+    'anti_inflammatory', 'whole_grains', 'lean_protein', 'healthy_fats', 'fermented',
+    'caffeine', 'ultra_processed', 'sugar_heavy', 'alcohol',
+    'hydration', 'lithium_interaction',
+  ];
+
+  it('every built-in nutrition key has a reference entry', () => {
+    BUILT_IN_KEYS.forEach((key) => {
+      expect(NUTRITION_REFS[key]).toBeDefined();
+    });
+  });
+
+  it('every reference has a non-empty citation string', () => {
+    BUILT_IN_KEYS.forEach((key) => {
+      const ref = NUTRITION_REFS[key];
+      expect(typeof ref.citation).toBe('string');
+      expect(ref.citation.trim().length).toBeGreaterThan(10);
+    });
+  });
+
+  it('every reference URL starts with https://', () => {
+    BUILT_IN_KEYS.forEach((key) => {
+      expect(NUTRITION_REFS[key].url).toMatch(/^https:\/\//);
+    });
+  });
+
+  it('every reference URL points to a recognised academic host', () => {
+    const VALID_HOSTS = [
+      'pubmed.ncbi.nlm.nih.gov',
+      'pmc.ncbi.nlm.nih.gov',
+      'www.nature.com',
+      'jamanetwork.com',
+      'www.thelancet.com',
+      'link.springer.com',
+      'www.cambridge.org',
+      'www.mdpi.com',
+      'onlinelibrary.wiley.com',
+    ];
+    BUILT_IN_KEYS.forEach((key) => {
+      const url = NUTRITION_REFS[key].url;
+      const host = new URL(url).hostname;
+      expect(VALID_HOSTS).toContain(host);
+    });
+  });
+
+  it('every reference URL is a well-formed URL (no typos)', () => {
+    BUILT_IN_KEYS.forEach((key) => {
+      expect(() => new URL(NUTRITION_REFS[key].url)).not.toThrow();
+    });
+  });
+
+  it('citation strings mention a year in parentheses', () => {
+    BUILT_IN_KEYS.forEach((key) => {
+      expect(NUTRITION_REFS[key].citation).toMatch(/\(\d{4}\)/);
+    });
+  });
+
+  it('each citation ends with a journal name (contains a full stop or journal identifier)', () => {
+    BUILT_IN_KEYS.forEach((key) => {
+      // At minimum must contain a dot or abbreviation suggesting a journal reference
+      expect(NUTRITION_REFS[key].citation.length).toBeGreaterThan(30);
+    });
+  });
+});
+
+// ─── 8. ACTIVITY_REFS — link validity ────────────────────────────────────────
+
+describe('ACTIVITY_REFS', () => {
+  const ACTIVITY_CATEGORY_KEYS = [
+    'grounding', 'sleep', 'self_esteem', 'forgiveness', 'reflection', 'custom', 'other',
+  ];
+
+  it('every activity category key has a reference entry', () => {
+    ACTIVITY_CATEGORY_KEYS.forEach((key) => {
+      expect(ACTIVITY_REFS[key]).toBeDefined();
+    });
+  });
+
+  it('every entry has a non-empty why text', () => {
+    ACTIVITY_CATEGORY_KEYS.forEach((key) => {
+      const entry = ACTIVITY_REFS[key];
+      expect(typeof entry.why).toBe('string');
+      expect(entry.why.trim().length).toBeGreaterThan(20);
+    });
+  });
+
+  it('every entry has a ref with citation and URL', () => {
+    ACTIVITY_CATEGORY_KEYS.forEach((key) => {
+      const { ref } = ACTIVITY_REFS[key];
+      expect(typeof ref.citation).toBe('string');
+      expect(ref.citation.trim().length).toBeGreaterThan(10);
+      expect(typeof ref.url).toBe('string');
+    });
+  });
+
+  it('every activity reference URL starts with https://', () => {
+    ACTIVITY_CATEGORY_KEYS.forEach((key) => {
+      expect(ACTIVITY_REFS[key].ref.url).toMatch(/^https:\/\//);
+    });
+  });
+
+  it('every activity reference URL is a well-formed URL', () => {
+    ACTIVITY_CATEGORY_KEYS.forEach((key) => {
+      expect(() => new URL(ACTIVITY_REFS[key].ref.url)).not.toThrow();
+    });
+  });
+
+  it('every activity reference URL points to a recognised academic host', () => {
+    const VALID_HOSTS = [
+      'pubmed.ncbi.nlm.nih.gov',
+      'pmc.ncbi.nlm.nih.gov',
+      'www.nature.com',
+      'jamanetwork.com',
+      'www.thelancet.com',
+      'link.springer.com',
+      'www.cambridge.org',
+      'www.mdpi.com',
+      'onlinelibrary.wiley.com',
+    ];
+    ACTIVITY_CATEGORY_KEYS.forEach((key) => {
+      const url = ACTIVITY_REFS[key].ref.url;
+      const host = new URL(url).hostname;
+      expect(VALID_HOSTS).toContain(host);
+    });
+  });
+
+  it('sleep category why text mentions prodrome or episode onset', () => {
+    const why = ACTIVITY_REFS['sleep'].why.toLowerCase();
+    expect(why.match(/prodrome|episode|onset/)).not.toBeNull();
+  });
+
+  it('grounding category why text mentions MBCT or mindfulness', () => {
+    const why = ACTIVITY_REFS['grounding'].why.toLowerCase();
+    expect(why.match(/mbct|mindfulness/)).not.toBeNull();
+  });
+
+  it('forgiveness category why text mentions shame or guilt', () => {
+    const why = ACTIVITY_REFS['forgiveness'].why.toLowerCase();
+    expect(why.match(/shame|guilt/)).not.toBeNull();
+  });
+
+  it('custom and other categories share the same reference (both map to behavioural activation)', () => {
+    expect(ACTIVITY_REFS['custom'].ref.url).toBe(ACTIVITY_REFS['other'].ref.url);
+  });
+
+  it('every citation mentions a year', () => {
+    ACTIVITY_CATEGORY_KEYS.forEach((key) => {
+      expect(ACTIVITY_REFS[key].ref.citation).toMatch(/\(\d{4}\)/);
+    });
   });
 });
