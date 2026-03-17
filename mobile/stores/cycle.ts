@@ -83,23 +83,38 @@ export const useCycleStore = create<CycleStore>((set, get) => ({
     // into the new date while the async fetch is in-flight.
     set({ dayEntries: [] });
 
+    // Convert the requested date's local midnight → UTC so the query matches
+    // the user's local day, not UTC day. Without this, users in UTC+N timezones
+    // see the wrong day's entries (e.g. PM entries from yesterday appear today).
+    const dayStart = new Date(date + 'T00:00:00').toISOString();   // local midnight in UTC
+    const dayEnd   = new Date(date + 'T23:59:59.999').toISOString(); // local day-end in UTC
+
     const { data } = await (supabase as any)
       .from('cycle_logs')
       .select('id, logged_at, state, intensity, symptoms, notes')
       .eq('user_id', userId)
-      .gte('logged_at', date + 'T00:00:00')
-      .lte('logged_at', date + 'T23:59:59')
+      .gte('logged_at', dayStart)
+      .lte('logged_at', dayEnd)
       .order('logged_at', { ascending: true });
 
-    const dayEntries: CycleLogEntry[] = (data ?? []).map((r: any) => ({
-      id: r.id as string,
-      date,
-      timestamp: r.logged_at as string,
-      state: r.state as CycleState,
-      intensity: (r.intensity as number) ?? 5,
-      symptoms: (r.symptoms as string[]) ?? [],
-      notes: (r.notes as string | null) ?? null,
-    }));
+    // Belt-and-suspenders: also filter client-side to the local day window
+    const dayStartMs = new Date(date + 'T00:00:00').getTime();
+    const dayEndMs   = new Date(date + 'T23:59:59.999').getTime();
+
+    const dayEntries: CycleLogEntry[] = (data ?? [])
+      .filter((r: any) => {
+        const ts = new Date(r.logged_at as string).getTime();
+        return ts >= dayStartMs && ts <= dayEndMs;
+      })
+      .map((r: any) => ({
+        id: r.id as string,
+        date,
+        timestamp: r.logged_at as string,
+        state: r.state as CycleState,
+        intensity: (r.intensity as number) ?? 5,
+        symptoms: (r.symptoms as string[]) ?? [],
+        notes: (r.notes as string | null) ?? null,
+      }));
 
     set({ dayEntries });
   },
