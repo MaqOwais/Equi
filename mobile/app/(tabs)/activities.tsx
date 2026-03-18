@@ -254,14 +254,13 @@ function ActivityCard({
             {completionCount > 0 && (
               <Text style={[s.completionCount, { color: theme.textSecondary }]}>{completionCount}×</Text>
             )}
-            <TouchableOpacity
+            <Pressable
               style={s.actInfoBtn}
               onPress={(e) => { e.stopPropagation(); setTipOpen((v) => !v); }}
-              activeOpacity={0.7}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
               <Text style={[s.actInfoBtnText, tipOpen && s.actInfoBtnOpen]}>ⓘ</Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </View>
 
@@ -318,20 +317,20 @@ function ActivityCard({
             </View>
           </View>
         )}
-      </View>
 
-      {/* Evidence tip panel */}
-      {tipOpen && evidence && (
-        <View style={s.actTipPanel}>
-          <Text style={s.actTipText}>{evidence.why}</Text>
-          <View style={s.actRefRow}>
-            <Text style={s.actRefCitation} numberOfLines={3}>{evidence.ref.citation}</Text>
-            <TouchableOpacity onPress={() => Linking.openURL(evidence.ref.url)} activeOpacity={0.7}>
-              <Text style={s.actLearnMore}>Learn more →</Text>
-            </TouchableOpacity>
+        {/* Evidence tip panel — inside cardBody for correct padding/alignment */}
+        {tipOpen && evidence && (
+          <View style={s.actTipPanel}>
+            <Text style={s.actTipText}>{evidence.why}</Text>
+            <View style={s.actRefRow}>
+              <Text style={s.actRefCitation} numberOfLines={3}>{evidence.ref.citation}</Text>
+              <Pressable onPress={() => Linking.openURL(evidence.ref.url)}>
+                <Text style={s.actLearnMore}>Learn more →</Text>
+              </Pressable>
+            </View>
           </View>
-        </View>
-      )}
+        )}
+      </View>
 
       {reminder !== undefined && onReminderChange && (
         <TimePickerModal
