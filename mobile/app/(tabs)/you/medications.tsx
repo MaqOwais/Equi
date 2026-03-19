@@ -303,7 +303,10 @@ export default function MedicationsScreen() {
   const [editingMed, setEditingMed] = useState<Medication | null>(null);
 
   useEffect(() => {
-    if (userId) store.load(userId);
+    if (userId) {
+      store.load(userId);
+      accessStore.load(userId);
+    }
   }, [userId]);
 
   function openAdd() {
@@ -348,13 +351,12 @@ export default function MedicationsScreen() {
     await Promise.all(requests);
   }
 
-  async function handleSave(form: MedForm) {
+  const activeGuardians = accessStore.guardians.filter((g) => g.status === 'accepted');
+  const hasGuardian = activeGuardians.length > 0;
+  const hasNetwork = !!accessStore.psychiatristConn || hasGuardian;
+
+  async function doSave(form: MedForm) {
     if (!userId) return;
-    setModalVisible(false);
-
-    const hasNetwork = !!accessStore.psychiatristConn ||
-      accessStore.guardians.some((g) => g.status === 'accepted');
-
     if (editingMed) {
       await store.updateMedication(editingMed.id, {
         name: form.name,
@@ -387,31 +389,66 @@ export default function MedicationsScreen() {
     }
   }
 
+  function handleSave(form: MedForm) {
+    setModalVisible(false);
+    if (hasGuardian) {
+      const action = editingMed ? 'update' : 'add';
+      Alert.alert(
+        'Guardian approval required',
+        `Your guardian will be notified and must approve this ${action}. Proceed?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Submit for approval', onPress: () => doSave(form) },
+        ],
+      );
+    } else {
+      doSave(form);
+    }
+  }
+
   function handleDelete(med: Medication) {
-    Alert.alert(
-      `Remove ${med.name}?`,
-      'This will also cancel its reminders.',
-      [
-        {
-          text: 'Cancel', style: 'cancel',
-        },
-        {
-          text: 'Remove', style: 'destructive',
-          onPress: async () => {
-            await store.deleteMedication(med.id);
-            const hasNetwork = !!accessStore.psychiatristConn ||
-              accessStore.guardians.some((g) => g.status === 'accepted');
-            if (hasNetwork) {
+    if (hasGuardian) {
+      Alert.alert(
+        'Guardian approval required',
+        `Removing "${med.name}" requires your guardian's approval. They will be notified. Proceed?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Submit for approval',
+            style: 'destructive',
+            onPress: async () => {
+              await store.deleteMedication(med.id);
               await notifyMedChange(
                 `Removed medication: ${med.name}`,
                 { name: med.name, dosage: med.dosage },
                 {},
               );
-            }
+            },
           },
-        },
-      ],
-    );
+        ],
+      );
+    } else {
+      Alert.alert(
+        `Remove ${med.name}?`,
+        'This will also cancel its reminders.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Remove', style: 'destructive',
+            onPress: async () => {
+              await store.deleteMedication(med.id);
+              if (hasNetwork) {
+                await notifyMedChange(
+                  `Removed medication: ${med.name}`,
+                  { name: med.name, dosage: med.dosage },
+                  {},
+                );
+              }
+            },
+          },
+        ],
+      );
+    }
   }
 
   const initialForm: MedForm = editingMed

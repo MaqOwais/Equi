@@ -116,4 +116,18 @@ export const ACTIVITY_REFS: Record<string, {
       url: 'https://pmc.ncbi.nlm.nih.gov/articles/PMC9599144/',
     },
   },
+  workbook: {
+    why: 'Group psychoeducation produced 66% fewer manic episodes and 75% fewer depressive episodes at 5-year follow-up — the largest effect sizes in bipolar disorder research. It is a first-line adjunct treatment in CANMAT 2023 guidelines.',
+    ref: {
+      citation: 'Colom F & Vieta E et al. (2009). Group psychoeducation for stabilised bipolar disorders: 5-year outcome of a randomised clinical trial. British Journal of Psychiatry.',
+      url: 'https://www.cambridge.org/core/journals/the-british-journal-of-psychiatry/article/group-psychoeducation-for-stabilised-bipolar-disorders-5year-outcome-of-a-randomised-clinical-trial/',
+    },
+  },
+  routine: {
+    why: 'Social rhythm regularity — consistent times for waking, eating, social contact, and sleep — is the single strongest behavioural predictor of episode prevention in bipolar disorder. IPSRT landmark RCTs show it extends time to next episode.',
+    ref: {
+      citation: 'Frank E et al. (2005). Two-year outcomes for interpersonal and social rhythm therapy in individuals with bipolar I disorder. Archives of General Psychiatry.',
+      url: 'https://jamanetwork.com/journals/jamapsychiatry/fullarticle/208802',
+    },
+  },
 };

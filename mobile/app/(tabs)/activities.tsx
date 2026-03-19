@@ -12,6 +12,7 @@ import { useTodayStore } from '../../stores/today';
 import { useActivitiesStore } from '../../stores/activities';
 import { useAIStore } from '../../stores/ai';
 import { useAmbientTheme } from '../../stores/ambient';
+import { usePinsStore } from '../../stores/pins';
 import { supabase } from '../../lib/supabase';
 import { ACTIVITY_REFS } from '../../lib/evidence-refs';
 import type { Activity, ActivityCompletion, CycleState } from '../../types/database';
@@ -150,7 +151,29 @@ const CATEGORY_META: Record<string, { icon: string; label: string }> = {
   reflection:  { icon: '📖', label: 'Reflection' },
   custom:      { icon: '⭐', label: 'Your Activities' },
   other:       { icon: '🎯', label: 'Other' },
+  workbook:    { icon: '📚', label: 'Bipolar Workbook' },
+  routine:     { icon: '🗓️', label: 'Daily Routine' },
 };
+
+// Fixed program cards shown above the regular activity list
+const PROGRAMS = [
+  {
+    id: 'sc_workbook',
+    icon: '📚',
+    label: 'Bipolar Workbook',
+    sub: 'Evidence-based exercises · CANMAT first-line',
+    route: '/workbook',
+    color: '#A8C5A0',
+  },
+  {
+    id: 'sc_routine',
+    icon: '🗓️',
+    label: 'Daily Routine',
+    sub: 'Social rhythm anchors · IPSRT-based',
+    route: '/(tabs)/you/routine',
+    color: '#89B4CC',
+  },
+] as const;
 
 const DURATION_PRESETS = [5, 10, 15, 20, 30];
 
@@ -225,12 +248,13 @@ const fy = StyleSheet.create({
 
 function ActivityCard({
   activity, completionCount, isBookmarked, lastNote, accentColor, onPress, theme,
-  reminder, onReminderChange,
+  reminder, onReminderChange, pinned, onPinToggle,
 }: {
   activity: Activity; completionCount: number; isBookmarked: boolean;
   lastNote: string | null; accentColor: string; onPress: () => void;
   theme: ReturnType<typeof useAmbientTheme>;
   reminder?: ActivityReminder; onReminderChange?: (r: ActivityReminder) => void;
+  pinned?: boolean; onPinToggle?: () => void;
 }) {
   const meta = CATEGORY_META[activity.category ?? 'other'] ?? CATEGORY_META.other;
   const [timePickerOpen, setTimePickerOpen] = useState(false);
@@ -253,6 +277,15 @@ function ActivityCard({
             {isBookmarked && <Text style={s.bookmarkIcon}>🔖</Text>}
             {completionCount > 0 && (
               <Text style={[s.completionCount, { color: theme.textSecondary }]}>{completionCount}×</Text>
+            )}
+            {onPinToggle && (
+              <Pressable
+                style={s.pinBtn}
+                onPress={(e) => { e.stopPropagation(); onPinToggle(); }}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={[s.pinBtnText, pinned && s.pinBtnActive]}>📌</Text>
+              </Pressable>
             )}
             <Pressable
               style={s.actInfoBtn}
@@ -515,6 +548,7 @@ export default function ActivitiesScreen() {
   const store = useActivitiesStore();
   const aiStore = useAIStore();
   const theme = useAmbientTheme();
+  const pins = usePinsStore();
   const router = useRouter();
   const userId = session?.user.id;
 
@@ -527,6 +561,7 @@ export default function ActivitiesScreen() {
   const accentColor = CYCLE_COLORS[cycleState];
 
   useEffect(() => {
+    pins.load();
     if (userId) {
       store.load(userId);
       aiStore.loadLatest(userId);
@@ -642,6 +677,44 @@ export default function ActivitiesScreen() {
           {/* ── ALL TAB ─────────────────────────────────────────────────────── */}
           {tab === 'all' && (
             <>
+              {/* Programs — Workbook + Routine */}
+              <View style={s.section}>
+                <View style={s.sectionHeader}>
+                  <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>PROGRAMS</Text>
+                </View>
+                {PROGRAMS.map((prog) => {
+                  const pinId = prog.id;
+                  const isPinned = pins.isPinned(pinId);
+                  return (
+                    <TouchableOpacity
+                      key={prog.id}
+                      style={[s.progCard, { borderLeftColor: prog.color }]}
+                      onPress={() => router.push(prog.route as never)}
+                      activeOpacity={0.78}
+                    >
+                      <Text style={s.progIcon}>{prog.icon}</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[s.progLabel, { color: theme.textPrimary }]}>{prog.label}</Text>
+                        <Text style={[s.progSub, { color: theme.textSecondary }]}>{prog.sub}</Text>
+                      </View>
+                      <Pressable
+                        style={s.pinBtn}
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          if (!isPinned) {
+                            pins.pin({ id: pinId, type: 'activity', label: prog.label, icon: prog.icon, route: prog.route, accentColor: prog.color });
+                          }
+                        }}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Text style={[s.pinBtnText, isPinned && s.pinBtnActive]}>📌</Text>
+                      </Pressable>
+                      <Text style={[s.progArrow, { color: theme.textSecondary }]}>›</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
               {/* For You strip */}
               {forYou.length > 0 && (
                 <View style={s.section}>
@@ -734,20 +807,30 @@ export default function ActivitiesScreen() {
                       <Text style={s.categoryIcon}>{meta.icon}</Text>
                       <Text style={[s.categoryLabel, theme.sectionLabelStyle]}>{meta.label.toUpperCase()}</Text>
                     </View>
-                    {items.map((a) => (
-                      <ActivityCard
-                        key={a.id}
-                        activity={a}
-                        completionCount={completionCountMap[a.id] ?? 0}
-                        isBookmarked={bookmarkedIds.has(a.id)}
-                        lastNote={lastNoteMap[a.id] ?? null}
-                        accentColor={CYCLE_COLORS[a.compatible_states?.[0] ?? cycleState] ?? accentColor}
-                        onPress={() => navToActivity(a)}
-                        theme={theme}
-                        reminder={reminders[a.id] ?? DEFAULT_REMINDER}
-                        onReminderChange={(r) => handleReminderChange(a.id, a.title, r)}
-                      />
-                    ))}
+                    {items.map((a) => {
+                      const actPinId = `act_${a.id}`;
+                      return (
+                        <ActivityCard
+                          key={a.id}
+                          activity={a}
+                          completionCount={completionCountMap[a.id] ?? 0}
+                          isBookmarked={bookmarkedIds.has(a.id)}
+                          lastNote={lastNoteMap[a.id] ?? null}
+                          accentColor={CYCLE_COLORS[a.compatible_states?.[0] ?? cycleState] ?? accentColor}
+                          onPress={() => navToActivity(a)}
+                          theme={theme}
+                          reminder={reminders[a.id] ?? DEFAULT_REMINDER}
+                          onReminderChange={(r) => handleReminderChange(a.id, a.title, r)}
+                          pinned={pins.isPinned(actPinId)}
+                          onPinToggle={() => {
+                            if (!pins.isPinned(actPinId)) {
+                              const meta = CATEGORY_META[a.category ?? 'other'] ?? CATEGORY_META.other;
+                              pins.pin({ id: actPinId, type: 'activity', label: a.title, icon: meta.icon, route: `/activity/${a.id}`, accentColor: CYCLE_COLORS[a.compatible_states?.[0] ?? cycleState] ?? accentColor });
+                            }
+                          }}
+                        />
+                      );
+                    })}
                   </View>
                 );
               })}
@@ -810,20 +893,30 @@ export default function ActivitiesScreen() {
                 <Text style={[s.emptyBody, { color: theme.textSecondary }]}>Bookmark activities that work for you — they'll appear here.</Text>
               </View>
             ) : (
-              savedActivities.map(({ completion, activity }) => (
-                <ActivityCard
-                  key={completion.id}
-                  activity={activity}
-                  completionCount={completionCountMap[activity.id] ?? 0}
-                  isBookmarked
-                  lastNote={lastNoteMap[activity.id] ?? null}
-                  accentColor={accentColor}
-                  onPress={() => navToActivity(activity)}
-                  theme={theme}
-                  reminder={reminders[activity.id] ?? DEFAULT_REMINDER}
-                  onReminderChange={(r) => handleReminderChange(activity.id, activity.title, r)}
-                />
-              ))
+              savedActivities.map(({ completion, activity }) => {
+                const actPinId = `act_${activity.id}`;
+                return (
+                  <ActivityCard
+                    key={completion.id}
+                    activity={activity}
+                    completionCount={completionCountMap[activity.id] ?? 0}
+                    isBookmarked
+                    lastNote={lastNoteMap[activity.id] ?? null}
+                    accentColor={accentColor}
+                    onPress={() => navToActivity(activity)}
+                    theme={theme}
+                    reminder={reminders[activity.id] ?? DEFAULT_REMINDER}
+                    onReminderChange={(r) => handleReminderChange(activity.id, activity.title, r)}
+                    pinned={pins.isPinned(actPinId)}
+                    onPinToggle={() => {
+                      if (!pins.isPinned(actPinId)) {
+                        const meta = CATEGORY_META[activity.category ?? 'other'] ?? CATEGORY_META.other;
+                        pins.pin({ id: actPinId, type: 'activity', label: activity.title, icon: meta.icon, route: `/activity/${activity.id}`, accentColor });
+                      }
+                    }}
+                  />
+                );
+              })
             )
           )}
 
@@ -972,6 +1065,25 @@ const s = StyleSheet.create({
   compText: { fontSize: 11 },
   compBar: { height: 4, backgroundColor: '#F0EDE8', borderRadius: 2, overflow: 'hidden' },
   compFill: { height: 4, borderRadius: 2 },
+
+  // Pin button
+  pinBtn: { paddingHorizontal: 4, paddingVertical: 2 },
+  pinBtnText: { fontSize: 14, opacity: 0.25 },
+  pinBtnActive: { opacity: 1 },
+
+  // Program cards (Workbook, Routine)
+  progCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: '#FFFFFF', borderRadius: 16,
+    marginHorizontal: 18, marginBottom: 10,
+    padding: 14, borderLeftWidth: 4,
+    shadowColor: '#3D3935', shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05, shadowRadius: 5, elevation: 1,
+  },
+  progIcon: { fontSize: 24 },
+  progLabel: { fontSize: 15, fontWeight: '700', marginBottom: 2 },
+  progSub: { fontSize: 12 },
+  progArrow: { fontSize: 22, fontWeight: '300', marginLeft: 4 },
 
   // Empty state
   emptyState: { alignItems: 'center', paddingTop: 60, paddingBottom: 40, paddingHorizontal: 32 },

@@ -5,7 +5,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type SectionId =
   | 'hero'
-  | 'mood'
   | 'cycle'
   | 'journal'
   | 'tasks'
@@ -22,7 +21,6 @@ export type SectionId =
 
 export const SECTION_META: Record<SectionId, { label: string; icon: string; desc: string }> = {
   hero:       { label: 'Daily Card',      icon: '⚡', desc: 'Smart tip based on your cycle state' },
-  mood:       { label: 'Mood',            icon: '😊', desc: 'Log your daily mood score' },
   cycle:      { label: 'Cycle State',     icon: '🔄', desc: 'Log today\'s episode state' },
   journal:    { label: 'Journal',         icon: '📖', desc: 'Quick-jump to today\'s entry' },
   tasks:      { label: 'Tasks',           icon: '✅', desc: 'Your daily to-do list' },
@@ -39,14 +37,13 @@ export const SECTION_META: Record<SectionId, { label: string; icon: string; desc
 };
 
 // Sections shown by default on the home screen
-// 'mood' removed — cycle tracker covers state + intensity (mood is redundant)
 export const DEFAULT_ORDER: SectionId[] = [
   'hero', 'cycle', 'journal', 'tasks', 'sleep', 'checkins', 'focus', 'suggested', 'ai_insight', 'explore',
 ];
 
 // All sections ever available (including those hidden by default)
 export const ALL_SECTIONS: SectionId[] = [
-  ...DEFAULT_ORDER, 'mood', 'nutrition', 'activities', 'social', 'wearable',
+  ...DEFAULT_ORDER, 'nutrition', 'activities', 'social', 'wearable',
 ];
 
 const STORAGE_KEY = 'equi_home_layout_v3';

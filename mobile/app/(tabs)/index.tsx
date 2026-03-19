@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity,
+  View, Text, ScrollView, TouchableOpacity, Alert,
   StyleSheet, Modal, Pressable, TextInput, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -17,6 +17,7 @@ import { useRouter } from 'expo-router';
 import { useMedicationsStore } from '../../stores/medications';
 import { useTasksStore, type EnergyLevel } from '../../stores/tasks';
 import { useHomeLayoutStore, SECTION_META, ALL_SECTIONS, type SectionId } from '../../stores/homeLayout';
+import { usePinsStore } from '../../stores/pins';
 import type { CycleState } from '../../types/database';
 import { useAmbientTheme } from '../../stores/ambient';
 import { useSubstanceLogsStore } from '../../stores/substanceLogs';
@@ -235,6 +236,7 @@ export default function TodayScreen() {
   const medsStore = useMedicationsStore();
   const tasksStore = useTasksStore();
   const layout = useHomeLayoutStore();
+  const pins = usePinsStore();
   const subLogs = useSubstanceLogsStore();
   const companionStore = useCompanionStore();
   const router = useRouter();
@@ -256,6 +258,7 @@ export default function TodayScreen() {
 
   useEffect(() => {
     layout.load();
+    pins.load();
     if (userId) {
       today.load(userId);
       sleep.load(userId);
@@ -991,6 +994,59 @@ const showRuminationPrompt = today.moodScore !== null && today.moodScore <= 3;
         </View>
 
         <View style={s.content}>
+          {/* ── Pinned shortcuts — always at the very top when pins exist ─── */}
+          {pins.items.length > 0 && (
+            <View style={s.pinnedSection}>
+              <View style={s.pinnedHeader}>
+                <Text style={[s.pinnedLabel, theme.sectionLabelStyle]}>📌  PINNED</Text>
+                <Text style={[s.pinnedCount, { color: theme.textSecondary }]}>
+                  {pins.items.length} shortcut{pins.items.length !== 1 ? 's' : ''}
+                </Text>
+              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={s.pinnedScroll}
+              >
+                {pins.items.map((item) => {
+                  const accent = item.accentColor ?? '#A8C5A0';
+                  return (
+                    <TouchableOpacity
+                      key={item.id}
+                      style={[s.pinnedCard, { backgroundColor: accent + '18', borderTopColor: accent }]}
+                      onPress={() => router.push(item.route as never)}
+                      activeOpacity={0.75}
+                    >
+                      <Pressable
+                        style={s.pinnedUnpin}
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          Alert.alert(
+                            'Remove shortcut?',
+                            `"${item.label}" will be removed from your pinned shortcuts.`,
+                            [
+                              { text: 'Cancel', style: 'cancel' },
+                              { text: 'Remove', style: 'destructive', onPress: () => pins.unpin(item.id) },
+                            ],
+                          );
+                        }}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Text style={s.pinnedUnpinText}>✕</Text>
+                      </Pressable>
+                      <View style={[s.pinnedIconCircle, { backgroundColor: accent + '35' }]}>
+                        <Text style={s.pinnedIcon}>{item.icon}</Text>
+                      </View>
+                      <Text style={[s.pinnedCardLabel, { color: theme.textPrimary }]} numberOfLines={2}>
+                        {item.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
+
           {/* ── Watching over — visible when user is guardian/well-wisher for others ── */}
           {companionStore.watching.length > 0 && (
             <View style={s.watchingCard}>
@@ -1117,6 +1173,48 @@ const showRuminationPrompt = today.moodScore !== null && today.moodScore <= 3;
                   })}
                 </>
               )}
+
+              {/* ── Pin shortcuts to home ── */}
+              <Text style={[s.customizeSectionHead, { marginTop: 20 }]}>PIN SHORTCUTS</Text>
+              <Text style={s.customizeSubtitle}>Tap 📌 to pin any screen to the top of your home.</Text>
+              {([
+                { id: 'sc_journal',    icon: '✏️', label: 'Journal',            desc: 'Daily entries',                    route: '/(tabs)/journal',            color: '#A8C5A0' },
+                { id: 'sc_tracker',    icon: '📊', label: '90-Day Mood Cycle',  desc: 'View mood patterns',               route: '/(tabs)/tracker',            color: '#89B4CC' },
+                { id: 'sc_activities', icon: '🌿', label: 'Activities',         desc: 'Matched to your state',            route: '/(tabs)/activities',         color: '#A8C5A0' },
+                { id: 'sc_community',  icon: '💬', label: 'Community',          desc: 'Share & connect anonymously',      route: '/community',                 color: '#C4A0B0' },
+                { id: 'sc_ai_report',  icon: '🧠', label: 'AI Report',          desc: 'Weekly insights',                  route: '/(tabs)/you/ai-report',      color: '#89B4CC' },
+                { id: 'sc_psych',      icon: '🩺', label: 'Psychiatrists',      desc: 'Find & book',                     route: '/psychiatrists',             color: '#A8C5A0' },
+                { id: 'sc_calendar',   icon: '📅', label: 'Calendar',           desc: 'All events in one view',           route: '/(tabs)/calendar',           color: '#C9A84C' },
+                { id: 'sc_workbook',   icon: '📚', label: 'Bipolar Workbook',   desc: 'Evidence-based exercises',         route: '/workbook',                  color: '#A8C5A0' },
+                { id: 'sc_routine',    icon: '🗓️', label: 'Daily Routine',      desc: 'Social rhythm anchors',            route: '/(tabs)/you/routine',        color: '#89B4CC' },
+                { id: 'sc_sleep',      icon: '🌙', label: 'Sleep Detail',       desc: 'Sleep logs & trends',              route: '/(tabs)/you/sleep-detail',   color: '#89B4CC' },
+                { id: 'sc_nutrition',  icon: '🥗', label: 'Nutrition',          desc: 'Food quality tracker',             route: '/(tabs)/you/nutrition',      color: '#A8C5A0' },
+                { id: 'sc_meds',       icon: '💊', label: 'Medications',        desc: 'Meds & adherence',                 route: '/(tabs)/you/medications',    color: '#C9A84C' },
+                { id: 'sc_social',     icon: '🤝', label: 'Support Network',    desc: 'Guardians & well-wishers',         route: '/(tabs)/you/support-network',color: '#C4A0B0' },
+                { id: 'sc_relapse',    icon: '🔔', label: 'Relapse Signature',  desc: 'Your early warning signs',         route: '/(tabs)/you/relapse-signature', color: '#C4A0B0' },
+                { id: 'sc_substances', icon: '🫙', label: 'Substances',         desc: 'Track substance use',              route: '/(tabs)/you/substances',     color: '#E8DCC8' },
+              ] as { id: string; icon: string; label: string; desc: string; route: string; color: string }[]).map((sc) => {
+                const isPinned = pins.isPinned(sc.id);
+                return (
+                  <View key={sc.id} style={s.customizeRow}>
+                    <Text style={s.customizeIcon}>{sc.icon}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={s.customizeLabel}>{sc.label}</Text>
+                      <Text style={s.customizeDesc}>{sc.desc}</Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => {
+                        if (isPinned) pins.unpin(sc.id);
+                        else pins.pin({ id: sc.id, type: 'activity', label: sc.label, icon: sc.icon, route: sc.route, accentColor: sc.color });
+                      }}
+                      style={isPinned ? s.customizeHideBtn : s.customizeShowBtn}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={isPinned ? s.customizeHideTxt : s.customizeShowTxt}>{isPinned ? '📌' : '+ Pin'}</Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
 
               <TouchableOpacity style={[s.sheetConfirm, { marginTop: 20 }]} onPress={() => setCustomizeVisible(false)}>
                 <Text style={s.sheetConfirmText}>Done</Text>
@@ -1454,4 +1552,33 @@ const s = StyleSheet.create({
   watchingName: { fontSize: 14, fontWeight: '600', color: '#3D3935' },
   watchingState: { fontSize: 12, fontWeight: '500', marginTop: 1 },
   watchingChevron: { fontSize: 18, color: '#3D393540' },
+
+  // Pinned section
+  pinnedSection: { marginBottom: 10 },
+  pinnedHeader: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'center', marginHorizontal: 18, marginBottom: 10,
+  },
+  pinnedLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 1 },
+  pinnedCount: { fontSize: 11, fontWeight: '500' },
+  pinnedScroll: { paddingHorizontal: 18, gap: 10 },
+  pinnedCard: {
+    width: 118, borderRadius: 14, padding: 12,
+    borderTopWidth: 3,
+    shadowColor: '#3D3935', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08, shadowRadius: 6, elevation: 2,
+  },
+  pinnedIconCircle: {
+    width: 38, height: 38, borderRadius: 19,
+    alignItems: 'center', justifyContent: 'center', marginBottom: 8,
+  },
+  pinnedIcon: { fontSize: 20 },
+  pinnedCardLabel: { fontSize: 11, fontWeight: '700', lineHeight: 15 },
+  pinnedUnpin: {
+    position: 'absolute', top: 7, right: 7,
+    width: 18, height: 18, borderRadius: 9,
+    backgroundColor: 'rgba(0,0,0,0.09)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  pinnedUnpinText: { fontSize: 9, fontWeight: '800', color: '#3D3935', opacity: 0.65 },
 });
