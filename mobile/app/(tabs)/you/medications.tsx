@@ -10,6 +10,7 @@ import { useAuthStore } from '../../../stores/auth';
 import { useMedicationsStore } from '../../../stores/medications';
 import { useAccessStore } from '../../../stores/access';
 import type { Medication } from '../../../types/database';
+import { useBipolarFlag } from '../../../lib/bipolar-flag';
 
 const IS_EXPO_GO = Constants.executionEnvironment === 'storeClient';
 
@@ -113,6 +114,7 @@ function MedModal({
   onCancel: () => void;
 }) {
   const [form, setForm] = useState<MedForm>(initial);
+  const bipolar = useBipolarFlag();
 
   useEffect(() => { setForm(initial); }, [visible]);
 
@@ -142,7 +144,7 @@ function MedModal({
           <Text style={md.label}>Medication name *</Text>
           <TextInput
             style={md.input}
-            placeholder="e.g. Lithium, Quetiapine"
+            placeholder={bipolar ? 'e.g. Lithium, Quetiapine' : 'e.g. Sertraline, Fluoxetine'}
             placeholderTextColor="#3D393540"
             value={form.name}
             onChangeText={(v) => setForm((f) => ({ ...f, name: v }))}

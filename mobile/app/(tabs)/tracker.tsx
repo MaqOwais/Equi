@@ -16,7 +16,8 @@ import { useSubstanceLogsStore } from '../../stores/substanceLogs';
 import { useAmbientTheme } from '../../stores/ambient';
 import { fmtTime } from '../../utils/timestamps';
 import { getLocal, saveLocal } from '../../lib/local-day-store';
-import { calcNutritionScore, CUSTOM_EMOJIS, CUSTOM_SUGGESTIONS, CATEGORY_WHY } from './you/nutrition';
+import { calcNutritionScore, CUSTOM_EMOJIS, CUSTOM_SUGGESTIONS, getCategoryWhy } from './you/nutrition';
+import { useBipolarFlag } from '../../lib/bipolar-flag';
 import { NUTRITION_REFS } from '../../lib/evidence-refs';
 import type { CycleState, MedicationStatus } from '../../types/database';
 
@@ -58,10 +59,17 @@ const STATE_COLORS: Record<CycleState, string> = {
 const STATE_LABELS: Record<CycleState, string> = {
   stable: 'Stable', manic: 'Elevated', depressive: 'Low', mixed: 'Mixed',
 };
-const SYMPTOMS: Record<CycleState, string[]> = {
+const SYMPTOMS_BIPOLAR: Record<CycleState, string[]> = {
   stable:     ['Regular sleep', 'Good energy', 'Clear thinking', 'Social connection'],
   manic:      ['Racing thoughts', 'Overspending', 'Irritability', 'Reduced sleep', 'Grandiosity', 'Risk-taking'],
   depressive: ['Low energy', 'Isolation', 'Hopelessness', 'Sleep changes', 'Poor concentration', 'Appetite changes'],
+  mixed:      ['Agitation', 'Rapid mood shifts', 'Fatigue + irritability', 'Restlessness'],
+};
+
+const SYMPTOMS_GENERAL: Record<CycleState, string[]> = {
+  stable:     ['Regular sleep', 'Good energy', 'Clear thinking', 'Social connection'],
+  manic:      ['Racing thoughts', 'Busy / fast mind', 'Irritability', 'Reduced sleep', 'Increased activity', 'Impulsive decisions'],
+  depressive: ['Low energy', 'Withdrawal', 'Low mood', 'Sleep changes', 'Poor concentration', 'Appetite changes'],
   mixed:      ['Agitation', 'Rapid mood shifts', 'Fatigue + irritability', 'Restlessness'],
 };
 
@@ -203,6 +211,8 @@ export default function TrackerScreen() {
   const subLogs = useSubstanceLogsStore();
   const router = useRouter();
   const theme = useAmbientTheme();
+  const bipolar = useBipolarFlag();
+  const SYMPTOMS = bipolar ? SYMPTOMS_BIPOLAR : SYMPTOMS_GENERAL;
   const userId = session?.user.id;
   const { tab: tabParam } = useLocalSearchParams<{ tab?: string }>();
 
@@ -877,7 +887,7 @@ export default function TrackerScreen() {
           const renderNutrRow = (cat: NutrCat) => {
             const count = nutritionCounts[cat.key] ?? 0;
             const tipOpen = nutrOpenTip === cat.key;
-            const why = CATEGORY_WHY[cat.key];
+            const why = getCategoryWhy(cat.key, bipolar);
             return (
               <View key={cat.key}>
                 <View style={s.nutriRow}>

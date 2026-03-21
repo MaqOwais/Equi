@@ -10,6 +10,7 @@ import { useAuthStore } from '../../../stores/auth';
 import { supabase } from '../../../lib/supabase';
 import { saveLocal, getLocal } from '../../../lib/local-day-store';
 import { NUTRITION_REFS } from '../../../lib/evidence-refs';
+import { useBipolarFlag } from '../../../lib/bipolar-flag';
 import type { Diagnosis } from '../../../types/database';
 
 const db = supabase as any;
@@ -66,6 +67,36 @@ export const CATEGORY_WHY: Record<string, string> = {
   lithium_interaction:
     'Grapefruit inhibits enzymes that metabolise some mood stabilisers. Sudden changes in sodium or fluid intake can shift lithium blood levels significantly — mention changes to your doctor.',
 };
+
+export const CATEGORY_WHY_GENERAL: Record<string, string> = {
+  anti_inflammatory:
+    'High omega-3 / low omega-6 diets are linked to reduced mood variability and lower depression risk. Berries and leafy greens lower inflammatory cytokines associated with low mood and fatigue.',
+  whole_grains:
+    'Complex carbs provide steady glucose, preventing the energy crashes that can trigger low mood. Stable blood sugar also supports steady tryptophan availability for serotonin synthesis.',
+  lean_protein:
+    'Amino acids — especially tryptophan in eggs and legumes — are the building blocks of serotonin and dopamine, key neurotransmitters for mood regulation and motivation.',
+  healthy_fats:
+    'Omega-3s and monounsaturated fats support brain cell membrane fluidity. Walnut and olive oil intake is associated with reduced depression risk in the PREDIMED trial.',
+  fermented:
+    'The gut microbiome communicates with the brain via the vagus nerve. Fermented foods increase beneficial bacteria associated with lower anxiety and depression scores.',
+  caffeine:
+    'Caffeine disrupts deep-sleep architecture, which is one of the strongest predictors of mood deterioration. More than 3 cups per day is linked to increased anxiety and poorer sleep quality.',
+  ultra_processed:
+    'Ultra-processed foods raise systemic inflammation (IL-6, TNF-α) — associated with a 30% higher depression risk (Jacka lab, 2019). They also displace nutrient-dense foods that support brain health.',
+  sugar_heavy:
+    'Rapid blood sugar spikes followed by crashes amplify mood instability and energy dips. High sugar intake is consistently linked to higher anxiety scores and poorer mental wellbeing.',
+  alcohol:
+    'Alcohol is a CNS depressant that disrupts sleep cycles and destabilises mood — even moderate use is associated with next-day anxiety, reduced motivation, and poorer emotional regulation.',
+  hydration:
+    'Even mild dehydration (1–2%) impairs cognitive function, concentration, and mood. Consistent hydration supports energy levels and emotional resilience throughout the day.',
+  lithium_interaction:
+    'Grapefruit inhibits enzymes that metabolise some medications. If you take regular medication, check with your doctor before making significant dietary changes.',
+};
+
+/** Pick the right why-blurb for a given category and user type. */
+export function getCategoryWhy(key: string, bipolar: boolean): string {
+  return (bipolar ? CATEGORY_WHY : CATEGORY_WHY_GENERAL)[key] ?? '';
+}
 
 // ─── Score ────────────────────────────────────────────────────────────────────
 
@@ -198,6 +229,7 @@ function CategoryRow({
 export default function NutritionScreen() {
   const { session, profile } = useAuthStore();
   const router = useRouter();
+  const bipolar = useBipolarFlag();
   const userId = session?.user.id;
 
   const [counts, setCounts]               = useState<Record<string, number>>({});
@@ -358,7 +390,7 @@ export default function NutritionScreen() {
           <CategoryRow
             key={cat.key} catKey={cat.key}
             icon={cat.icon} label={cat.label} note={cat.note}
-            why={CATEGORY_WHY[cat.key]}
+            why={getCategoryWhy(cat.key, bipolar)}
             count={counts[cat.key] ?? 0}
             openTip={openTip} onTipToggle={setOpenTip}
             onInc={() => adjust(cat.key, 1)}
@@ -366,13 +398,13 @@ export default function NutritionScreen() {
           />
         ))}
 
-        {/* May destabilize section */}
-        <Text style={s.sectionHeader}>MAY DESTABILIZE</Text>
+        {/* May destabilize / limit section */}
+        <Text style={s.sectionHeader}>{bipolar ? 'MAY DESTABILIZE' : 'LIMIT OR WATCH'}</Text>
         {HARM_CATEGORIES.map((cat) => (
           <CategoryRow
             key={cat.key} catKey={cat.key}
             icon={cat.icon} label={cat.label} note={cat.note}
-            why={CATEGORY_WHY[cat.key]}
+            why={getCategoryWhy(cat.key, bipolar)}
             count={counts[cat.key] ?? 0}
             openTip={openTip} onTipToggle={setOpenTip}
             onInc={() => adjust(cat.key, 1)}
@@ -386,7 +418,7 @@ export default function NutritionScreen() {
           <CategoryRow
             key={cat.key} catKey={cat.key}
             icon={cat.icon} label={cat.label} note={cat.note}
-            why={CATEGORY_WHY[cat.key]}
+            why={getCategoryWhy(cat.key, bipolar)}
             count={counts[cat.key] ?? 0}
             openTip={openTip} onTipToggle={setOpenTip}
             onInc={() => adjust(cat.key, 1)}

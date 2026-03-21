@@ -24,6 +24,7 @@ import { useSubstanceLogsStore } from '../../stores/substanceLogs';
 import { useCompanionStore, abstractCycleLabel, abstractCycleColor } from '../../stores/companion';
 import { getLocal } from '../../lib/local-day-store';
 import { calcNutritionScore } from './you/nutrition';
+import { useBipolarFlag } from '../../lib/bipolar-flag';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -78,13 +79,22 @@ const SLEEP_OPTIONS = [
   { label: 'Great', sub: '8h+',  score: 5 },
 ];
 
-const EXPLORE_LINKS: { icon: string; label: string; sub: string; route: string }[] = [
-  { icon: '🌿', label: 'Activities',    sub: 'Matched to state',    route: '/(tabs)/activities' },
-  { icon: '💬', label: 'Community',     sub: 'Share a win',         route: '/community' },
-  { icon: '🧠', label: 'AI Report',     sub: 'Weekly insights',     route: '/(tabs)/you/ai-report' },
-  { icon: '📋', label: 'Workbook',      sub: 'Bipolar exercises',   route: '/workbook' },
-  { icon: '🩺', label: 'Psychiatrists', sub: 'Find & book',         route: '/psychiatrists' },
-  { icon: '📊', label: '90-Day Mood Cycle', sub: 'View patterns',    route: '/(tabs)/tracker' },
+const EXPLORE_LINKS_BIPOLAR: { icon: string; label: string; sub: string; route: string }[] = [
+  { icon: '🌿', label: 'Activities',        sub: 'Matched to state',     route: '/(tabs)/activities' },
+  { icon: '💬', label: 'Community',         sub: 'Share a win',          route: '/community' },
+  { icon: '🧠', label: 'AI Report',         sub: 'Weekly insights',      route: '/(tabs)/you/ai-report' },
+  { icon: '📋', label: 'Workbook',          sub: 'Bipolar exercises',     route: '/workbook' },
+  { icon: '🩺', label: 'Psychiatrists',     sub: 'Find & book',          route: '/psychiatrists' },
+  { icon: '📊', label: '90-Day Mood Cycle', sub: 'View patterns',        route: '/(tabs)/tracker' },
+];
+
+const EXPLORE_LINKS_GENERAL: { icon: string; label: string; sub: string; route: string }[] = [
+  { icon: '🌿', label: 'Activities',        sub: 'Matched to your mood', route: '/(tabs)/activities' },
+  { icon: '💬', label: 'Community',         sub: 'Share a win',          route: '/community' },
+  { icon: '🧠', label: 'AI Report',         sub: 'Weekly insights',      route: '/(tabs)/you/ai-report' },
+  { icon: '📋', label: 'Workbook',          sub: 'Wellness exercises',    route: '/workbook' },
+  { icon: '🩺', label: 'Psychiatrists',     sub: 'Find & book',          route: '/psychiatrists' },
+  { icon: '📊', label: '90-Day Mood Chart', sub: 'View patterns',        route: '/(tabs)/tracker' },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -150,7 +160,7 @@ function computeHero(opts: {
   if (trackMed && !medLogged && hour >= 8 && hour < 22)
     return { icon: '💊', title: 'Medication check', sub: 'Did you take today\'s medication?', color: '#C9A84C', route: '/(tabs)/index' };
   if (!cycleLogged)
-    return { icon: '🔄', title: 'Update your cycle state', sub: 'How is your mood episode today?', color: CYCLE_COLORS[state], action: 'cycle' };
+    return { icon: '🔄', title: 'Update your cycle state', sub: 'How is your mood today?', color: CYCLE_COLORS[state], action: 'cycle' };
   if (hour >= 18 && !journalDone)
     return { icon: '✏️', title: 'Evening reflection', sub: 'A few words about your day', color: '#A8C5A0', route: '/(tabs)/journal' };
   if (state === 'manic')
@@ -240,6 +250,8 @@ export default function TodayScreen() {
   const subLogs = useSubstanceLogsStore();
   const companionStore = useCompanionStore();
   const router = useRouter();
+  const bipolar = useBipolarFlag();
+  const exploreLinks = bipolar ? EXPLORE_LINKS_BIPOLAR : EXPLORE_LINKS_GENERAL;
   const userId = session?.user.id;
 
   const [taskInput, setTaskInput] = useState('');
@@ -448,7 +460,7 @@ const showRuminationPrompt = today.moodScore !== null && today.moodScore <= 3;
                   </View>
                 </View>
               ) : (
-                <Text style={s.cardPrompt}>How is your mood episode today?</Text>
+                <Text style={s.cardPrompt}>How is your mood today?</Text>
               )}
               <View style={s.cycleRow}>
                 {(['stable', 'manic', 'depressive', 'mixed'] as CycleState[]).map((state) => {
@@ -789,7 +801,7 @@ const showRuminationPrompt = today.moodScore !== null && today.moodScore <= 3;
           <View key="explore">
             <Text style={[s.sectionLabel, theme.sectionLabelStyle]}>EXPLORE</Text>
             <View style={s.exploreGrid}>
-              {EXPLORE_LINKS.map((link) => (
+              {exploreLinks.map((link) => (
                 <TouchableOpacity
                   key={link.route}
                   style={[s.exploreCard, theme.cardSurface]}

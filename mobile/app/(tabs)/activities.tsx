@@ -152,7 +152,7 @@ const CATEGORY_META: Record<string, { icon: string; label: string }> = {
   reflection:  { icon: '📖', label: 'Reflection' },
   custom:      { icon: '⭐', label: 'Your Activities' },
   other:       { icon: '🎯', label: 'Other' },
-  workbook:    { icon: '📚', label: 'Bipolar Workbook' },
+  workbook:    { icon: '📚', label: 'Workbook' },
   routine:     { icon: '🗓️', label: 'Daily Routine' },
 };
 
@@ -704,9 +704,7 @@ export default function ActivitiesScreen() {
                         <Text style={[s.progSub, { color: theme.textSecondary }]}>
                           {prog.id === 'sc_workbook'
                             ? (bipolar ? 'Evidence-based exercises · CANMAT first-line' : 'Evidence-based exercises')
-                            : prog.id === 'sc_routine'
-                              ? (bipolar ? 'Social rhythm anchors · IPSRT-based' : 'Evidence-based routine building')
-                              : prog.sub}
+                            : (bipolar ? 'Social rhythm anchors · IPSRT-based' : 'Evidence-based routine building')}
                         </Text>
                       </View>
                       <Pressable

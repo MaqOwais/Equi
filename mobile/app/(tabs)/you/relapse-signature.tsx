@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useAuthStore } from '../../../stores/auth';
 import { supabase } from '../../../lib/supabase';
+import { useBipolarFlag } from '../../../lib/bipolar-flag';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -47,10 +48,12 @@ function SignatureBuilder({
   episodeType,
   existing,
   onSaved,
+  bipolar,
 }: {
   episodeType: EpisodeType;
   existing: Signature | null;
   onSaved: (sig: Signature) => void;
+  bipolar: boolean;
 }) {
   const { session } = useAuthStore();
   const userId = session?.user.id;
@@ -102,7 +105,9 @@ function SignatureBuilder({
       <Text style={b.stepLabel}>STEP 1 — EARLY WARNING SIGNS</Text>
       <Text style={b.stepDesc}>
         What are your personal early warning signs for a{' '}
-        {episodeType === 'manic' ? 'high/manic' : 'low/depressive'} episode?
+        {episodeType === 'manic'
+          ? (bipolar ? 'high/manic episode' : 'high/elevated period')
+          : (bipolar ? 'low/depressive episode' : 'low/difficult period')}?
         At least 1 required.
       </Text>
       {[0, 1, 2].map((i) => (
@@ -120,7 +125,7 @@ function SignatureBuilder({
       {/* Step 2 — Timing */}
       <Text style={[b.stepLabel, { marginTop: 20 }]}>STEP 2 — TIMING</Text>
       <Text style={b.stepDesc}>
-        How many days before a full episode do you typically notice these signs?
+        How many days before a full {bipolar ? 'episode' : 'shift'} do you typically notice these signs?
       </Text>
       <Text style={[b.daysLabel, { color: accentColor }]}>About {daysBefore} days before</Text>
       <View style={b.sliderRow}>
@@ -208,6 +213,7 @@ const b = StyleSheet.create({
 export default function RelapseSignatureScreen() {
   const { session } = useAuthStore();
   const router = useRouter();
+  const bipolar = useBipolarFlag();
   const userId = session?.user.id;
 
   const [activeEpisode, setActiveEpisode] = useState<EpisodeType>('manic');
@@ -224,7 +230,7 @@ export default function RelapseSignatureScreen() {
       .select('*')
       .eq('user_id', userId);
     const map: Partial<Record<EpisodeType, Signature>> = {};
-    (data ?? []).forEach((s) => { map[s.episode_type as EpisodeType] = s as Signature; });
+    (data ?? []).forEach((sig: Signature) => { map[sig.episode_type] = sig; });
     setSignatures(map);
   }
 
@@ -232,10 +238,15 @@ export default function RelapseSignatureScreen() {
     setSignatures((prev) => ({ ...prev, [sig.episode_type]: sig }));
   }
 
-  const EPISODE_TABS: { value: EpisodeType; label: string; color: string }[] = [
-    { value: 'manic',      label: 'Elevated / Manic', color: '#89B4CC' },
-    { value: 'depressive', label: 'Low / Depressive',  color: '#C4A0B0' },
-  ];
+  const EPISODE_TABS: { value: EpisodeType; label: string; color: string }[] = bipolar
+    ? [
+        { value: 'manic',      label: 'Elevated / Manic', color: '#89B4CC' },
+        { value: 'depressive', label: 'Low / Depressive',  color: '#C4A0B0' },
+      ]
+    : [
+        { value: 'manic',      label: 'High / Elevated', color: '#89B4CC' },
+        { value: 'depressive', label: 'Low / Difficult',  color: '#C4A0B0' },
+      ];
 
   return (
     <SafeAreaView style={s.safe} edges={['left', 'right']}>
@@ -249,10 +260,11 @@ export default function RelapseSignatureScreen() {
           </TouchableOpacity>
         </View>
 
-        <Text style={s.title}>Relapse Signatures</Text>
+        <Text style={s.title}>{bipolar ? 'Relapse Signatures' : 'Warning Signs'}</Text>
         <Text style={s.subtitle}>
-          Your personal early warning patterns — used by the AI report to flag matches in real time.
-          Private to you only.
+          {bipolar
+            ? 'Your personal early warning patterns — used by the AI report to flag matches in real time. Private to you only.'
+            : 'Your personal early warning patterns — used by the AI report to flag matches in real time. Private to you only.'}
         </Text>
 
         {/* Episode type tabs */}
@@ -284,12 +296,14 @@ export default function RelapseSignatureScreen() {
           episodeType={activeEpisode}
           existing={signatures[activeEpisode] ?? null}
           onSaved={handleSaved}
+          bipolar={bipolar}
         />
 
         <View style={s.privacyNote}>
           <Text style={s.privacyText}>
-            🔒  Relapse signatures are used only within the AI wellness report to flag personal
-            patterns. They are never shared with companions or psychiatrists.
+            🔒  {bipolar ? 'Relapse signatures are' : 'Warning sign patterns are'} used only within
+            the AI wellness report to flag personal patterns. They are never shared with companions
+            or psychiatrists.
           </Text>
         </View>
 

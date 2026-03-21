@@ -876,7 +876,7 @@ export default function WorkbookScreen() {
           contentContainerStyle={s.sectionNavContent}
           style={s.sectionNav}
         >
-          {SECTIONS.map((sec, si) => {
+          {sections.map((sec, si) => {
             const count = sectionAnswered(si);
             const complete = count >= 7;
             const active = activeSection === si;
@@ -910,7 +910,7 @@ export default function WorkbookScreen() {
           <View style={s.sectionHeader}>
             <Text style={s.sectionIcon}>{sec.icon}</Text>
             <View style={{ flex: 1 }}>
-              <Text style={s.sectionNum}>Section {activeSection + 1} of {SECTIONS.length}</Text>
+              <Text style={s.sectionNum}>Section {activeSection + 1} of {sections.length}</Text>
               <Text style={s.sectionTitle}>{sec.title}</Text>
             </View>
             {sectionAnswered(activeSection) >= 7 && (
@@ -999,17 +999,17 @@ export default function WorkbookScreen() {
               onPress={() => switchSection(activeSection - 1)}
               activeOpacity={0.7}
             >
-              <Text style={s.navBtnTxt}>← {SECTIONS[activeSection - 1].title.split(' ').slice(0, 2).join(' ')}</Text>
+              <Text style={s.navBtnTxt}>← {sections[activeSection - 1].title.split(' ').slice(0, 2).join(' ')}</Text>
             </TouchableOpacity>
           )}
           <View style={{ flex: 1 }} />
-          {activeSection < SECTIONS.length - 1 && (
+          {activeSection < sections.length - 1 && (
             <TouchableOpacity
               style={[s.navBtn, s.navBtnRight]}
               onPress={() => switchSection(activeSection + 1)}
               activeOpacity={0.7}
             >
-              <Text style={s.navBtnTxt}>{SECTIONS[activeSection + 1].title.split(' ').slice(0, 2).join(' ')} →</Text>
+              <Text style={s.navBtnTxt}>{sections[activeSection + 1].title.split(' ').slice(0, 2).join(' ')} →</Text>
             </TouchableOpacity>
           )}
         </View>
