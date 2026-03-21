@@ -8,11 +8,15 @@ import { useRouter } from 'expo-router';
 import { useAuthStore } from '../stores/auth';
 import { supabase } from '../lib/supabase';
 import type { WorkbookResponse } from '../types/database';
-import { parseSupabaseTs, fmtLocalTime, fmtTimestamp } from '../utils/timestamps';
+import { parseSupabaseTs, fmtTimestamp } from '../utils/timestamps';
+import { useBipolarFlag } from '../lib/bipolar-flag';
 
 // ─── Clinical Content ──────────────────────────────────────────────────────────
+// SECTIONS_BIPOLAR — full clinical content for bipolar spectrum users
+// SECTIONS_GENERAL — adapted content for general mental health users
+// Workbook data (chapter/prompt_index) is identical in both; no DB migration needed.
 
-const SECTIONS = [
+const SECTIONS_BIPOLAR = [
   {
     title: 'Understanding Your Bipolar Patterns',
     icon: '🌊',
@@ -309,6 +313,305 @@ const SECTIONS = [
   },
 ];
 
+// ─── General (non-bipolar) Sections ───────────────────────────────────────────
+
+const SECTIONS_GENERAL = [
+  {
+    title: 'Understanding Your Mood Patterns',
+    icon: '🌊',
+    sectionHelp: 'Understanding your personal mood patterns is one of the most powerful tools for mental wellbeing. Mapping how your moods move — their texture, timing, and rhythm — reduces fear, builds self-awareness, and helps you communicate your experience to others and your care team.',
+    prompts: [
+      {
+        q: 'What does a good day feel like for you?',
+        sub: 'How does wellbeing show up physically, emotionally, and in your relationships?',
+        help: 'Establishing a clear picture of your baseline is foundational to self-monitoring. People who can clearly describe how they feel at their best are significantly better at detecting early departures from it — the first step in catching difficulties before they escalate.',
+      },
+      {
+        q: 'Describe a time when your mood was significantly elevated or energised.',
+        sub: 'What were the first signs you noticed, and how did the experience unfold?',
+        help: 'Recognising your personal early warning signs is fundamental to wellbeing management. Identifying the earliest changes — before a full shift — allows for prompt self-care that can minimise the impact. Early awareness is particularly important because insight often diminishes once a difficult period takes hold.',
+      },
+      {
+        q: 'Describe a time when your mood was significantly low.',
+        sub: 'What did that feel like in your body, your thoughts, and your daily life?',
+        help: 'Low mood has distinct features for each person — mapping yours improves your ability to respond effectively and helps you and your care team distinguish between a difficult period and your normal variation in mood.',
+      },
+      {
+        q: 'How long do mood shifts typically last for you, and how quickly do they change?',
+        sub: 'Are your shifts gradual, rapid, seasonal, or linked to particular circumstances?',
+        help: 'Understanding the rhythm of your mood shifts sets realistic expectations and reduces the distress of thinking each mood change signals something new. It also helps you and your care team make more informed decisions about when to act.',
+      },
+      {
+        q: 'What patterns have you noticed about the timing or sequence of your mood states?',
+        sub: 'For example: are certain seasons harder? Do particular life events reliably affect your mood?',
+        help: 'Pattern recognition is a core component of mood self-management. Seasonal patterns in particular respond well to targeted interventions such as light therapy, activity scheduling, or adjusted routines.',
+      },
+      {
+        q: 'How has your understanding of your own mental health changed over time?',
+        sub: 'Consider what you have learned about yourself — and how your relationship to your wellbeing has evolved.',
+        help: 'Longitudinal self-reflection builds narrative — a therapeutic construct associated with greater acceptance, reduced self-criticism, and improved engagement with support. People who can tell a coherent story about their experience are more likely to approach their wellbeing proactively.',
+      },
+      {
+        q: 'If you could explain your emotional experience to someone who has never had it, what would you want them to understand?',
+        sub: 'What do you wish more people knew — about your experience from the inside?',
+        help: 'Articulating your experience builds narrative identity, which narrative therapy research links to reduced shame and greater self-compassion. This reflection also prepares you for disclosure conversations with family, employers, or new relationships.',
+      },
+    ],
+  },
+  {
+    title: 'Exploring Emotional Triggers',
+    icon: '🌿',
+    sectionHelp: 'Identifying your triggers does not mean you can eliminate all risk — but it gives you a map. When you know which events, environments, thoughts, and relationships tend to affect your mood, you can prepare, adjust, and sometimes intervene before a shift escalates.',
+    prompts: [
+      {
+        q: 'What life events have most reliably come before periods of elevated or anxious mood?',
+        sub: 'Consider travel, deadlines, celebrations, conflict, new opportunities, reduced sleep, or substance use.',
+        help: 'Identifying your specific high-risk events allows you to build a preparedness plan rather than being caught off-guard by predictable triggers. Even knowing a trigger exists gives you the ability to prepare and respond rather than react.',
+      },
+      {
+        q: 'What life events have most reliably come before periods of low mood or withdrawal?',
+        sub: 'Consider loss, rejection, disappointment, isolation, prolonged stress, or exhaustion after a busy period.',
+        help: 'Understanding what precedes your low periods — rather than only what happens during them — allows for proactive self-care. Recognising a predictable pattern as just that (a pattern, not a personal failure) can reduce self-blame and allow for earlier intervention.',
+      },
+      {
+        q: 'Which environments tend to destabilise your mood?',
+        sub: 'Think about busy social settings, isolation, specific workplaces, noise levels, light, or particular contexts.',
+        help: 'Environmental triggers operate through sensory overload, disrupted rhythms, and social stress pathways. Identifying high-risk environments and their specific features enables targeted modifications. Even small changes can significantly reduce their impact.',
+      },
+      {
+        q: 'Which relationships tend to affect your mood most strongly, and in what direction?',
+        sub: 'Name the people who tend to stabilise you as well as those who tend to dysregulate you.',
+        help: 'Research consistently shows that relationships characterised by high criticism, hostility, or emotional over-involvement increase vulnerability to mood difficulties. Identifying both protective and destabilising relationships allows for more informed choices about how to manage contact and protect your energy.',
+      },
+      {
+        q: 'What thought patterns or beliefs tend to appear before or during a mood shift?',
+        sub: 'For example: "I can\'t cope," "Nothing matters anyway," "I have to do everything perfectly."',
+        help: 'Cognitive early warning signs often precede behavioural and emotional changes. CBT specifically targets these mood-congruent thoughts as an early intervention point. Catching the thought before it becomes a behaviour is one of the highest-leverage skills in the toolkit.',
+      },
+      {
+        q: 'What role does sleep disruption play in triggering or worsening your mood shifts?',
+        sub: 'Reflect on your personal relationship to sleep — both as a trigger and as an early warning sign.',
+        help: 'Sleep disruption is both a trigger and an early sign of mood difficulties. The relationship is bidirectional: poor sleep worsens mood, and poor mood disrupts sleep. Sleep regularity — going to bed and waking at consistent times — is one of the most powerful and modifiable factors within your control.',
+      },
+      {
+        q: 'Are there any triggers that surprise you — ones that seem small but have outsized effects?',
+        sub: 'Sometimes a song, a smell, an anniversary, or a seemingly minor event carries unexpected emotional weight.',
+        help: 'Idiosyncratic triggers — those specific to your history — are often overlooked but are highly predictive for the individual. Identifying them, even when they seem disproportionate, honours the reality that your nervous system has learned specific patterns that are real and worth mapping.',
+      },
+    ],
+  },
+  {
+    title: 'Cultivating Healthy Routines',
+    icon: '☀️',
+    sectionHelp: 'Research consistently shows that regular daily routines support mood stability and mental wellbeing. Consistent sleep/wake times, regular meals, physical movement, and predictable daily anchors create the structural conditions for emotional balance. Routine is not rigidity — it is the scaffold that creates freedom.',
+    prompts: [
+      {
+        q: 'What does your current morning routine look like?',
+        sub: 'How does the shape of your morning affect your mood for the rest of the day?',
+        help: 'Morning light exposure, consistent wake time, and a structured first hour are among the most evidence-supported regulators of mood and energy. The wake time sets the tone for your entire daily rhythm — protecting it is one of the highest-value changes you can make.',
+      },
+      {
+        q: 'How consistent is your sleep schedule?',
+        sub: 'What happens to your mood when sleep is disrupted — and what gets in the way of maintaining a regular schedule?',
+        help: 'Sleep regularity — maintaining consistent sleep and wake times, even on weekends — reduces mood instability and improves resilience. Irregular sleep schedules disrupt circadian rhythms, which have a direct and well-documented impact on mood, energy, and cognitive function.',
+      },
+      {
+        q: 'What daily anchors most reliably support your wellbeing?',
+        sub: 'Consider meals, exercise, medication timing, social contact, and work or creative rhythms.',
+        help: 'Daily anchors — regular events that synchronise your internal biological clock — are powerful tools for mood stability. Identifying your most important anchor events and protecting them during high-stress periods is a core strategy with strong evidence for wellbeing maintenance.',
+      },
+      {
+        q: 'What routines tend to break down first when your mood is shifting?',
+        sub: 'When you notice yourself stopping or changing a particular habit, what does that usually signal?',
+        help: 'Routine breakdown is both a consequence and an early warning sign of mood change. Identifying which routines collapse first — skipping meals, stopping exercise, staying up later — gives you a personalised behavioural early-warning system that is often more detectable than internal mood shifts.',
+      },
+      {
+        q: 'What does a day look like when you are truly taking good care of yourself?',
+        sub: 'Describe your ideal day honestly — and name the real barriers that make it hard to sustain.',
+        help: 'Identifying specific positive activities — not just abstract goals — and protecting them during difficult periods significantly reduces low mood duration. The barriers you identify are equally important: addressing them practically is more effective than relying on motivation alone.',
+      },
+      {
+        q: 'How does your relationship with physical movement and your body affect your mood?',
+        sub: 'What forms of movement help you, and what gets in the way of accessing them?',
+        help: 'Regular physical activity is one of the most robust evidence-based interventions for mood, anxiety, sleep quality, and energy. The key is finding movement that feels sustainable across different mood states — not just when motivation is high.',
+      },
+      {
+        q: 'What is one small, realistic change to your daily routine that would most support your wellbeing right now?',
+        sub: 'Resist the urge to overhaul everything. What is one concrete thing you could do differently tomorrow?',
+        help: 'Specific, small commitments — "I will do X at time Y in context Z" — are far more likely to become habits than broad resolutions. Behavioural change is most effective when it starts with the minimum viable change rather than a comprehensive plan that collapses under pressure.',
+      },
+    ],
+  },
+  {
+    title: 'Strengthening Emotional Regulation',
+    icon: '🧘',
+    sectionHelp: 'Emotional regulation skills from DBT and CBT give you a toolkit for working with intense emotions without acting on them impulsively or suppressing them entirely. These skills are most effective when practised during stable periods so they are available when you need them most.',
+    prompts: [
+      {
+        q: 'What emotions are hardest for you to tolerate?',
+        sub: 'What do you tend to do when those emotions become overwhelming?',
+        help: 'Emotional dysregulation — difficulty managing intense feelings — is a common thread across anxiety, depression, and stress-related difficulties. DBT was developed specifically for severe emotional dysregulation and has strong evidence for reducing impulsive behaviours and improving distress tolerance. Naming your specific intolerable emotions is the first step in choosing targeted regulation strategies.',
+      },
+      {
+        q: 'What does it feel like in your body when you are becoming emotionally dysregulated?',
+        sub: 'What physical sensations appear before you are fully in the grip of an overwhelming emotion?',
+        help: 'Somatic early warning signs — chest tightness, jaw clenching, restlessness, heat — are often detectable before conscious awareness of emotional dysregulation. Body-based awareness is foundational in both DBT and somatic approaches. Learning to read your body\'s signals creates a larger window for choosing a response rather than reacting automatically.',
+      },
+      {
+        q: 'Which grounding techniques have worked for you in moments of high emotion or dissociation?',
+        sub: 'Consider breath work, cold water, movement, sensory anchoring (5-4-3-2-1), music, prayer, or meditation.',
+        help: 'Grounding techniques work by activating the parasympathetic nervous system and redirecting attention to present-moment experience, interrupting the escalation cycle. Having a personalised toolkit — rather than a generic list — dramatically increases the likelihood of actually using a technique during a difficult moment.',
+      },
+      {
+        q: 'How do you tend to treat yourself when you make mistakes or experience setbacks?',
+        sub: 'Is your inner voice more like a harsh critic, or more like a wise and compassionate friend?',
+        help: 'Self-compassion — treating yourself with the same kindness you would offer a close friend — is strongly associated with psychological resilience and reduced depression severity. Research shows self-compassion does not reduce motivation; it actually increases it by removing the paralysing effect of shame.',
+      },
+      {
+        q: 'What beliefs about emotions do you hold that might make them harder to process?',
+        sub: 'For example: "I shouldn\'t feel this way," "Strong people don\'t cry," or "My feelings are dangerous."',
+        help: 'Emotion beliefs — often inherited from family, culture, or past experiences — directly affect how we respond to emotional experience. Identifying and gently questioning these beliefs is a high-leverage therapeutic move that reduces what CBT calls "secondary emotions" (e.g. feeling shame about feeling sad).',
+      },
+      {
+        q: 'Describe a time you managed a difficult emotion skilfully.',
+        sub: 'What were the conditions that made it possible? What did you actually do?',
+        help: 'Identifying personal evidence of emotional competence counteracts the narrative that you are "bad at emotions." Solution-focused therapy uses this technique ("exception finding") to build on existing strengths rather than cataloguing deficits. Your past successes are more instructive than any generic technique list.',
+      },
+      {
+        q: 'What would it mean for you to "ride the wave" of an emotion without acting on it or suppressing it?',
+        sub: 'What gets in the way of letting an emotion rise, peak, and naturally fall without intervening?',
+        help: 'Emotion surfing — allowing an emotion to complete its natural arc — is a core mindfulness-based skill. Research shows that emotions, when not fed by thought or behaviour, typically peak and begin to subside within 60–90 seconds. The problem is rarely the emotion itself; it is our response to the emotion.',
+      },
+    ],
+  },
+  {
+    title: 'Building Supportive Connections',
+    icon: '🤝',
+    sectionHelp: 'Isolation is both a symptom and a risk factor for many mental health challenges. Research consistently shows that social support — when it is the right kind — is one of the strongest protective factors for wellbeing. This section helps you map, deepen, and communicate your support needs honestly.',
+    prompts: [
+      {
+        q: 'Who in your life knows about your mental health journey?',
+        sub: 'How did you decide to tell them — and what was that experience like?',
+        help: 'Strategic disclosure — sharing your experience with people who need to know, in a way you feel in control of — is associated with reduced shame and better support outcomes. Planned disclosure (choosing when, what, and to whom) is far more positive in its effects than disclosure during a crisis.',
+      },
+      {
+        q: 'Who are the people who most reliably support you?',
+        sub: 'What does good support from them actually look like — specifically?',
+        help: 'Perceived social support — the sense that others are available and responsive — is one of the strongest protective factors against mental health difficulties. Making your support needs explicit (to yourself and others) dramatically increases the chance of receiving the kind of support that actually works.',
+      },
+      {
+        q: 'Are there relationships in your life that tend to dysregulate or exhaust you?',
+        sub: 'You don\'t have to eliminate them — but how do you currently manage their impact on your mood?',
+        help: 'High expressed emotion — criticism, hostility, or emotional over-involvement from close others — is one of the most replicated predictors of relapse across mood disorders. Naming the impact of difficult relationships allows for more informed choices about how much contact to have and how to prepare for interactions.',
+      },
+      {
+        q: 'What do you wish the people closest to you understood about your mental health experience?',
+        sub: 'Consider writing this as a letter — one you may or may not choose to share.',
+        help: 'Unexpressed needs in close relationships accumulate as resentment and emotional distance, both of which worsen mental health outcomes. When loved ones understand your experience, relationship quality improves and recovery is supported. This reflection is the beginning of that communication.',
+      },
+      {
+        q: 'How do you tend to communicate your needs when you are struggling?',
+        sub: 'What gets in the way of asking for help — shame, not wanting to be a burden, uncertainty about what you need?',
+        help: 'Help-seeking is a learned skill, not a personality trait. Identifying your personal barriers to help-seeking is the first step in building more consistent access to support when you need it most.',
+      },
+      {
+        q: 'What does your support network look like right now — and where are the gaps?',
+        sub: 'Consider close friends, family, professional support, peer support groups, and community connections.',
+        help: 'Resilience research emphasises the importance of a diverse support network — not relying on one or two people for all your support needs. Peer support (connection with others who have lived experience) offers unique benefits that professional support cannot fully replicate, including reduced stigma and shared hope.',
+      },
+      {
+        q: 'How have mental health challenges affected your relationships?',
+        sub: 'Include both the losses and what you have built or rebuilt in spite of the challenges.',
+        help: 'Post-traumatic growth research documents that many people report meaningful relationship deepening alongside the losses that mental health difficulties can bring. Holding both realities honestly — rather than adopting either a purely negative or a purely positive narrative — is associated with greater psychological integration and realistic hope.',
+      },
+    ],
+  },
+  {
+    title: 'Crisis Prevention and Safety Planning',
+    icon: '🔔',
+    sectionHelp: 'A safety plan is a personalised, practical document you create during a stable period to guide your actions during a crisis. Research shows that having a written safety plan significantly reduces hospital admissions and helps people feel more in control of their care.',
+    prompts: [
+      {
+        q: 'What are your personal early warning signs of an approaching crisis?',
+        sub: 'The subtle shifts that others might not notice — but that you, on reflection, have come to recognise.',
+        help: 'Recognising early warning signs is fundamental to crisis prevention. Identifying the earliest changes before a full crisis allows for prompt intervention that can minimise its intensity. Early intervention is particularly important because insight often diminishes once a crisis fully develops.',
+      },
+      {
+        q: 'What internal strategies have helped you de-escalate in a crisis moment?',
+        sub: 'Things you can do on your own, without needing to contact anyone else.',
+        help: 'Internal coping strategies are the first line of defence in a safety plan. Having pre-committed, personally meaningful self-soothing strategies reduces both the duration and severity of crisis states. These need to be specific enough to be usable under cognitive load.',
+      },
+      {
+        q: 'Who would you contact first if you were in crisis?',
+        sub: 'Do they know they are on your list — and have they agreed to this role?',
+        help: 'The presence of a named contact person in a safety plan is strongly associated with better outcomes in mental health crises. The relationship must be genuine and pre-arranged — having explicit conversations about this role during stable periods is an act of care for both you and the person you are asking.',
+      },
+      {
+        q: 'What professional resources do you have access to?',
+        sub: 'GP, therapist, crisis line, emergency department — and how would you access each one in a crisis?',
+        help: 'Knowing the precise path to professional help before you need it removes a significant cognitive and practical barrier during a crisis. A written plan with names, numbers, and steps acts as cognitive scaffolding when your own cognitive resources are depleted.',
+      },
+      {
+        q: 'What tends to make a crisis worse?',
+        sub: 'And how might you reduce access to those things during high-risk periods?',
+        help: 'Identifying what amplifies a crisis — substances, certain people, impulsive decisions — and making a specific plan to reduce access during high-risk periods is a concrete and effective safety strategy.',
+      },
+      {
+        q: 'What helps you feel safe, grounded, or cared for when you are in crisis?',
+        sub: 'A specific place, person, object, ritual, or experience — as concrete and personal as possible.',
+        help: 'Safety and comfort during crisis are highly personal. Identifying your specific sources of safety — and making them as accessible as possible in advance — makes them available when you most need them and are least able to search for them.',
+      },
+      {
+        q: 'After previous difficult periods, what do you wish had been done differently?',
+        sub: 'By you, by those around you, or by the services you encountered.',
+        help: 'Post-crisis reflection — conducted during a stable period — is a powerful source of information for planning. Preferences expressed in advance about what helps (and what doesn\'t) are rarely captured but dramatically improve people\'s sense of control during future difficult periods.',
+      },
+    ],
+  },
+  {
+    title: 'Long-Term Wellbeing and Meaningful Living',
+    icon: '✨',
+    sectionHelp: 'Wellbeing is not the absence of difficult emotions — it is building a life that is meaningful, connected, and resilient. This section draws on Positive Psychology and narrative therapy to help you connect with what matters most and build steadily toward it.',
+    prompts: [
+      {
+        q: 'What does "living well" mean to you?',
+        sub: 'In your own words — not a clinical definition, but your personal vision of a good life.',
+        help: 'Recovery-oriented approaches in mental health have shifted from symptom reduction as the sole goal to a broader vision of meaningful, self-directed living. Articulating your own vision of what a good life looks like activates the core processes of personal recovery: hope, identity, meaning, and responsibility.',
+      },
+      {
+        q: 'What strengths or qualities has navigating mental health challenges developed in you?',
+        sub: 'Empathy, self-awareness, resilience, creativity — name the ones that feel genuinely yours.',
+        help: 'Post-traumatic growth research documents that many people report gains in personal strength, appreciation for life, and relating to others alongside their struggles. Identifying these is not about minimising real difficulties — it is about holding a fuller and more accurate picture of your experience.',
+      },
+      {
+        q: 'What do you value most in life?',
+        sub: 'How does your mental health management support or sometimes conflict with those values?',
+        help: 'Values clarification, central to Acceptance and Commitment Therapy (ACT), builds psychological flexibility and sustained behaviour change. When your self-care strategies are connected to your personal values — rather than external rules — adherence becomes intrinsically motivated.',
+      },
+      {
+        q: 'What goals or dreams feel most important to you right now?',
+        sub: 'How do mental health challenges interact with them — as a barrier, a complication, or sometimes a source of unexpected insight?',
+        help: 'Meaningful goal-setting requires nuance when mental health is involved. Goals that are meaningful, realistic, and broken into steps that remain achievable across varying mood states are the most effective. Functional recovery and meaningful life goals are achievable.',
+      },
+      {
+        q: 'What have mental health challenges taken from you?',
+        sub: 'And what grief or loss still feels unprocessed or unacknowledged?',
+        help: 'Grief about the impact of mental health difficulties — lost opportunities, interrupted plans, relationships affected — is legitimate and clinically important. Unprocessed grief accumulates as chronic low-grade depression and shame. Naming loss explicitly is the first step in moving through it rather than around it.',
+      },
+      {
+        q: 'What role does meaning, purpose, or spirituality play in your resilience?',
+        sub: 'This might be religious, secular, relational, creative, or something harder to name.',
+        help: 'Meaning and purpose are strongly associated with mental health resilience across cultures and conditions. A sense of purpose is one of the most powerful buffers against despair — particularly relevant during difficult periods.',
+      },
+      {
+        q: 'Looking back from five years in the future, what do you hope to have built, healed, or understood?',
+        sub: 'About yourself, your relationships, your life — and your relationship with your own wellbeing.',
+        help: 'Prospective self-reflection — imagining your future self looking back — builds hope as a concrete cognitive skill rather than a passive wish and activates long-range planning that reduces the dominance of present-state mood on decision-making.',
+      },
+    ],
+  },
+];
+
 // ─── Appendix ─────────────────────────────────────────────────────────────────
 
 const APPENDIX_ITEMS = [
@@ -349,7 +652,6 @@ const APPENDIX_ITEMS = [
 const SAGE = '#A8C5A0';
 const CHARCOAL = '#3D3935';
 const SURFACE = '#F7F3EE';
-const TOTAL_PROMPTS = SECTIONS.length * 7; // 49
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -425,6 +727,10 @@ const ap = StyleSheet.create({
 export default function WorkbookScreen() {
   const { session } = useAuthStore();
   const router = useRouter();
+  const bipolar = useBipolarFlag();
+  const sections = bipolar ? SECTIONS_BIPOLAR : SECTIONS_GENERAL;
+  const workbookTitle = bipolar ? 'Bipolar Workbook' : 'Wellness Workbook';
+  const totalPrompts = sections.length * 7;
   const userId = session?.user.id;
 
   const [responses, setResponses] = useState<WorkbookResponse[]>([]);
@@ -519,7 +825,7 @@ export default function WorkbookScreen() {
   // Progress: count distinct (chapter, prompt_index) pairs answered
   const answeredKeys = new Set(responses.map((r) => `${r.chapter}-${r.prompt_index}`));
   const totalAnswered = answeredKeys.size;
-  const progressPct = Math.min((totalAnswered / TOTAL_PROMPTS) * 100, 100);
+  const progressPct = Math.min((totalAnswered / totalPrompts) * 100, 100);
 
   function sectionAnswered(si: number): number {
     return [0, 1, 2, 3, 4, 5, 6].filter((pi) => answeredKeys.has(`${si + 1}-${pi}`)).length;
@@ -530,7 +836,7 @@ export default function WorkbookScreen() {
     scrollRef.current?.scrollTo({ y: 0, animated: true });
   }
 
-  const sec = SECTIONS[activeSection];
+  const sec = sections[activeSection];
 
   return (
     <SafeAreaView style={s.safe} edges={['bottom', 'left', 'right']}>
@@ -552,15 +858,15 @@ export default function WorkbookScreen() {
         </View>
 
         {/* Header */}
-        <Text style={s.title}>Bipolar Workbook</Text>
-        <Text style={s.subtitle}>Evidence-based CBT & DBT · 7 sections · 49 prompts</Text>
+        <Text style={s.title}>{workbookTitle}</Text>
+        <Text style={s.subtitle}>Evidence-based CBT & DBT · {sections.length} sections · {totalPrompts} prompts</Text>
 
         {/* Progress bar */}
         <View style={s.progressWrap}>
           <View style={s.progressTrack}>
             <View style={[s.progressFill, { width: `${progressPct}%` as any }]} />
           </View>
-          <Text style={s.progressLabel}>{totalAnswered} / {TOTAL_PROMPTS}</Text>
+          <Text style={s.progressLabel}>{totalAnswered} / {totalPrompts}</Text>
         </View>
 
         {/* Section nav — horizontally scrollable */}
@@ -709,12 +1015,12 @@ export default function WorkbookScreen() {
         </View>
 
         {/* Workbook complete */}
-        {totalAnswered >= TOTAL_PROMPTS && (
+        {totalAnswered >= totalPrompts && (
           <View style={s.finishedCard}>
             <Text style={s.finishedEmoji}>🌿</Text>
             <Text style={s.finishedTitle}>Workbook Complete</Text>
             <Text style={s.finishedDesc}>
-              You have answered all 49 prompts. This represents a remarkable act of self-knowledge.
+              You have answered all {totalPrompts} prompts. This represents a remarkable act of self-knowledge.
               Keep adding reflections as your understanding grows — each entry is timestamped and private.
             </Text>
           </View>

@@ -62,11 +62,14 @@ export const NUTRITION_REFS: Record<string, EvidenceRef> = {
 
 // ─── Activity category references ─────────────────────────────────────────────
 // Keys match CATEGORY_META in app/(tabs)/activities.tsx
+// Each category has a bipolar-specific ref and a generic (_general) variant.
+// Use getActivityRef(category, isBipolar) to pick the right one.
 
 export const ACTIVITY_REFS: Record<string, {
   why: string;
   ref: EvidenceRef;
 }> = {
+  // ── Bipolar-specific ────────────────────────────────────────────────────────
   grounding: {
     why: 'Mindfulness-Based Cognitive Therapy (MBCT) reduces depressive symptoms and anxiety in bipolar disorder. Most effective during stable or depressive phases — the evidence does not support it for active manic episodes.',
     ref: {
@@ -130,4 +133,84 @@ export const ACTIVITY_REFS: Record<string, {
       url: 'https://jamanetwork.com/journals/jamapsychiatry/fullarticle/208802',
     },
   },
+
+  // ── Generic (non-bipolar) versions — same keys with _general suffix ──────────
+  grounding_general: {
+    why: 'Mindfulness-Based Cognitive Therapy (MBCT) is an evidence-based treatment that reduces depressive symptoms, anxiety, and stress across a wide range of mental health conditions. It teaches you to relate to difficult thoughts and feelings differently, reducing their impact.',
+    ref: {
+      citation: 'Kuyken W et al. (2016). Efficacy of mindfulness-based cognitive therapy in prevention of depressive relapse. JAMA Psychiatry.',
+      url: 'https://jamanetwork.com/journals/jamapsychiatry/fullarticle/2517515',
+    },
+  },
+  sleep_general: {
+    why: 'Sleep disruption is one of the strongest predictors of mood deterioration across all mental health conditions. Good sleep hygiene — consistent bed and wake times, limited screens before bed, a wind-down routine — is among the most effective and accessible interventions for mental wellbeing.',
+    ref: {
+      citation: 'Scott AJ et al. (2021). Improving sleep quality leads to better mental health: a meta-analysis of randomised controlled trials. Sleep Medicine Reviews.',
+      url: 'https://pubmed.ncbi.nlm.nih.gov/34607008/',
+    },
+  },
+  self_esteem_general: {
+    why: 'Cognitive and skills-based interventions targeting self-worth are among the most effective active ingredients in psychological therapy. Building a stable sense of self reduces vulnerability to depression, anxiety, and interpersonal difficulties.',
+    ref: {
+      citation: 'Sowislo JF & Orth U. (2013). Does low self-esteem predict depression and anxiety? A meta-analysis of longitudinal studies. Psychological Bulletin.',
+      url: 'https://pubmed.ncbi.nlm.nih.gov/23163469/',
+    },
+  },
+  forgiveness_general: {
+    why: 'Structured self-forgiveness interventions reduce depression, anger, and distress — with evidence from 14 RCTs. Being able to move past self-blame is one of the most powerful factors in sustained mental wellbeing.',
+    ref: {
+      citation: 'Blackburn K et al. (2024). Psychological interventions to promote self-forgiveness: a systematic review. BMC Psychology.',
+      url: 'https://link.springer.com/article/10.1186/s40359-024-01671-3',
+    },
+  },
+  reflection_general: {
+    why: 'Structured reflection and psychoeducation — understanding your patterns, triggers, and responses — improve self-management, reduce symptoms, and help you feel more in control of your mental health.',
+    ref: {
+      citation: 'Donker T et al. (2009). Psychoeducation for depression, anxiety and psychological distress: a meta-analysis. BMC Medicine.',
+      url: 'https://bmcmedicine.biomedcentral.com/articles/10.1186/1741-7015-7-79',
+    },
+  },
+  custom_general: {
+    why: 'Behavioural Activation — scheduling meaningful, mood-lifting activities — is one of the most effective evidence-based treatments for depression and low mood. Personalised activity scheduling improves mood, energy, and motivation.',
+    ref: {
+      citation: 'Ekers D et al. (2014). Behavioural activation for depression: an update of meta-analysis of effectiveness and sub-group analysis. PLOS ONE.',
+      url: 'https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0100100',
+    },
+  },
+  other_general: {
+    why: 'Behavioural Activation — scheduling meaningful, mood-lifting activities — is one of the most effective evidence-based treatments for depression and low mood. Personalised activity scheduling improves mood, energy, and motivation.',
+    ref: {
+      citation: 'Ekers D et al. (2014). Behavioural activation for depression: an update of meta-analysis of effectiveness and sub-group analysis. PLOS ONE.',
+      url: 'https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0100100',
+    },
+  },
+  workbook_general: {
+    why: 'Psychoeducation — understanding your mental health patterns, triggers, and early warning signs — consistently improves outcomes across mood and anxiety disorders. A structured wellness workbook builds the self-awareness that is the foundation of lasting change.',
+    ref: {
+      citation: 'Donker T et al. (2009). Psychoeducation for depression, anxiety and psychological distress: a meta-analysis. BMC Medicine.',
+      url: 'https://bmcmedicine.biomedcentral.com/articles/10.1186/1741-7015-7-79',
+    },
+  },
+  routine_general: {
+    why: 'Regular daily routines — consistent sleep/wake times, meals, exercise, and social contact — are among the strongest behavioural predictors of mood stability and resilience. Establishing healthy daily rhythms reduces vulnerability to stress, anxiety, and low mood.',
+    ref: {
+      citation: 'Serin Y & Acar Tek N. (2019). Effect of circadian rhythm on metabolic processes and the regulation of energy balance. Annals of Nutrition and Metabolism.',
+      url: 'https://pubmed.ncbi.nlm.nih.gov/31455770/',
+    },
+  },
 };
+
+/**
+ * Returns the right evidence ref for a category based on the BIPOLAR flag.
+ * Falls back to the bipolar version if no generic version exists.
+ */
+export function getActivityRef(
+  category: string,
+  bipolar: boolean,
+): typeof ACTIVITY_REFS[string] | undefined {
+  if (!bipolar) {
+    const generic = ACTIVITY_REFS[`${category}_general`];
+    if (generic) return generic;
+  }
+  return ACTIVITY_REFS[category];
+}

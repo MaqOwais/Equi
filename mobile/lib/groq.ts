@@ -61,7 +61,7 @@ export interface ReportData {
   socialRhythmLogs?: { date: string; score: number; anchors_hit: number; anchors_total: number }[];
 }
 
-const BASE_SYSTEM_PROMPT = `You are a clinical wellness assistant for a bipolar disorder monitoring app.
+const BASE_SYSTEM_PROMPT_BIPOLAR = `You are a clinical wellness assistant for a bipolar disorder monitoring app.
 Analyse anonymised health data and generate a structured report.
 Rules:
 - Be warm, non-judgmental, clinically careful.
@@ -137,16 +137,47 @@ MONTHLY REPORT FOCUS:
 - Identify activities consistently associated with better mood days.
 - Keep cycle_overview.days as an empty array — focus on trends, not day-by-day detail.`;
 
-export function buildReportMessages(data: ReportData): ChatMessage[] {
+const BASE_SYSTEM_PROMPT_GENERAL = `You are a clinical wellness assistant for a mental health and wellbeing monitoring app.
+Analyse anonymised health data and generate a structured report.
+Rules:
+- Be warm, non-judgmental, clinically careful.
+- Never diagnose. Never prescribe. Never claim causation — only correlation or pattern.
+- Early warning flags are informational — use cautious, supportive language.
+- Users are tracking mood and wellbeing — they may have various conditions or be pursuing general wellness.
+- No user identifiers are included in this data — do not add any.
+- Respond ONLY with valid JSON matching the schema provided. No markdown, no prose outside JSON.
+
+SLEEP CORRELATION RULES:
+- If sleep data is present, note patterns (e.g. sleep changed in 48h before a mood shift).
+- Do not state causation — say "sleep improved before mood lifted", not "sleep caused improvement".
+- If no sleep data is available, set sleep_correlation to null.
+
+SOCIAL RHYTHM RULES:
+- If social rhythm data is present, report the 7-day average score as a percentage.
+- Note direction (improving/declining) if enough data exists to compare periods.
+- Do not recommend specific times — only describe what was observed.
+- If no social rhythm data is available, set social_rhythm to null.
+
+ACTIVITY SUGGESTION RULES:
+- Only suggest activities from the provided compatible_activities list.
+- Do not suggest activities the user completed 3+ times this period (avoid repetition).
+- Suggest 2-4 activities. No more. Plain activity names only — no explanation in this field.
+- If no compatible_activities list is provided, return an empty array.`;
+
+function getSystemPrompt(bipolar: boolean): string {
+  return bipolar ? BASE_SYSTEM_PROMPT_BIPOLAR : BASE_SYSTEM_PROMPT_GENERAL;
+}
+
+export function buildReportMessages(data: ReportData, bipolar = true): ChatMessage[] {
   return [
-    { role: 'system', content: BASE_SYSTEM_PROMPT },
+    { role: 'system', content: getSystemPrompt(bipolar) },
     { role: 'user', content: `DATA:\n${JSON.stringify(data, null, 2)}\n\nSCHEMA:\n${WEEKLY_SCHEMA}` },
   ];
 }
 
-export function buildMonthlyReportMessages(data: ReportData): ChatMessage[] {
+export function buildMonthlyReportMessages(data: ReportData, bipolar = true): ChatMessage[] {
   return [
-    { role: 'system', content: BASE_SYSTEM_PROMPT + MONTHLY_EXTRA_RULES },
+    { role: 'system', content: getSystemPrompt(bipolar) + MONTHLY_EXTRA_RULES },
     { role: 'user', content: `DATA:\n${JSON.stringify(data, null, 2)}\n\nSCHEMA:\n${MONTHLY_SCHEMA}` },
   ];
 }

@@ -5,7 +5,17 @@
  */
 
 export type CycleState = 'stable' | 'manic' | 'depressive' | 'mixed';
-export type Diagnosis = 'bipolar_1' | 'bipolar_2' | 'cyclothymia' | 'unsure';
+// Bipolar spectrum → isBipolar() returns true for the first three
+// General mental health → isBipolar() returns false for the rest
+export type Diagnosis =
+  | 'bipolar_1'
+  | 'bipolar_2'
+  | 'cyclothymia'
+  | 'depression'
+  | 'anxiety'
+  | 'general'
+  | 'other'
+  | 'unsure';
 export type UserRole = 'patient' | 'companion';
 export type ContactType = 'emergency' | 'social';
 export type MedicationStatus = 'taken' | 'skipped' | 'partial';

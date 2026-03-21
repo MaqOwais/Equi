@@ -14,7 +14,8 @@ import { useAIStore } from '../../stores/ai';
 import { useAmbientTheme } from '../../stores/ambient';
 import { usePinsStore } from '../../stores/pins';
 import { supabase } from '../../lib/supabase';
-import { ACTIVITY_REFS } from '../../lib/evidence-refs';
+import { getActivityRef } from '../../lib/evidence-refs';
+import { useBipolarFlag } from '../../lib/bipolar-flag';
 import type { Activity, ActivityCompletion, CycleState } from '../../types/database';
 
 // ─── Per-activity reminder storage (shared key with you/activities.tsx) ───────
@@ -259,7 +260,9 @@ function ActivityCard({
   const meta = CATEGORY_META[activity.category ?? 'other'] ?? CATEGORY_META.other;
   const [timePickerOpen, setTimePickerOpen] = useState(false);
   const [tipOpen, setTipOpen] = useState(false);
-  const evidence = ACTIVITY_REFS[activity.category ?? 'other'] ?? ACTIVITY_REFS.other;
+  const bipolar = useBipolarFlag();
+  const evidence = getActivityRef(activity.category ?? 'other', bipolar)
+    ?? getActivityRef('other', bipolar);
 
   return (
     <TouchableOpacity style={[s.card, theme.cardSurface]} onPress={onPress} activeOpacity={0.78}>
@@ -549,6 +552,7 @@ export default function ActivitiesScreen() {
   const aiStore = useAIStore();
   const theme = useAmbientTheme();
   const pins = usePinsStore();
+  const bipolar = useBipolarFlag();
   const router = useRouter();
   const userId = session?.user.id;
 
@@ -694,8 +698,16 @@ export default function ActivitiesScreen() {
                     >
                       <Text style={s.progIcon}>{prog.icon}</Text>
                       <View style={{ flex: 1 }}>
-                        <Text style={[s.progLabel, { color: theme.textPrimary }]}>{prog.label}</Text>
-                        <Text style={[s.progSub, { color: theme.textSecondary }]}>{prog.sub}</Text>
+                        <Text style={[s.progLabel, { color: theme.textPrimary }]}>
+                          {prog.id === 'sc_workbook' && !bipolar ? 'Wellness Workbook' : prog.label}
+                        </Text>
+                        <Text style={[s.progSub, { color: theme.textSecondary }]}>
+                          {prog.id === 'sc_workbook'
+                            ? (bipolar ? 'Evidence-based exercises · CANMAT first-line' : 'Evidence-based exercises')
+                            : prog.id === 'sc_routine'
+                              ? (bipolar ? 'Social rhythm anchors · IPSRT-based' : 'Evidence-based routine building')
+                              : prog.sub}
+                        </Text>
                       </View>
                       <Pressable
                         style={s.pinBtn}

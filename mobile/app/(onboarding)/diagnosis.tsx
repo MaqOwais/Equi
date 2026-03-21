@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { supabase } from '../../lib/supabase';
@@ -8,12 +8,45 @@ const db = supabase as any;
 import { useAuthStore } from '../../stores/auth';
 import type { Diagnosis } from '../../types/database';
 
-const OPTIONS: { value: Diagnosis; label: string; desc: string }[] = [
-  { value: 'bipolar_1', label: 'Bipolar I', desc: 'Distinct manic episodes' },
-  { value: 'bipolar_2', label: 'Bipolar II', desc: 'Hypomanic + depressive' },
-  { value: 'cyclothymia', label: 'Cyclothymia', desc: 'Milder mood cycling' },
-  { value: 'unsure', label: 'Still figuring it out', desc: 'Exploring or recently diagnosed' },
+const BIPOLAR_OPTIONS: { value: Diagnosis; label: string; desc: string }[] = [
+  { value: 'bipolar_1',   label: 'Bipolar I',    desc: 'Distinct manic episodes' },
+  { value: 'bipolar_2',   label: 'Bipolar II',   desc: 'Hypomanic + depressive' },
+  { value: 'cyclothymia', label: 'Cyclothymia',  desc: 'Milder mood cycling' },
 ];
+
+const GENERAL_OPTIONS: { value: Diagnosis; label: string; desc: string }[] = [
+  { value: 'depression', label: 'Depression / Low mood', desc: 'Persistent low mood or low energy' },
+  { value: 'anxiety',    label: 'Anxiety',               desc: 'Worry, tension, or panic' },
+  { value: 'general',   label: 'General wellness',       desc: 'Stress management, resilience' },
+  { value: 'other',     label: 'Other / Prefer not to say', desc: 'Something else, or no label' },
+  { value: 'unsure',    label: 'Still figuring it out',  desc: 'Exploring or recently referred' },
+];
+
+function OptionRow({
+  option,
+  selected,
+  onSelect,
+}: {
+  option: { value: Diagnosis; label: string; desc: string };
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <TouchableOpacity
+      style={[s.option, selected && s.optionSelected]}
+      onPress={onSelect}
+      activeOpacity={0.8}
+    >
+      <View style={[s.radio, selected && s.radioSelected]}>
+        {selected && <View style={s.radioDot} />}
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={s.optionLabel}>{option.label}</Text>
+        <Text style={s.optionDesc}>{option.desc}</Text>
+      </View>
+    </TouchableOpacity>
+  );
+}
 
 export default function DiagnosisScreen() {
   const { session } = useAuthStore();
@@ -32,27 +65,30 @@ export default function DiagnosisScreen() {
 
   return (
     <SafeAreaView style={s.safe}>
-      <View style={s.content}>
+      <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
         <Text style={s.title}>Which best{'\n'}describes you?</Text>
         <Text style={s.sub}>
           This helps us personalise your experience. Your diagnosis is private and never shared automatically.
         </Text>
 
-        {OPTIONS.map((opt) => (
-          <TouchableOpacity
+        <Text style={s.groupLabel}>BIPOLAR SPECTRUM</Text>
+        {BIPOLAR_OPTIONS.map((opt) => (
+          <OptionRow
             key={opt.value}
-            style={[s.option, selected === opt.value && s.optionSelected]}
-            onPress={() => setSelected(opt.value)}
-            activeOpacity={0.8}
-          >
-            <View style={[s.radio, selected === opt.value && s.radioSelected]}>
-              {selected === opt.value && <View style={s.radioDot} />}
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={s.optionLabel}>{opt.label}</Text>
-              <Text style={s.optionDesc}>{opt.desc}</Text>
-            </View>
-          </TouchableOpacity>
+            option={opt}
+            selected={selected === opt.value}
+            onSelect={() => setSelected(opt.value)}
+          />
+        ))}
+
+        <Text style={[s.groupLabel, { marginTop: 20 }]}>GENERAL MENTAL HEALTH</Text>
+        {GENERAL_OPTIONS.map((opt) => (
+          <OptionRow
+            key={opt.value}
+            option={opt}
+            selected={selected === opt.value}
+            onSelect={() => setSelected(opt.value)}
+          />
         ))}
 
         <TouchableOpacity
@@ -66,19 +102,25 @@ export default function DiagnosisScreen() {
         <TouchableOpacity onPress={() => advance(null)}>
           <Text style={s.skip}>Skip for now</Text>
         </TouchableOpacity>
-      </View>
+
+        <View style={{ height: 32 }} />
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const s = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#FFFFFF' },
-  content: { flex: 1, paddingHorizontal: 28, paddingTop: 64, paddingBottom: 32 },
+  content: { paddingHorizontal: 28, paddingTop: 64, paddingBottom: 32 },
   title: { fontSize: 34, fontWeight: '700', color: '#3D3935', letterSpacing: -0.6, lineHeight: 42, marginBottom: 12 },
-  sub: { fontSize: 14, color: '#3D3935', opacity: 0.45, lineHeight: 20, marginBottom: 36 },
+  sub: { fontSize: 14, color: '#3D3935', opacity: 0.45, lineHeight: 20, marginBottom: 28 },
+  groupLabel: {
+    fontSize: 11, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase',
+    color: '#3D3935', opacity: 0.35, marginBottom: 10,
+  },
   option: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
-    backgroundColor: '#FFFFFF', borderRadius: 14, padding: 16, marginBottom: 10,
+    backgroundColor: '#FFFFFF', borderRadius: 14, padding: 16, marginBottom: 8,
     borderWidth: 1.5, borderColor: 'transparent',
   },
   optionSelected: { borderColor: '#A8C5A0', backgroundColor: '#FFFFFF' },
