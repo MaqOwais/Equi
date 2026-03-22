@@ -6,6 +6,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Svg, { Polygon, Line, Circle, Text as SvgText } from 'react-native-svg';
 import { useAuthStore } from '../../../stores/auth';
+import { useDevStore } from '../../../stores/dev';
+import { useBipolarFlag } from '../../../lib/bipolar-flag';
+import { DEV_MODE } from '../../../constants/dev';
 import { useSleepStore } from '../../../stores/sleep';
 import { useSocialRhythmStore } from '../../../stores/socialRhythm';
 import { useAmbientStore, useAmbientTheme, SCENES } from '../../../stores/ambient';
@@ -144,6 +147,9 @@ export default function YouScreen() {
   const activeScene = SCENES.find((sc) => sc.id === activeSceneId);
   const theme = useAmbientTheme();
   const userId = session?.user.id;
+  const devStore = useDevStore();
+  const bipolar = useBipolarFlag();
+  const devOverrideActive = devStore.bipolarOverride !== null || devStore.diagnosisOverride !== null;
 
   const [stats, setStats] = useState({ days: 0, activities: 0, stableDays: 0 });
   const [radarScores, setRadarScores] = useState<RadarScores>({
@@ -548,6 +554,28 @@ export default function YouScreen() {
           <Text style={[s.donateBtnSub, { color: theme.textSecondary }]}>Free forever · No ads · Donate optionally</Text>
         </TouchableOpacity>
 
+        {/* Developer Mode — only in DEV builds */}
+        {DEV_MODE && (
+          <TouchableOpacity
+            style={[s.devBtn, devOverrideActive && s.devBtnActive]}
+            onPress={() => router.push('/(tabs)/you/dev-mode')}
+            activeOpacity={0.8}
+          >
+            <View style={s.devBtnLeft}>
+              <Text style={s.devBtnIcon}>🛠</Text>
+              <View>
+                <Text style={s.devBtnLabel}>Developer Mode</Text>
+                <Text style={s.devBtnSub}>
+                  {devOverrideActive
+                    ? `Override active · bipolar=${String(bipolar)}`
+                    : `bipolar flag = ${String(bipolar)} · tap to override`}
+                </Text>
+              </View>
+            </View>
+            <Text style={s.devBtnChevron}>›</Text>
+          </TouchableOpacity>
+        )}
+
         {/* Sign out */}
         <TouchableOpacity style={s.signOutBtn} onPress={signOut}>
           <Text style={[s.signOutText, { color: theme.textSecondary }]}>Sign out</Text>
@@ -620,6 +648,21 @@ const s = StyleSheet.create({
   },
   donateBtnText: { fontSize: 15, fontWeight: '700', color: '#C9A84C', marginBottom: 2 },
   donateBtnSub: { fontSize: 12 },
+
+  devBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: '#3D393508', borderRadius: 14, paddingVertical: 12,
+    paddingHorizontal: 16, marginBottom: 10,
+    borderWidth: 1.5, borderColor: '#3D393520',
+  },
+  devBtnActive: {
+    backgroundColor: '#C9A84C10', borderColor: '#C9A84C50',
+  },
+  devBtnLeft:    { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 },
+  devBtnIcon:    { fontSize: 18 },
+  devBtnLabel:   { fontSize: 14, fontWeight: '600', color: '#3D393580' },
+  devBtnSub:     { fontSize: 11, color: '#3D393550', marginTop: 1 },
+  devBtnChevron: { fontSize: 20, color: '#3D393540' },
 
   signOutBtn: { paddingVertical: 14, alignItems: 'center', marginTop: 8 },
   signOutText: { fontSize: 14, fontWeight: '500' },

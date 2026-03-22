@@ -11,6 +11,8 @@
 
 import type { Diagnosis } from '../types/database';
 import { useAuthStore } from '../stores/auth';
+import { useDevStore } from '../stores/dev';
+import { DEV_MODE } from '../constants/dev';
 
 const BIPOLAR_DIAGNOSES = new Set<Diagnosis>(['bipolar_1', 'bipolar_2', 'cyclothymia']);
 
@@ -19,9 +21,15 @@ export function isBipolar(diagnosis: Diagnosis | null | undefined): boolean {
   return BIPOLAR_DIAGNOSES.has(diagnosis);
 }
 
-/** React hook — reads diagnosis from the auth store and returns the flag. */
+/** React hook — reads diagnosis from the auth store and returns the flag.
+ *  In DEV_MODE, the dev store can override the value for testing. */
 export function useBipolarFlag(): boolean {
-  const profile = useAuthStore((s) => s.profile);
+  const profile     = useAuthStore((s) => s.profile);
+  const devOverride = useDevStore((s) => s.bipolarOverride);
+
+  if (DEV_MODE && devOverride !== null) {
+    return devOverride === 'bipolar';
+  }
   return isBipolar(profile?.diagnosis);
 }
 
