@@ -72,11 +72,11 @@ export const CATEGORY_WHY_GENERAL: Record<string, string> = {
   anti_inflammatory:
     'High omega-3 / low omega-6 diets are linked to reduced mood variability and lower depression risk. Berries and leafy greens lower inflammatory cytokines associated with low mood and fatigue.',
   whole_grains:
-    'Complex carbs provide steady glucose, preventing the energy crashes that can trigger low mood. Stable blood sugar also supports steady tryptophan availability for serotonin synthesis.',
+    'Complex carbs provide steady glucose, preventing the energy crashes that can trigger low mood. Stable blood sugar supports consistent energy and steady tryptophan availability for serotonin synthesis.',
   lean_protein:
     'Amino acids — especially tryptophan in eggs and legumes — are the building blocks of serotonin and dopamine, key neurotransmitters for mood regulation and motivation.',
   healthy_fats:
-    'Omega-3s and monounsaturated fats support brain cell membrane fluidity. Walnut and olive oil intake is associated with reduced depression risk in the PREDIMED trial.',
+    'Omega-3s and monounsaturated fats support brain cell membrane fluidity and cognitive health. Walnut and olive oil intake is associated with reduced depression risk in the PREDIMED trial.',
   fermented:
     'The gut microbiome communicates with the brain via the vagus nerve. Fermented foods increase beneficial bacteria associated with lower anxiety and depression scores.',
   caffeine:

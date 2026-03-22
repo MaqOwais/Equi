@@ -79,7 +79,7 @@ const SLEEP_OPTIONS = [
   { label: 'Great', sub: '8h+',  score: 5 },
 ];
 
-const EXPLORE_LINKS_BIPOLAR: { icon: string; label: string; sub: string; route: string }[] = [
+export const EXPLORE_LINKS_BIPOLAR: { icon: string; label: string; sub: string; route: string }[] = [
   { icon: '🌿', label: 'Activities',        sub: 'Matched to state',     route: '/(tabs)/activities' },
   { icon: '💬', label: 'Community',         sub: 'Share a win',          route: '/community' },
   { icon: '🧠', label: 'AI Report',         sub: 'Weekly insights',      route: '/(tabs)/you/ai-report' },
@@ -88,7 +88,7 @@ const EXPLORE_LINKS_BIPOLAR: { icon: string; label: string; sub: string; route: 
   { icon: '📊', label: '90-Day Mood Cycle', sub: 'View patterns',        route: '/(tabs)/tracker' },
 ];
 
-const EXPLORE_LINKS_GENERAL: { icon: string; label: string; sub: string; route: string }[] = [
+export const EXPLORE_LINKS_GENERAL: { icon: string; label: string; sub: string; route: string }[] = [
   { icon: '🌿', label: 'Activities',        sub: 'Matched to your mood', route: '/(tabs)/activities' },
   { icon: '💬', label: 'Community',         sub: 'Share a win',          route: '/community' },
   { icon: '🧠', label: 'AI Report',         sub: 'Weekly insights',      route: '/(tabs)/you/ai-report' },

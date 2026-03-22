@@ -59,14 +59,14 @@ const STATE_COLORS: Record<CycleState, string> = {
 const STATE_LABELS: Record<CycleState, string> = {
   stable: 'Stable', manic: 'Elevated', depressive: 'Low', mixed: 'Mixed',
 };
-const SYMPTOMS_BIPOLAR: Record<CycleState, string[]> = {
+export const SYMPTOMS_BIPOLAR: Record<CycleState, string[]> = {
   stable:     ['Regular sleep', 'Good energy', 'Clear thinking', 'Social connection'],
   manic:      ['Racing thoughts', 'Overspending', 'Irritability', 'Reduced sleep', 'Grandiosity', 'Risk-taking'],
   depressive: ['Low energy', 'Isolation', 'Hopelessness', 'Sleep changes', 'Poor concentration', 'Appetite changes'],
   mixed:      ['Agitation', 'Rapid mood shifts', 'Fatigue + irritability', 'Restlessness'],
 };
 
-const SYMPTOMS_GENERAL: Record<CycleState, string[]> = {
+export const SYMPTOMS_GENERAL: Record<CycleState, string[]> = {
   stable:     ['Regular sleep', 'Good energy', 'Clear thinking', 'Social connection'],
   manic:      ['Racing thoughts', 'Busy / fast mind', 'Irritability', 'Reduced sleep', 'Increased activity', 'Impulsive decisions'],
   depressive: ['Low energy', 'Withdrawal', 'Low mood', 'Sleep changes', 'Poor concentration', 'Appetite changes'],

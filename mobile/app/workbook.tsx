@@ -16,7 +16,7 @@ import { useBipolarFlag } from '../lib/bipolar-flag';
 // SECTIONS_GENERAL — adapted content for general mental health users
 // Workbook data (chapter/prompt_index) is identical in both; no DB migration needed.
 
-const SECTIONS_BIPOLAR = [
+export const SECTIONS_BIPOLAR = [
   {
     title: 'Understanding Your Bipolar Patterns',
     icon: '🌊',
@@ -315,7 +315,7 @@ const SECTIONS_BIPOLAR = [
 
 // ─── General (non-bipolar) Sections ───────────────────────────────────────────
 
-const SECTIONS_GENERAL = [
+export const SECTIONS_GENERAL = [
   {
     title: 'Understanding Your Mood Patterns',
     icon: '🌊',
